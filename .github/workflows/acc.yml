@@ -1,0 +1,48 @@
+name: Acceptance Tests
+
+# Runs the TF_ACC acceptance tests against a LIVE tenant, so it is gated to manual
+# dispatch and a weekly schedule — never on PRs. Point it at a disposable dev
+# tenant with no real data.
+#
+# Required repository configuration:
+#   vars.ARM_TENANT_ID, vars.ARM_CLIENT_ID  - the test app (non-secret)
+#   an Entra federated credential on that app for this repo, e.g. subject
+#   repo:terraprovider/terraform-provider-teams:ref:refs/heads/main (OIDC, no secret).
+# Alternatively set an ARM_CLIENT_SECRET secret and drop ARM_USE_OIDC below.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 5 * * 1" # weekly, Monday 05:00 UTC
+
+permissions:
+  contents: read
+  id-token: write # mint the GitHub OIDC token for federated auth
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    env:
+      TF_ACC: "1"
+      ARM_USE_OIDC: "true"
+      ARM_TENANT_ID: ${{ vars.ARM_TENANT_ID }}
+      ARM_CLIENT_ID: ${{ vars.ARM_CLIENT_ID }}
+      # Optional: a test user (objectId or UPN) for the policy-assignment tests.
+      # Unset -> those tests skip.
+      TEAMS_ACC_USER: ${{ vars.TEAMS_ACC_USER }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_wrapper: false
+
+      - name: Acceptance tests
+        # -parallel 4: the tenant throttles under heavier concurrent create/destroy
+        # bursts (go-msadmin retries 429/Retry-After, but sustained throttling can
+        # still exhaust attempts). 4 keeps the suite fast without tripping limits.
+        run: go test -run '^TestAcc' -parallel 4 -timeout 45m -v ./internal/provider/
