@@ -1,36 +1,10 @@
 package provider
 
 import (
-	"context"
 	"encoding/json"
-
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/terraprovider/go-teams/teamsapi"
 )
-
-// toStringSlice converts a types.Set of strings to []string.
-func toStringSlice(ctx context.Context, s types.Set, diags *diag.Diagnostics) []string {
-	if s.IsNull() || s.IsUnknown() {
-		return nil
-	}
-	var out []string
-	diags.Append(s.ElementsAs(ctx, &out, false)...)
-	return out
-}
-
-// stringSetValue builds a types.Set from a []string (empty, non-null when vals is nil).
-func stringSetValue(ctx context.Context, vals []string) types.Set {
-	if vals == nil {
-		vals = []string{}
-	}
-	set, d := types.SetValueFrom(ctx, types.StringType, vals)
-	if d.HasError() {
-		return types.SetValueMust(types.StringType, nil)
-	}
-	return set
-}
 
 func firstObject(v []map[string]any) map[string]any {
 	if len(v) == 0 {
@@ -70,24 +44,6 @@ func getInt(m map[string]any, key string) int64 {
 		}
 	}
 	return 0
-}
-
-func getStringSlice(m map[string]any, key string) []string {
-	v, ok := m[key]
-	if !ok || v == nil {
-		return nil
-	}
-	arr, ok := v.([]any)
-	if !ok {
-		return nil
-	}
-	out := make([]string, 0, len(arr))
-	for _, e := range arr {
-		if s, ok := e.(string); ok {
-			out = append(out, s)
-		}
-	}
-	return out
 }
 
 func firstNonEmptyStr(vals ...string) string {
