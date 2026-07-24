@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &audioConferencingPolicyResource{}
 	_ resource.ResourceWithConfigure   = &audioConferencingPolicyResource{}
 	_ resource.ResourceWithImportState = &audioConferencingPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &audioConferencingPolicyResource{}
 )
 
 type audioConferencingPolicyResource struct{ client *clients.Client }
@@ -71,12 +72,46 @@ func (r *audioConferencingPolicyResource) Create(ctx context.Context, req resour
 		return
 	}
 
+	var config audioConferencingPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsAudioConferencingPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.AllowTollFreeDialin.IsNull() {
+			sp.AllowTollFreeDialin = plan.AllowTollFreeDialin.ValueBoolPointer()
+		}
+		if v := config.MeetingInvitePhoneNumbers.ValueString(); v != "" {
+			sp.MeetingInvitePhoneNumbers = objectParam(v)
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsAudioConferencingPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-AudioConferencingPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("AudioConferencingPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsAudioConferencingPolicyParams{}
-	if !plan.AllowTollFreeDialin.IsUnknown() && !plan.AllowTollFreeDialin.IsNull() {
+	if !config.AllowTollFreeDialin.IsNull() {
 		p.AllowTollFreeDialin = plan.AllowTollFreeDialin.ValueBoolPointer()
 	}
-	if v := plan.MeetingInvitePhoneNumbers.ValueString(); v != "" {
-		p.MeetingInvitePhoneNumbers = v
+	if v := config.MeetingInvitePhoneNumbers.ValueString(); v != "" {
+		p.MeetingInvitePhoneNumbers = objectParam(v)
 	}
 	p.Identity = plan.Identity.ValueString()
 	if resp.Diagnostics.HasError() {
@@ -133,7 +168,7 @@ func (r *audioConferencingPolicyResource) Update(ctx context.Context, req resour
 		sp.AllowTollFreeDialin = plan.AllowTollFreeDialin.ValueBoolPointer()
 	}
 	if v := plan.MeetingInvitePhoneNumbers.ValueString(); v != "" {
-		sp.MeetingInvitePhoneNumbers = v
+		sp.MeetingInvitePhoneNumbers = objectParam(v)
 	}
 	if resp.Diagnostics.HasError() {
 		return
@@ -143,9 +178,7 @@ func (r *audioConferencingPolicyResource) Update(ctx context.Context, req resour
 		return
 	}
 	cfg := plan
-	reflected := reconcile.ReflectsFields(map[string]types.String{
-		"MeetingInvitePhoneNumbers": cfg.MeetingInvitePhoneNumbers,
-	}, getString)
+	reflected := reconcile.ReflectsFields(map[string]types.String{}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -155,6 +188,10 @@ func (r *audioConferencingPolicyResource) Delete(ctx context.Context, req resour
 	var state audioConferencingPolicyModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("AudioConferencingPolicy Global not deleted", "The Global AudioConferencingPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
 		return
 	}
 	if _, err := r.client.CS.RemoveCsTeamsAudioConferencingPolicy(ctx, cs.RemoveCsTeamsAudioConferencingPolicyParams{Identity: r.identityOf(state)}); err != nil {
@@ -167,6 +204,44 @@ func (r *audioConferencingPolicyResource) Delete(ctx context.Context, req resour
 func (r *audioConferencingPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *audioConferencingPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan audioConferencingPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsAudioConferencingPolicy(ctx, cs.GetCsTeamsAudioConferencingPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur audioConferencingPolicyModel
+	readAudioConferencingPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AllowTollFreeDialin.IsUnknown() {
+		plan.AllowTollFreeDialin = cur.AllowTollFreeDialin
+	}
+	if plan.MeetingInvitePhoneNumbers.IsUnknown() {
+		plan.MeetingInvitePhoneNumbers = cur.MeetingInvitePhoneNumbers
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *audioConferencingPolicyResource) identityOf(m audioConferencingPolicyModel) string {
@@ -206,7 +281,7 @@ func (r *audioConferencingPolicyResource) refresh(ctx context.Context, identity 
 func readAudioConferencingPolicy(ctx context.Context, obj map[string]any, m *audioConferencingPolicyModel) {
 	m.ID = types.StringValue(firstNonEmptyStr(getString(obj, "Guid"), getString(obj, "Id"), getString(obj, "Identity")))
 	m.AllowTollFreeDialin = types.BoolValue(getBool(obj, "AllowTollFreeDialin"))
-	m.MeetingInvitePhoneNumbers = types.StringValue(getString(obj, "MeetingInvitePhoneNumbers"))
+	m.MeetingInvitePhoneNumbers = types.StringValue(getObjectJSON(obj, "MeetingInvitePhoneNumbers"))
 	_ = ctx
 }
 

@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &feedbackPolicyResource{}
 	_ resource.ResourceWithConfigure   = &feedbackPolicyResource{}
 	_ resource.ResourceWithImportState = &feedbackPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &feedbackPolicyResource{}
 )
 
 type feedbackPolicyResource struct{ client *clients.Client }
@@ -77,23 +78,69 @@ func (r *feedbackPolicyResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
+	var config feedbackPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsFeedbackPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.AllowEmailCollection.IsNull() {
+			sp.AllowEmailCollection = plan.AllowEmailCollection.ValueBoolPointer()
+		}
+		if !config.AllowLogCollection.IsNull() {
+			sp.AllowLogCollection = plan.AllowLogCollection.ValueBoolPointer()
+		}
+		if !config.AllowScreenshotCollection.IsNull() {
+			sp.AllowScreenshotCollection = plan.AllowScreenshotCollection.ValueBoolPointer()
+		}
+		if !config.EnableFeatureSuggestions.IsNull() {
+			sp.EnableFeatureSuggestions = plan.EnableFeatureSuggestions.ValueBoolPointer()
+		}
+		if !config.ReceiveSurveysMode.IsNull() {
+			sp.ReceiveSurveysMode = plan.ReceiveSurveysMode.ValueString()
+		}
+		if !config.UserInitiatedMode.IsNull() {
+			sp.UserInitiatedMode = plan.UserInitiatedMode.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsFeedbackPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-FeedbackPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("FeedbackPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsFeedbackPolicyParams{}
-	if !plan.AllowEmailCollection.IsUnknown() && !plan.AllowEmailCollection.IsNull() {
+	if !config.AllowEmailCollection.IsNull() {
 		p.AllowEmailCollection = plan.AllowEmailCollection.ValueBoolPointer()
 	}
-	if !plan.AllowLogCollection.IsUnknown() && !plan.AllowLogCollection.IsNull() {
+	if !config.AllowLogCollection.IsNull() {
 		p.AllowLogCollection = plan.AllowLogCollection.ValueBoolPointer()
 	}
-	if !plan.AllowScreenshotCollection.IsUnknown() && !plan.AllowScreenshotCollection.IsNull() {
+	if !config.AllowScreenshotCollection.IsNull() {
 		p.AllowScreenshotCollection = plan.AllowScreenshotCollection.ValueBoolPointer()
 	}
-	if !plan.EnableFeatureSuggestions.IsUnknown() && !plan.EnableFeatureSuggestions.IsNull() {
+	if !config.EnableFeatureSuggestions.IsNull() {
 		p.EnableFeatureSuggestions = plan.EnableFeatureSuggestions.ValueBoolPointer()
 	}
-	if !plan.ReceiveSurveysMode.IsUnknown() && !plan.ReceiveSurveysMode.IsNull() {
+	if !config.ReceiveSurveysMode.IsNull() {
 		p.ReceiveSurveysMode = plan.ReceiveSurveysMode.ValueString()
 	}
-	if !plan.UserInitiatedMode.IsUnknown() && !plan.UserInitiatedMode.IsNull() {
+	if !config.UserInitiatedMode.IsNull() {
 		p.UserInitiatedMode = plan.UserInitiatedMode.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -188,6 +235,10 @@ func (r *feedbackPolicyResource) Delete(ctx context.Context, req resource.Delete
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("FeedbackPolicy Global not deleted", "The Global FeedbackPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsFeedbackPolicy(ctx, cs.RemoveCsTeamsFeedbackPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-FeedbackPolicy failed", err.Error())
@@ -198,6 +249,56 @@ func (r *feedbackPolicyResource) Delete(ctx context.Context, req resource.Delete
 func (r *feedbackPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *feedbackPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan feedbackPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsFeedbackPolicy(ctx, cs.GetCsTeamsFeedbackPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur feedbackPolicyModel
+	readFeedbackPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AllowEmailCollection.IsUnknown() {
+		plan.AllowEmailCollection = cur.AllowEmailCollection
+	}
+	if plan.AllowLogCollection.IsUnknown() {
+		plan.AllowLogCollection = cur.AllowLogCollection
+	}
+	if plan.AllowScreenshotCollection.IsUnknown() {
+		plan.AllowScreenshotCollection = cur.AllowScreenshotCollection
+	}
+	if plan.EnableFeatureSuggestions.IsUnknown() {
+		plan.EnableFeatureSuggestions = cur.EnableFeatureSuggestions
+	}
+	if plan.ReceiveSurveysMode.IsUnknown() {
+		plan.ReceiveSurveysMode = cur.ReceiveSurveysMode
+	}
+	if plan.UserInitiatedMode.IsUnknown() {
+		plan.UserInitiatedMode = cur.UserInitiatedMode
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *feedbackPolicyResource) identityOf(m feedbackPolicyModel) string {

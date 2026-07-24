@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &enhancedEncryptionPolicyResource{}
 	_ resource.ResourceWithConfigure   = &enhancedEncryptionPolicyResource{}
 	_ resource.ResourceWithImportState = &enhancedEncryptionPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &enhancedEncryptionPolicyResource{}
 )
 
 type enhancedEncryptionPolicyResource struct{ client *clients.Client }
@@ -72,14 +73,51 @@ func (r *enhancedEncryptionPolicyResource) Create(ctx context.Context, req resou
 		return
 	}
 
+	var config enhancedEncryptionPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsEnhancedEncryptionPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.CallingEndtoEndEncryptionEnabledType.IsNull() {
+			sp.CallingEndtoEndEncryptionEnabledType = plan.CallingEndtoEndEncryptionEnabledType.ValueString()
+		}
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if !config.MeetingEndToEndEncryption.IsNull() {
+			sp.MeetingEndToEndEncryption = plan.MeetingEndToEndEncryption.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsEnhancedEncryptionPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-EnhancedEncryptionPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("EnhancedEncryptionPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsEnhancedEncryptionPolicyParams{}
-	if !plan.CallingEndtoEndEncryptionEnabledType.IsUnknown() && !plan.CallingEndtoEndEncryptionEnabledType.IsNull() {
+	if !config.CallingEndtoEndEncryptionEnabledType.IsNull() {
 		p.CallingEndtoEndEncryptionEnabledType = plan.CallingEndtoEndEncryptionEnabledType.ValueString()
 	}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if !plan.MeetingEndToEndEncryption.IsUnknown() && !plan.MeetingEndToEndEncryption.IsNull() {
+	if !config.MeetingEndToEndEncryption.IsNull() {
 		p.MeetingEndToEndEncryption = plan.MeetingEndToEndEncryption.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -166,6 +204,10 @@ func (r *enhancedEncryptionPolicyResource) Delete(ctx context.Context, req resou
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("EnhancedEncryptionPolicy Global not deleted", "The Global EnhancedEncryptionPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsEnhancedEncryptionPolicy(ctx, cs.RemoveCsTeamsEnhancedEncryptionPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-EnhancedEncryptionPolicy failed", err.Error())
@@ -176,6 +218,47 @@ func (r *enhancedEncryptionPolicyResource) Delete(ctx context.Context, req resou
 func (r *enhancedEncryptionPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *enhancedEncryptionPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan enhancedEncryptionPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsEnhancedEncryptionPolicy(ctx, cs.GetCsTeamsEnhancedEncryptionPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur enhancedEncryptionPolicyModel
+	readEnhancedEncryptionPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.CallingEndtoEndEncryptionEnabledType.IsUnknown() {
+		plan.CallingEndtoEndEncryptionEnabledType = cur.CallingEndtoEndEncryptionEnabledType
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.MeetingEndToEndEncryption.IsUnknown() {
+		plan.MeetingEndToEndEncryption = cur.MeetingEndToEndEncryption
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *enhancedEncryptionPolicyResource) identityOf(m enhancedEncryptionPolicyModel) string {

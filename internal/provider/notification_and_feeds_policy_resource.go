@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &notificationAndFeedsPolicyResource{}
 	_ resource.ResourceWithConfigure   = &notificationAndFeedsPolicyResource{}
 	_ resource.ResourceWithImportState = &notificationAndFeedsPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &notificationAndFeedsPolicyResource{}
 )
 
 type notificationAndFeedsPolicyResource struct{ client *clients.Client }
@@ -71,15 +72,20 @@ func (r *notificationAndFeedsPolicyResource) Create(ctx context.Context, req res
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config notificationAndFeedsPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTeamsNotificationAndFeedsPolicyParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		sp.Description = plan.Description.ValueString()
 	}
-	if !plan.SuggestedFeedsEnabledType.IsUnknown() && !plan.SuggestedFeedsEnabledType.IsNull() {
+	if !config.SuggestedFeedsEnabledType.IsNull() {
 		sp.SuggestedFeedsEnabledType = plan.SuggestedFeedsEnabledType.ValueString()
 	}
-	if !plan.TrendingFeedsEnabledType.IsUnknown() && !plan.TrendingFeedsEnabledType.IsNull() {
+	if !config.TrendingFeedsEnabledType.IsNull() {
 		sp.TrendingFeedsEnabledType = plan.TrendingFeedsEnabledType.ValueString()
 	}
 	if resp.Diagnostics.HasError() {
@@ -155,6 +161,47 @@ func (r *notificationAndFeedsPolicyResource) Delete(_ context.Context, _ resourc
 func (r *notificationAndFeedsPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *notificationAndFeedsPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan notificationAndFeedsPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsNotificationAndFeedsPolicy(ctx, cs.GetCsTeamsNotificationAndFeedsPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur notificationAndFeedsPolicyModel
+	readNotificationAndFeedsPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.SuggestedFeedsEnabledType.IsUnknown() {
+		plan.SuggestedFeedsEnabledType = cur.SuggestedFeedsEnabledType
+	}
+	if plan.TrendingFeedsEnabledType.IsUnknown() {
+		plan.TrendingFeedsEnabledType = cur.TrendingFeedsEnabledType
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *notificationAndFeedsPolicyResource) identityOf(m notificationAndFeedsPolicyModel) string {

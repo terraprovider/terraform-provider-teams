@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &channelsPolicyResource{}
 	_ resource.ResourceWithConfigure   = &channelsPolicyResource{}
 	_ resource.ResourceWithImportState = &channelsPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &channelsPolicyResource{}
 )
 
 type channelsPolicyResource struct{ client *clients.Client }
@@ -103,62 +104,147 @@ func (r *channelsPolicyResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
+	var config channelsPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsChannelsPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.AllowChannelSharingToExternalUser.IsNull() {
+			sp.AllowChannelSharingToExternalUser = plan.AllowChannelSharingToExternalUser.ValueBoolPointer()
+		}
+		if !config.AllowCreateChannel.IsNull() {
+			sp.AllowCreateChannel = plan.AllowCreateChannel.ValueString()
+		}
+		if !config.AllowCreateClassicChannel.IsNull() {
+			sp.AllowCreateClassicChannel = plan.AllowCreateClassicChannel.ValueString()
+		}
+		if !config.AllowCreatePrivateChannel.IsNull() {
+			sp.AllowCreatePrivateChannel = plan.AllowCreatePrivateChannel.ValueString()
+		}
+		if !config.AllowCreateSharedChannel.IsNull() {
+			sp.AllowCreateSharedChannel = plan.AllowCreateSharedChannel.ValueString()
+		}
+		if !config.AllowGuestsFromOutsideTeam.IsNull() {
+			sp.AllowGuestsFromOutsideTeam = plan.AllowGuestsFromOutsideTeam.ValueString()
+		}
+		if !config.AllowGuestsFromOutsideTeamInPrivateChannel.IsNull() {
+			sp.AllowGuestsFromOutsideTeamInPrivateChannel = plan.AllowGuestsFromOutsideTeamInPrivateChannel.ValueString()
+		}
+		if !config.AllowOrgWideTeamCreation.IsNull() {
+			sp.AllowOrgWideTeamCreation = plan.AllowOrgWideTeamCreation.ValueBoolPointer()
+		}
+		if !config.AllowPrivateChannelCreation.IsNull() {
+			sp.AllowPrivateChannelCreation = plan.AllowPrivateChannelCreation.ValueBoolPointer()
+		}
+		if !config.AllowSharedChannelCreation.IsNull() {
+			sp.AllowSharedChannelCreation = plan.AllowSharedChannelCreation.ValueBoolPointer()
+		}
+		if !config.AllowSharingPrivateChannelWithTeamInOrg.IsNull() {
+			sp.AllowSharingPrivateChannelWithTeamInOrg = plan.AllowSharingPrivateChannelWithTeamInOrg.ValueString()
+		}
+		if !config.AllowSharingWithTeamInOrg.IsNull() {
+			sp.AllowSharingWithTeamInOrg = plan.AllowSharingWithTeamInOrg.ValueString()
+		}
+		if !config.AllowUserToParticipateInExternalSharedChannel.IsNull() {
+			sp.AllowUserToParticipateInExternalSharedChannel = plan.AllowUserToParticipateInExternalSharedChannel.ValueBoolPointer()
+		}
+		if !config.AllowUsersFromOutsideTeam.IsNull() {
+			sp.AllowUsersFromOutsideTeam = plan.AllowUsersFromOutsideTeam.ValueString()
+		}
+		if !config.AllowUsersFromOutsideTeamInPrivateChannel.IsNull() {
+			sp.AllowUsersFromOutsideTeamInPrivateChannel = plan.AllowUsersFromOutsideTeamInPrivateChannel.ValueString()
+		}
+		if !config.CreateSharedChannelsByDefault.IsNull() {
+			sp.CreateSharedChannelsByDefault = plan.CreateSharedChannelsByDefault.ValueString()
+		}
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if !config.EnablePrivateTeamDiscovery.IsNull() {
+			sp.EnablePrivateTeamDiscovery = plan.EnablePrivateTeamDiscovery.ValueBoolPointer()
+		}
+		if !config.ThreadedChannelCreation.IsNull() {
+			sp.ThreadedChannelCreation = plan.ThreadedChannelCreation.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsChannelsPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-ChannelsPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("ChannelsPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsChannelsPolicyParams{}
-	if !plan.AllowChannelSharingToExternalUser.IsUnknown() && !plan.AllowChannelSharingToExternalUser.IsNull() {
+	if !config.AllowChannelSharingToExternalUser.IsNull() {
 		p.AllowChannelSharingToExternalUser = plan.AllowChannelSharingToExternalUser.ValueBoolPointer()
 	}
-	if !plan.AllowCreateChannel.IsUnknown() && !plan.AllowCreateChannel.IsNull() {
+	if !config.AllowCreateChannel.IsNull() {
 		p.AllowCreateChannel = plan.AllowCreateChannel.ValueString()
 	}
-	if !plan.AllowCreateClassicChannel.IsUnknown() && !plan.AllowCreateClassicChannel.IsNull() {
+	if !config.AllowCreateClassicChannel.IsNull() {
 		p.AllowCreateClassicChannel = plan.AllowCreateClassicChannel.ValueString()
 	}
-	if !plan.AllowCreatePrivateChannel.IsUnknown() && !plan.AllowCreatePrivateChannel.IsNull() {
+	if !config.AllowCreatePrivateChannel.IsNull() {
 		p.AllowCreatePrivateChannel = plan.AllowCreatePrivateChannel.ValueString()
 	}
-	if !plan.AllowCreateSharedChannel.IsUnknown() && !plan.AllowCreateSharedChannel.IsNull() {
+	if !config.AllowCreateSharedChannel.IsNull() {
 		p.AllowCreateSharedChannel = plan.AllowCreateSharedChannel.ValueString()
 	}
-	if !plan.AllowGuestsFromOutsideTeam.IsUnknown() && !plan.AllowGuestsFromOutsideTeam.IsNull() {
+	if !config.AllowGuestsFromOutsideTeam.IsNull() {
 		p.AllowGuestsFromOutsideTeam = plan.AllowGuestsFromOutsideTeam.ValueString()
 	}
-	if !plan.AllowGuestsFromOutsideTeamInPrivateChannel.IsUnknown() && !plan.AllowGuestsFromOutsideTeamInPrivateChannel.IsNull() {
+	if !config.AllowGuestsFromOutsideTeamInPrivateChannel.IsNull() {
 		p.AllowGuestsFromOutsideTeamInPrivateChannel = plan.AllowGuestsFromOutsideTeamInPrivateChannel.ValueString()
 	}
-	if !plan.AllowOrgWideTeamCreation.IsUnknown() && !plan.AllowOrgWideTeamCreation.IsNull() {
+	if !config.AllowOrgWideTeamCreation.IsNull() {
 		p.AllowOrgWideTeamCreation = plan.AllowOrgWideTeamCreation.ValueBoolPointer()
 	}
-	if !plan.AllowPrivateChannelCreation.IsUnknown() && !plan.AllowPrivateChannelCreation.IsNull() {
+	if !config.AllowPrivateChannelCreation.IsNull() {
 		p.AllowPrivateChannelCreation = plan.AllowPrivateChannelCreation.ValueBoolPointer()
 	}
-	if !plan.AllowSharedChannelCreation.IsUnknown() && !plan.AllowSharedChannelCreation.IsNull() {
+	if !config.AllowSharedChannelCreation.IsNull() {
 		p.AllowSharedChannelCreation = plan.AllowSharedChannelCreation.ValueBoolPointer()
 	}
-	if !plan.AllowSharingPrivateChannelWithTeamInOrg.IsUnknown() && !plan.AllowSharingPrivateChannelWithTeamInOrg.IsNull() {
+	if !config.AllowSharingPrivateChannelWithTeamInOrg.IsNull() {
 		p.AllowSharingPrivateChannelWithTeamInOrg = plan.AllowSharingPrivateChannelWithTeamInOrg.ValueString()
 	}
-	if !plan.AllowSharingWithTeamInOrg.IsUnknown() && !plan.AllowSharingWithTeamInOrg.IsNull() {
+	if !config.AllowSharingWithTeamInOrg.IsNull() {
 		p.AllowSharingWithTeamInOrg = plan.AllowSharingWithTeamInOrg.ValueString()
 	}
-	if !plan.AllowUserToParticipateInExternalSharedChannel.IsUnknown() && !plan.AllowUserToParticipateInExternalSharedChannel.IsNull() {
+	if !config.AllowUserToParticipateInExternalSharedChannel.IsNull() {
 		p.AllowUserToParticipateInExternalSharedChannel = plan.AllowUserToParticipateInExternalSharedChannel.ValueBoolPointer()
 	}
-	if !plan.AllowUsersFromOutsideTeam.IsUnknown() && !plan.AllowUsersFromOutsideTeam.IsNull() {
+	if !config.AllowUsersFromOutsideTeam.IsNull() {
 		p.AllowUsersFromOutsideTeam = plan.AllowUsersFromOutsideTeam.ValueString()
 	}
-	if !plan.AllowUsersFromOutsideTeamInPrivateChannel.IsUnknown() && !plan.AllowUsersFromOutsideTeamInPrivateChannel.IsNull() {
+	if !config.AllowUsersFromOutsideTeamInPrivateChannel.IsNull() {
 		p.AllowUsersFromOutsideTeamInPrivateChannel = plan.AllowUsersFromOutsideTeamInPrivateChannel.ValueString()
 	}
-	if !plan.CreateSharedChannelsByDefault.IsUnknown() && !plan.CreateSharedChannelsByDefault.IsNull() {
+	if !config.CreateSharedChannelsByDefault.IsNull() {
 		p.CreateSharedChannelsByDefault = plan.CreateSharedChannelsByDefault.ValueString()
 	}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if !plan.EnablePrivateTeamDiscovery.IsUnknown() && !plan.EnablePrivateTeamDiscovery.IsNull() {
+	if !config.EnablePrivateTeamDiscovery.IsNull() {
 		p.EnablePrivateTeamDiscovery = plan.EnablePrivateTeamDiscovery.ValueBoolPointer()
 	}
-	if !plan.ThreadedChannelCreation.IsUnknown() && !plan.ThreadedChannelCreation.IsNull() {
+	if !config.ThreadedChannelCreation.IsNull() {
 		p.ThreadedChannelCreation = plan.ThreadedChannelCreation.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -303,6 +389,10 @@ func (r *channelsPolicyResource) Delete(ctx context.Context, req resource.Delete
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("ChannelsPolicy Global not deleted", "The Global ChannelsPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsChannelsPolicy(ctx, cs.RemoveCsTeamsChannelsPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-ChannelsPolicy failed", err.Error())
@@ -313,6 +403,95 @@ func (r *channelsPolicyResource) Delete(ctx context.Context, req resource.Delete
 func (r *channelsPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *channelsPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan channelsPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsChannelsPolicy(ctx, cs.GetCsTeamsChannelsPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur channelsPolicyModel
+	readChannelsPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AllowChannelSharingToExternalUser.IsUnknown() {
+		plan.AllowChannelSharingToExternalUser = cur.AllowChannelSharingToExternalUser
+	}
+	if plan.AllowCreateChannel.IsUnknown() {
+		plan.AllowCreateChannel = cur.AllowCreateChannel
+	}
+	if plan.AllowCreateClassicChannel.IsUnknown() {
+		plan.AllowCreateClassicChannel = cur.AllowCreateClassicChannel
+	}
+	if plan.AllowCreatePrivateChannel.IsUnknown() {
+		plan.AllowCreatePrivateChannel = cur.AllowCreatePrivateChannel
+	}
+	if plan.AllowCreateSharedChannel.IsUnknown() {
+		plan.AllowCreateSharedChannel = cur.AllowCreateSharedChannel
+	}
+	if plan.AllowGuestsFromOutsideTeam.IsUnknown() {
+		plan.AllowGuestsFromOutsideTeam = cur.AllowGuestsFromOutsideTeam
+	}
+	if plan.AllowGuestsFromOutsideTeamInPrivateChannel.IsUnknown() {
+		plan.AllowGuestsFromOutsideTeamInPrivateChannel = cur.AllowGuestsFromOutsideTeamInPrivateChannel
+	}
+	if plan.AllowOrgWideTeamCreation.IsUnknown() {
+		plan.AllowOrgWideTeamCreation = cur.AllowOrgWideTeamCreation
+	}
+	if plan.AllowPrivateChannelCreation.IsUnknown() {
+		plan.AllowPrivateChannelCreation = cur.AllowPrivateChannelCreation
+	}
+	if plan.AllowSharedChannelCreation.IsUnknown() {
+		plan.AllowSharedChannelCreation = cur.AllowSharedChannelCreation
+	}
+	if plan.AllowSharingPrivateChannelWithTeamInOrg.IsUnknown() {
+		plan.AllowSharingPrivateChannelWithTeamInOrg = cur.AllowSharingPrivateChannelWithTeamInOrg
+	}
+	if plan.AllowSharingWithTeamInOrg.IsUnknown() {
+		plan.AllowSharingWithTeamInOrg = cur.AllowSharingWithTeamInOrg
+	}
+	if plan.AllowUserToParticipateInExternalSharedChannel.IsUnknown() {
+		plan.AllowUserToParticipateInExternalSharedChannel = cur.AllowUserToParticipateInExternalSharedChannel
+	}
+	if plan.AllowUsersFromOutsideTeam.IsUnknown() {
+		plan.AllowUsersFromOutsideTeam = cur.AllowUsersFromOutsideTeam
+	}
+	if plan.AllowUsersFromOutsideTeamInPrivateChannel.IsUnknown() {
+		plan.AllowUsersFromOutsideTeamInPrivateChannel = cur.AllowUsersFromOutsideTeamInPrivateChannel
+	}
+	if plan.CreateSharedChannelsByDefault.IsUnknown() {
+		plan.CreateSharedChannelsByDefault = cur.CreateSharedChannelsByDefault
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.EnablePrivateTeamDiscovery.IsUnknown() {
+		plan.EnablePrivateTeamDiscovery = cur.EnablePrivateTeamDiscovery
+	}
+	if plan.ThreadedChannelCreation.IsUnknown() {
+		plan.ThreadedChannelCreation = cur.ThreadedChannelCreation
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *channelsPolicyResource) identityOf(m channelsPolicyModel) string {

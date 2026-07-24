@@ -26,6 +26,7 @@ var (
 	_ resource.Resource                = &shiftsPolicyResource{}
 	_ resource.ResourceWithConfigure   = &shiftsPolicyResource{}
 	_ resource.ResourceWithImportState = &shiftsPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &shiftsPolicyResource{}
 )
 
 type shiftsPolicyResource struct{ client *clients.Client }
@@ -78,23 +79,69 @@ func (r *shiftsPolicyResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
+	var config shiftsPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsShiftsPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.AccessGracePeriodMinutes.IsNull() {
+			sp.AccessGracePeriodMinutes = plan.AccessGracePeriodMinutes.ValueInt64Pointer()
+		}
+		if !config.AccessType.IsNull() {
+			sp.AccessType = plan.AccessType.ValueString()
+		}
+		if !config.EnableScheduleOwnerPermissions.IsNull() {
+			sp.EnableScheduleOwnerPermissions = plan.EnableScheduleOwnerPermissions.ValueBoolPointer()
+		}
+		if !config.ShiftNoticeFrequency.IsNull() {
+			sp.ShiftNoticeFrequency = plan.ShiftNoticeFrequency.ValueString()
+		}
+		if !config.ShiftNoticeMessageCustom.IsNull() {
+			sp.ShiftNoticeMessageCustom = plan.ShiftNoticeMessageCustom.ValueString()
+		}
+		if !config.ShiftNoticeMessageType.IsNull() {
+			sp.ShiftNoticeMessageType = plan.ShiftNoticeMessageType.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsShiftsPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-ShiftsPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("ShiftsPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsShiftsPolicyParams{}
-	if !plan.AccessGracePeriodMinutes.IsUnknown() && !plan.AccessGracePeriodMinutes.IsNull() {
+	if !config.AccessGracePeriodMinutes.IsNull() {
 		p.AccessGracePeriodMinutes = plan.AccessGracePeriodMinutes.ValueInt64Pointer()
 	}
-	if !plan.AccessType.IsUnknown() && !plan.AccessType.IsNull() {
+	if !config.AccessType.IsNull() {
 		p.AccessType = plan.AccessType.ValueString()
 	}
-	if !plan.EnableScheduleOwnerPermissions.IsUnknown() && !plan.EnableScheduleOwnerPermissions.IsNull() {
+	if !config.EnableScheduleOwnerPermissions.IsNull() {
 		p.EnableScheduleOwnerPermissions = plan.EnableScheduleOwnerPermissions.ValueBoolPointer()
 	}
-	if !plan.ShiftNoticeFrequency.IsUnknown() && !plan.ShiftNoticeFrequency.IsNull() {
+	if !config.ShiftNoticeFrequency.IsNull() {
 		p.ShiftNoticeFrequency = plan.ShiftNoticeFrequency.ValueString()
 	}
-	if !plan.ShiftNoticeMessageCustom.IsUnknown() && !plan.ShiftNoticeMessageCustom.IsNull() {
+	if !config.ShiftNoticeMessageCustom.IsNull() {
 		p.ShiftNoticeMessageCustom = plan.ShiftNoticeMessageCustom.ValueString()
 	}
-	if !plan.ShiftNoticeMessageType.IsUnknown() && !plan.ShiftNoticeMessageType.IsNull() {
+	if !config.ShiftNoticeMessageType.IsNull() {
 		p.ShiftNoticeMessageType = plan.ShiftNoticeMessageType.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -191,6 +238,10 @@ func (r *shiftsPolicyResource) Delete(ctx context.Context, req resource.DeleteRe
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("ShiftsPolicy Global not deleted", "The Global ShiftsPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsShiftsPolicy(ctx, cs.RemoveCsTeamsShiftsPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-ShiftsPolicy failed", err.Error())
@@ -201,6 +252,56 @@ func (r *shiftsPolicyResource) Delete(ctx context.Context, req resource.DeleteRe
 func (r *shiftsPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *shiftsPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan shiftsPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsShiftsPolicy(ctx, cs.GetCsTeamsShiftsPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur shiftsPolicyModel
+	readShiftsPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AccessGracePeriodMinutes.IsUnknown() {
+		plan.AccessGracePeriodMinutes = cur.AccessGracePeriodMinutes
+	}
+	if plan.AccessType.IsUnknown() {
+		plan.AccessType = cur.AccessType
+	}
+	if plan.EnableScheduleOwnerPermissions.IsUnknown() {
+		plan.EnableScheduleOwnerPermissions = cur.EnableScheduleOwnerPermissions
+	}
+	if plan.ShiftNoticeFrequency.IsUnknown() {
+		plan.ShiftNoticeFrequency = cur.ShiftNoticeFrequency
+	}
+	if plan.ShiftNoticeMessageCustom.IsUnknown() {
+		plan.ShiftNoticeMessageCustom = cur.ShiftNoticeMessageCustom
+	}
+	if plan.ShiftNoticeMessageType.IsUnknown() {
+		plan.ShiftNoticeMessageType = cur.ShiftNoticeMessageType
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *shiftsPolicyResource) identityOf(m shiftsPolicyModel) string {

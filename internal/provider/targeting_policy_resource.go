@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &targetingPolicyResource{}
 	_ resource.ResourceWithConfigure   = &targetingPolicyResource{}
 	_ resource.ResourceWithImportState = &targetingPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &targetingPolicyResource{}
 )
 
 type targetingPolicyResource struct{ client *clients.Client }
@@ -75,24 +76,29 @@ func (r *targetingPolicyResource) Create(ctx context.Context, req resource.Creat
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config targetingPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTeamsTargetingPolicyParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.CustomTagsMode.IsUnknown() && !plan.CustomTagsMode.IsNull() {
+	if !config.CustomTagsMode.IsNull() {
 		sp.CustomTagsMode = plan.CustomTagsMode.ValueString()
 	}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		sp.Description = plan.Description.ValueString()
 	}
-	if !plan.ManageTagsPermissionMode.IsUnknown() && !plan.ManageTagsPermissionMode.IsNull() {
+	if !config.ManageTagsPermissionMode.IsNull() {
 		sp.ManageTagsPermissionMode = plan.ManageTagsPermissionMode.ValueString()
 	}
-	if !plan.ShiftBackedTagsMode.IsUnknown() && !plan.ShiftBackedTagsMode.IsNull() {
+	if !config.ShiftBackedTagsMode.IsNull() {
 		sp.ShiftBackedTagsMode = plan.ShiftBackedTagsMode.ValueString()
 	}
-	if !plan.SuggestedPresetTags.IsUnknown() && !plan.SuggestedPresetTags.IsNull() {
+	if !config.SuggestedPresetTags.IsNull() {
 		sp.SuggestedPresetTags = plan.SuggestedPresetTags.ValueString()
 	}
-	if !plan.TeamOwnersEditWhoCanManageTagsMode.IsUnknown() && !plan.TeamOwnersEditWhoCanManageTagsMode.IsNull() {
+	if !config.TeamOwnersEditWhoCanManageTagsMode.IsNull() {
 		sp.TeamOwnersEditWhoCanManageTagsMode = plan.TeamOwnersEditWhoCanManageTagsMode.ValueString()
 	}
 	if resp.Diagnostics.HasError() {
@@ -180,6 +186,56 @@ func (r *targetingPolicyResource) Delete(_ context.Context, _ resource.DeleteReq
 func (r *targetingPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *targetingPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan targetingPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsTargetingPolicy(ctx, cs.GetCsTeamsTargetingPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur targetingPolicyModel
+	readTargetingPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.CustomTagsMode.IsUnknown() {
+		plan.CustomTagsMode = cur.CustomTagsMode
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.ManageTagsPermissionMode.IsUnknown() {
+		plan.ManageTagsPermissionMode = cur.ManageTagsPermissionMode
+	}
+	if plan.ShiftBackedTagsMode.IsUnknown() {
+		plan.ShiftBackedTagsMode = cur.ShiftBackedTagsMode
+	}
+	if plan.SuggestedPresetTags.IsUnknown() {
+		plan.SuggestedPresetTags = cur.SuggestedPresetTags
+	}
+	if plan.TeamOwnersEditWhoCanManageTagsMode.IsUnknown() {
+		plan.TeamOwnersEditWhoCanManageTagsMode = cur.TeamOwnersEditWhoCanManageTagsMode
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *targetingPolicyResource) identityOf(m targetingPolicyModel) string {

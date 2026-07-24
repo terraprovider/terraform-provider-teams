@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &virtualAppointmentsPolicyResource{}
 	_ resource.ResourceWithConfigure   = &virtualAppointmentsPolicyResource{}
 	_ resource.ResourceWithImportState = &virtualAppointmentsPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &virtualAppointmentsPolicyResource{}
 )
 
 type virtualAppointmentsPolicyResource struct{ client *clients.Client }
@@ -69,8 +70,39 @@ func (r *virtualAppointmentsPolicyResource) Create(ctx context.Context, req reso
 		return
 	}
 
+	var config virtualAppointmentsPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsVirtualAppointmentsPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.EnableSmsNotifications.IsNull() {
+			sp.EnableSmsNotifications = plan.EnableSmsNotifications.ValueBoolPointer()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsVirtualAppointmentsPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-VirtualAppointmentsPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("VirtualAppointmentsPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsVirtualAppointmentsPolicyParams{}
-	if !plan.EnableSmsNotifications.IsUnknown() && !plan.EnableSmsNotifications.IsNull() {
+	if !config.EnableSmsNotifications.IsNull() {
 		p.EnableSmsNotifications = plan.EnableSmsNotifications.ValueBoolPointer()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -147,6 +179,10 @@ func (r *virtualAppointmentsPolicyResource) Delete(ctx context.Context, req reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("VirtualAppointmentsPolicy Global not deleted", "The Global VirtualAppointmentsPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsVirtualAppointmentsPolicy(ctx, cs.RemoveCsTeamsVirtualAppointmentsPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-VirtualAppointmentsPolicy failed", err.Error())
@@ -157,6 +193,41 @@ func (r *virtualAppointmentsPolicyResource) Delete(ctx context.Context, req reso
 func (r *virtualAppointmentsPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *virtualAppointmentsPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan virtualAppointmentsPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsVirtualAppointmentsPolicy(ctx, cs.GetCsTeamsVirtualAppointmentsPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur virtualAppointmentsPolicyModel
+	readVirtualAppointmentsPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.EnableSmsNotifications.IsUnknown() {
+		plan.EnableSmsNotifications = cur.EnableSmsNotifications
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *virtualAppointmentsPolicyResource) identityOf(m virtualAppointmentsPolicyModel) string {

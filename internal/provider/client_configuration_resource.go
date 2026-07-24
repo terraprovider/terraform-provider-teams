@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &clientConfigurationResource{}
 	_ resource.ResourceWithConfigure   = &clientConfigurationResource{}
 	_ resource.ResourceWithImportState = &clientConfigurationResource{}
+	_ resource.ResourceWithModifyPlan  = &clientConfigurationResource{}
 )
 
 type clientConfigurationResource struct{ client *clients.Client }
@@ -98,57 +99,62 @@ func (r *clientConfigurationResource) Create(ctx context.Context, req resource.C
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config clientConfigurationModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTeamsClientConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.AllowBox.IsUnknown() && !plan.AllowBox.IsNull() {
+	if !config.AllowBox.IsNull() {
 		sp.AllowBox = plan.AllowBox.ValueBoolPointer()
 	}
-	if !plan.AllowDropBox.IsUnknown() && !plan.AllowDropBox.IsNull() {
+	if !config.AllowDropBox.IsNull() {
 		sp.AllowDropBox = plan.AllowDropBox.ValueBoolPointer()
 	}
-	if !plan.AllowEgnyte.IsUnknown() && !plan.AllowEgnyte.IsNull() {
+	if !config.AllowEgnyte.IsNull() {
 		sp.AllowEgnyte = plan.AllowEgnyte.ValueBoolPointer()
 	}
-	if !plan.AllowEmailIntoChannel.IsUnknown() && !plan.AllowEmailIntoChannel.IsNull() {
+	if !config.AllowEmailIntoChannel.IsNull() {
 		sp.AllowEmailIntoChannel = plan.AllowEmailIntoChannel.ValueBoolPointer()
 	}
-	if !plan.AllowGoogleDrive.IsUnknown() && !plan.AllowGoogleDrive.IsNull() {
+	if !config.AllowGoogleDrive.IsNull() {
 		sp.AllowGoogleDrive = plan.AllowGoogleDrive.ValueBoolPointer()
 	}
-	if !plan.AllowGuestUser.IsUnknown() && !plan.AllowGuestUser.IsNull() {
+	if !config.AllowGuestUser.IsNull() {
 		sp.AllowGuestUser = plan.AllowGuestUser.ValueBoolPointer()
 	}
-	if !plan.AllowOrganizationTab.IsUnknown() && !plan.AllowOrganizationTab.IsNull() {
+	if !config.AllowOrganizationTab.IsNull() {
 		sp.AllowOrganizationTab = plan.AllowOrganizationTab.ValueBoolPointer()
 	}
-	if !plan.AllowResourceAccountSendMessage.IsUnknown() && !plan.AllowResourceAccountSendMessage.IsNull() {
+	if !config.AllowResourceAccountSendMessage.IsNull() {
 		sp.AllowResourceAccountSendMessage = plan.AllowResourceAccountSendMessage.ValueBoolPointer()
 	}
-	if !plan.AllowRoleBasedChatPermissions.IsUnknown() && !plan.AllowRoleBasedChatPermissions.IsNull() {
+	if !config.AllowRoleBasedChatPermissions.IsNull() {
 		sp.AllowRoleBasedChatPermissions = plan.AllowRoleBasedChatPermissions.ValueBoolPointer()
 	}
-	if !plan.AllowScopedPeopleSearchandAccess.IsUnknown() && !plan.AllowScopedPeopleSearchandAccess.IsNull() {
+	if !config.AllowScopedPeopleSearchandAccess.IsNull() {
 		sp.AllowScopedPeopleSearchandAccess = plan.AllowScopedPeopleSearchandAccess.ValueBoolPointer()
 	}
-	if !plan.AllowShareFile.IsUnknown() && !plan.AllowShareFile.IsNull() {
+	if !config.AllowShareFile.IsNull() {
 		sp.AllowShareFile = plan.AllowShareFile.ValueBoolPointer()
 	}
-	if !plan.AllowSkypeBusinessInterop.IsUnknown() && !plan.AllowSkypeBusinessInterop.IsNull() {
+	if !config.AllowSkypeBusinessInterop.IsNull() {
 		sp.AllowSkypeBusinessInterop = plan.AllowSkypeBusinessInterop.ValueBoolPointer()
 	}
-	if !plan.ContentPin.IsUnknown() && !plan.ContentPin.IsNull() {
+	if !config.ContentPin.IsNull() {
 		sp.ContentPin = plan.ContentPin.ValueString()
 	}
-	if !plan.ExtendedWorkInfoInPeopleSearch.IsUnknown() && !plan.ExtendedWorkInfoInPeopleSearch.IsNull() {
+	if !config.ExtendedWorkInfoInPeopleSearch.IsNull() {
 		sp.ExtendedWorkInfoInPeopleSearch = plan.ExtendedWorkInfoInPeopleSearch.ValueBoolPointer()
 	}
-	if !plan.ResourceAccountContentAccess.IsUnknown() && !plan.ResourceAccountContentAccess.IsNull() {
+	if !config.ResourceAccountContentAccess.IsNull() {
 		sp.ResourceAccountContentAccess = plan.ResourceAccountContentAccess.ValueString()
 	}
-	if !plan.RestrictedSenderList.IsUnknown() && !plan.RestrictedSenderList.IsNull() {
+	if !config.RestrictedSenderList.IsNull() {
 		sp.RestrictedSenderList = plan.RestrictedSenderList.ValueString()
 	}
-	if !plan.UseUnifiedDomain.IsUnknown() && !plan.UseUnifiedDomain.IsNull() {
+	if !config.UseUnifiedDomain.IsNull() {
 		sp.UseUnifiedDomain = plan.UseUnifiedDomain.ValueString()
 	}
 	if resp.Diagnostics.HasError() {
@@ -267,6 +273,89 @@ func (r *clientConfigurationResource) Delete(_ context.Context, _ resource.Delet
 func (r *clientConfigurationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *clientConfigurationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan clientConfigurationModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsClientConfiguration(ctx, cs.GetCsTeamsClientConfigurationParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur clientConfigurationModel
+	readClientConfiguration(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AllowBox.IsUnknown() {
+		plan.AllowBox = cur.AllowBox
+	}
+	if plan.AllowDropBox.IsUnknown() {
+		plan.AllowDropBox = cur.AllowDropBox
+	}
+	if plan.AllowEgnyte.IsUnknown() {
+		plan.AllowEgnyte = cur.AllowEgnyte
+	}
+	if plan.AllowEmailIntoChannel.IsUnknown() {
+		plan.AllowEmailIntoChannel = cur.AllowEmailIntoChannel
+	}
+	if plan.AllowGoogleDrive.IsUnknown() {
+		plan.AllowGoogleDrive = cur.AllowGoogleDrive
+	}
+	if plan.AllowGuestUser.IsUnknown() {
+		plan.AllowGuestUser = cur.AllowGuestUser
+	}
+	if plan.AllowOrganizationTab.IsUnknown() {
+		plan.AllowOrganizationTab = cur.AllowOrganizationTab
+	}
+	if plan.AllowResourceAccountSendMessage.IsUnknown() {
+		plan.AllowResourceAccountSendMessage = cur.AllowResourceAccountSendMessage
+	}
+	if plan.AllowRoleBasedChatPermissions.IsUnknown() {
+		plan.AllowRoleBasedChatPermissions = cur.AllowRoleBasedChatPermissions
+	}
+	if plan.AllowScopedPeopleSearchandAccess.IsUnknown() {
+		plan.AllowScopedPeopleSearchandAccess = cur.AllowScopedPeopleSearchandAccess
+	}
+	if plan.AllowShareFile.IsUnknown() {
+		plan.AllowShareFile = cur.AllowShareFile
+	}
+	if plan.AllowSkypeBusinessInterop.IsUnknown() {
+		plan.AllowSkypeBusinessInterop = cur.AllowSkypeBusinessInterop
+	}
+	if plan.ContentPin.IsUnknown() {
+		plan.ContentPin = cur.ContentPin
+	}
+	if plan.ExtendedWorkInfoInPeopleSearch.IsUnknown() {
+		plan.ExtendedWorkInfoInPeopleSearch = cur.ExtendedWorkInfoInPeopleSearch
+	}
+	if plan.ResourceAccountContentAccess.IsUnknown() {
+		plan.ResourceAccountContentAccess = cur.ResourceAccountContentAccess
+	}
+	if plan.RestrictedSenderList.IsUnknown() {
+		plan.RestrictedSenderList = cur.RestrictedSenderList
+	}
+	if plan.UseUnifiedDomain.IsUnknown() {
+		plan.UseUnifiedDomain = cur.UseUnifiedDomain
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *clientConfigurationResource) identityOf(m clientConfigurationModel) string {

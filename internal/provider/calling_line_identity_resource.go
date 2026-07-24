@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &callingLineIdentityResource{}
 	_ resource.ResourceWithConfigure   = &callingLineIdentityResource{}
 	_ resource.ResourceWithImportState = &callingLineIdentityResource{}
+	_ resource.ResourceWithModifyPlan  = &callingLineIdentityResource{}
 )
 
 type callingLineIdentityResource struct{ client *clients.Client }
@@ -79,26 +80,75 @@ func (r *callingLineIdentityResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
+	var config callingLineIdentityModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsCallingLineIdentityParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.BlockIncomingPstnCallerID.IsNull() {
+			sp.BlockIncomingPstnCallerID = plan.BlockIncomingPstnCallerID.ValueBoolPointer()
+		}
+		if !config.CallingIDSubstitute.IsNull() {
+			sp.CallingIDSubstitute = plan.CallingIDSubstitute.ValueString()
+		}
+		if !config.CompanyName.IsNull() {
+			sp.CompanyName = plan.CompanyName.ValueString()
+		}
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if !config.EnableUserOverride.IsNull() {
+			sp.EnableUserOverride = plan.EnableUserOverride.ValueBoolPointer()
+		}
+		if !config.ResourceAccount.IsNull() {
+			sp.ResourceAccount = plan.ResourceAccount.ValueString()
+		}
+		if !config.ServiceNumber.IsNull() {
+			sp.ServiceNumber = plan.ServiceNumber.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsCallingLineIdentity(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-CallingLineIdentity failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("CallingLineIdentity not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsCallingLineIdentityParams{}
-	if !plan.BlockIncomingPstnCallerID.IsUnknown() && !plan.BlockIncomingPstnCallerID.IsNull() {
+	if !config.BlockIncomingPstnCallerID.IsNull() {
 		p.BlockIncomingPstnCallerID = plan.BlockIncomingPstnCallerID.ValueBoolPointer()
 	}
-	if !plan.CallingIDSubstitute.IsUnknown() && !plan.CallingIDSubstitute.IsNull() {
+	if !config.CallingIDSubstitute.IsNull() {
 		p.CallingIDSubstitute = plan.CallingIDSubstitute.ValueString()
 	}
-	if !plan.CompanyName.IsUnknown() && !plan.CompanyName.IsNull() {
+	if !config.CompanyName.IsNull() {
 		p.CompanyName = plan.CompanyName.ValueString()
 	}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if !plan.EnableUserOverride.IsUnknown() && !plan.EnableUserOverride.IsNull() {
+	if !config.EnableUserOverride.IsNull() {
 		p.EnableUserOverride = plan.EnableUserOverride.ValueBoolPointer()
 	}
-	if !plan.ResourceAccount.IsUnknown() && !plan.ResourceAccount.IsNull() {
+	if !config.ResourceAccount.IsNull() {
 		p.ResourceAccount = plan.ResourceAccount.ValueString()
 	}
-	if !plan.ServiceNumber.IsUnknown() && !plan.ServiceNumber.IsNull() {
+	if !config.ServiceNumber.IsNull() {
 		p.ServiceNumber = plan.ServiceNumber.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -199,6 +249,10 @@ func (r *callingLineIdentityResource) Delete(ctx context.Context, req resource.D
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("CallingLineIdentity Global not deleted", "The Global CallingLineIdentity is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsCallingLineIdentity(ctx, cs.RemoveCsCallingLineIdentityParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-CallingLineIdentity failed", err.Error())
@@ -209,6 +263,59 @@ func (r *callingLineIdentityResource) Delete(ctx context.Context, req resource.D
 func (r *callingLineIdentityResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *callingLineIdentityResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan callingLineIdentityModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsCallingLineIdentity(ctx, cs.GetCsCallingLineIdentityParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur callingLineIdentityModel
+	readCallingLineIdentity(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.BlockIncomingPstnCallerID.IsUnknown() {
+		plan.BlockIncomingPstnCallerID = cur.BlockIncomingPstnCallerID
+	}
+	if plan.CallingIDSubstitute.IsUnknown() {
+		plan.CallingIDSubstitute = cur.CallingIDSubstitute
+	}
+	if plan.CompanyName.IsUnknown() {
+		plan.CompanyName = cur.CompanyName
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.EnableUserOverride.IsUnknown() {
+		plan.EnableUserOverride = cur.EnableUserOverride
+	}
+	if plan.ResourceAccount.IsUnknown() {
+		plan.ResourceAccount = cur.ResourceAccount
+	}
+	if plan.ServiceNumber.IsUnknown() {
+		plan.ServiceNumber = cur.ServiceNumber
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *callingLineIdentityResource) identityOf(m callingLineIdentityModel) string {

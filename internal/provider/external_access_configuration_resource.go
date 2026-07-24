@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &externalAccessConfigurationResource{}
 	_ resource.ResourceWithConfigure   = &externalAccessConfigurationResource{}
 	_ resource.ResourceWithImportState = &externalAccessConfigurationResource{}
+	_ resource.ResourceWithModifyPlan  = &externalAccessConfigurationResource{}
 )
 
 type externalAccessConfigurationResource struct{ client *clients.Client }
@@ -70,13 +71,18 @@ func (r *externalAccessConfigurationResource) Create(ctx context.Context, req re
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config externalAccessConfigurationModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTeamsExternalAccessConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.BlockExternalUserAccess.IsUnknown() && !plan.BlockExternalUserAccess.IsNull() {
+	if !config.BlockExternalUserAccess.IsNull() {
 		sp.BlockExternalUserAccess = plan.BlockExternalUserAccess.ValueBoolPointer()
 	}
-	if v := plan.BlockedUsers.ValueString(); v != "" {
-		sp.BlockedUsers = v
+	if v := config.BlockedUsers.ValueString(); v != "" {
+		sp.BlockedUsers = objectParam(v)
 	}
 	if resp.Diagnostics.HasError() {
 		return
@@ -121,7 +127,7 @@ func (r *externalAccessConfigurationResource) Update(ctx context.Context, req re
 		sp.BlockExternalUserAccess = plan.BlockExternalUserAccess.ValueBoolPointer()
 	}
 	if v := plan.BlockedUsers.ValueString(); v != "" {
-		sp.BlockedUsers = v
+		sp.BlockedUsers = objectParam(v)
 	}
 	if resp.Diagnostics.HasError() {
 		return
@@ -131,9 +137,7 @@ func (r *externalAccessConfigurationResource) Update(ctx context.Context, req re
 		return
 	}
 	cfg := plan
-	reflected := reconcile.ReflectsFields(map[string]types.String{
-		"BlockedUsers": cfg.BlockedUsers,
-	}, getString)
+	reflected := reconcile.ReflectsFields(map[string]types.String{}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -146,6 +150,44 @@ func (r *externalAccessConfigurationResource) Delete(_ context.Context, _ resour
 func (r *externalAccessConfigurationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *externalAccessConfigurationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan externalAccessConfigurationModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsExternalAccessConfiguration(ctx, cs.GetCsTeamsExternalAccessConfigurationParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur externalAccessConfigurationModel
+	readExternalAccessConfiguration(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.BlockExternalUserAccess.IsUnknown() {
+		plan.BlockExternalUserAccess = cur.BlockExternalUserAccess
+	}
+	if plan.BlockedUsers.IsUnknown() {
+		plan.BlockedUsers = cur.BlockedUsers
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *externalAccessConfigurationResource) identityOf(m externalAccessConfigurationModel) string {
@@ -185,7 +227,7 @@ func (r *externalAccessConfigurationResource) refresh(ctx context.Context, ident
 func readExternalAccessConfiguration(ctx context.Context, obj map[string]any, m *externalAccessConfigurationModel) {
 	m.ID = types.StringValue(firstNonEmptyStr(getString(obj, "Guid"), getString(obj, "Id"), getString(obj, "Identity")))
 	m.BlockExternalUserAccess = types.BoolValue(getBool(obj, "BlockExternalUserAccess"))
-	m.BlockedUsers = types.StringValue(getString(obj, "BlockedUsers"))
+	m.BlockedUsers = types.StringValue(getObjectJSON(obj, "BlockedUsers"))
 	_ = ctx
 }
 

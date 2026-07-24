@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &onlineVoiceRoutingPolicyResource{}
 	_ resource.ResourceWithConfigure   = &onlineVoiceRoutingPolicyResource{}
 	_ resource.ResourceWithImportState = &onlineVoiceRoutingPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &onlineVoiceRoutingPolicyResource{}
 )
 
 type onlineVoiceRoutingPolicyResource struct{ client *clients.Client }
@@ -72,14 +73,51 @@ func (r *onlineVoiceRoutingPolicyResource) Create(ctx context.Context, req resou
 		return
 	}
 
+	var config onlineVoiceRoutingPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsOnlineVoiceRoutingPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if v := config.OnlinePstnUsages.ValueString(); v != "" {
+			sp.OnlinePstnUsages = objectParam(v)
+		}
+		if !config.RouteType.IsNull() {
+			sp.RouteType = plan.RouteType.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsOnlineVoiceRoutingPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-OnlineVoiceRoutingPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("OnlineVoiceRoutingPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsOnlineVoiceRoutingPolicyParams{}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if v := plan.OnlinePstnUsages.ValueString(); v != "" {
-		p.OnlinePstnUsages = v
+	if v := config.OnlinePstnUsages.ValueString(); v != "" {
+		p.OnlinePstnUsages = objectParam(v)
 	}
-	if !plan.RouteType.IsUnknown() && !plan.RouteType.IsNull() {
+	if !config.RouteType.IsNull() {
 		p.RouteType = plan.RouteType.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -137,7 +175,7 @@ func (r *onlineVoiceRoutingPolicyResource) Update(ctx context.Context, req resou
 		sp.Description = plan.Description.ValueString()
 	}
 	if v := plan.OnlinePstnUsages.ValueString(); v != "" {
-		sp.OnlinePstnUsages = v
+		sp.OnlinePstnUsages = objectParam(v)
 	}
 	if !plan.RouteType.Equal(state.RouteType) {
 		sp.RouteType = plan.RouteType.ValueString()
@@ -151,9 +189,8 @@ func (r *onlineVoiceRoutingPolicyResource) Update(ctx context.Context, req resou
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{
-		"Description":      cfg.Description,
-		"OnlinePstnUsages": cfg.OnlinePstnUsages,
-		"RouteType":        cfg.RouteType,
+		"Description": cfg.Description,
+		"RouteType":   cfg.RouteType,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
 	r.reconcileState(&cfg, &plan)
@@ -166,6 +203,10 @@ func (r *onlineVoiceRoutingPolicyResource) Delete(ctx context.Context, req resou
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("OnlineVoiceRoutingPolicy Global not deleted", "The Global OnlineVoiceRoutingPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsOnlineVoiceRoutingPolicy(ctx, cs.RemoveCsOnlineVoiceRoutingPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-OnlineVoiceRoutingPolicy failed", err.Error())
@@ -176,6 +217,47 @@ func (r *onlineVoiceRoutingPolicyResource) Delete(ctx context.Context, req resou
 func (r *onlineVoiceRoutingPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *onlineVoiceRoutingPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan onlineVoiceRoutingPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsOnlineVoiceRoutingPolicy(ctx, cs.GetCsOnlineVoiceRoutingPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur onlineVoiceRoutingPolicyModel
+	readOnlineVoiceRoutingPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.OnlinePstnUsages.IsUnknown() {
+		plan.OnlinePstnUsages = cur.OnlinePstnUsages
+	}
+	if plan.RouteType.IsUnknown() {
+		plan.RouteType = cur.RouteType
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *onlineVoiceRoutingPolicyResource) identityOf(m onlineVoiceRoutingPolicyModel) string {
@@ -215,7 +297,7 @@ func (r *onlineVoiceRoutingPolicyResource) refresh(ctx context.Context, identity
 func readOnlineVoiceRoutingPolicy(ctx context.Context, obj map[string]any, m *onlineVoiceRoutingPolicyModel) {
 	m.ID = types.StringValue(firstNonEmptyStr(getString(obj, "Guid"), getString(obj, "Id"), getString(obj, "Identity")))
 	m.Description = types.StringValue(getString(obj, "Description"))
-	m.OnlinePstnUsages = types.StringValue(getString(obj, "OnlinePstnUsages"))
+	m.OnlinePstnUsages = types.StringValue(getObjectJSON(obj, "OnlinePstnUsages"))
 	m.RouteType = types.StringValue(getString(obj, "RouteType"))
 	_ = ctx
 }

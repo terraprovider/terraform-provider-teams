@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &applicationMeetingConfigurationResource{}
 	_ resource.ResourceWithConfigure   = &applicationMeetingConfigurationResource{}
 	_ resource.ResourceWithImportState = &applicationMeetingConfigurationResource{}
+	_ resource.ResourceWithModifyPlan  = &applicationMeetingConfigurationResource{}
 )
 
 type applicationMeetingConfigurationResource struct{ client *clients.Client }
@@ -67,10 +68,15 @@ func (r *applicationMeetingConfigurationResource) Create(ctx context.Context, re
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config applicationMeetingConfigurationModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsApplicationMeetingConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if v := plan.AllowRemoveParticipantAppIds.ValueString(); v != "" {
-		sp.AllowRemoveParticipantAppIds = v
+	if v := config.AllowRemoveParticipantAppIds.ValueString(); v != "" {
+		sp.AllowRemoveParticipantAppIds = objectParam(v)
 	}
 	if resp.Diagnostics.HasError() {
 		return
@@ -112,7 +118,7 @@ func (r *applicationMeetingConfigurationResource) Update(ctx context.Context, re
 	sp := cs.SetCsApplicationMeetingConfigurationParams{}
 	sp.Identity = id
 	if v := plan.AllowRemoveParticipantAppIds.ValueString(); v != "" {
-		sp.AllowRemoveParticipantAppIds = v
+		sp.AllowRemoveParticipantAppIds = objectParam(v)
 	}
 	if resp.Diagnostics.HasError() {
 		return
@@ -122,9 +128,7 @@ func (r *applicationMeetingConfigurationResource) Update(ctx context.Context, re
 		return
 	}
 	cfg := plan
-	reflected := reconcile.ReflectsFields(map[string]types.String{
-		"AllowRemoveParticipantAppIds": cfg.AllowRemoveParticipantAppIds,
-	}, getString)
+	reflected := reconcile.ReflectsFields(map[string]types.String{}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -137,6 +141,41 @@ func (r *applicationMeetingConfigurationResource) Delete(_ context.Context, _ re
 func (r *applicationMeetingConfigurationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *applicationMeetingConfigurationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan applicationMeetingConfigurationModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsApplicationMeetingConfiguration(ctx, cs.GetCsApplicationMeetingConfigurationParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur applicationMeetingConfigurationModel
+	readApplicationMeetingConfiguration(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AllowRemoveParticipantAppIds.IsUnknown() {
+		plan.AllowRemoveParticipantAppIds = cur.AllowRemoveParticipantAppIds
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *applicationMeetingConfigurationResource) identityOf(m applicationMeetingConfigurationModel) string {
@@ -175,7 +214,7 @@ func (r *applicationMeetingConfigurationResource) refresh(ctx context.Context, i
 
 func readApplicationMeetingConfiguration(ctx context.Context, obj map[string]any, m *applicationMeetingConfigurationModel) {
 	m.ID = types.StringValue(firstNonEmptyStr(getString(obj, "Guid"), getString(obj, "Id"), getString(obj, "Identity")))
-	m.AllowRemoveParticipantAppIds = types.StringValue(getString(obj, "AllowRemoveParticipantAppIds"))
+	m.AllowRemoveParticipantAppIds = types.StringValue(getObjectJSON(obj, "AllowRemoveParticipantAppIds"))
 	_ = ctx
 }
 

@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &unassignedNumberTreatmentResource{}
 	_ resource.ResourceWithConfigure   = &unassignedNumberTreatmentResource{}
 	_ resource.ResourceWithImportState = &unassignedNumberTreatmentResource{}
+	_ resource.ResourceWithModifyPlan  = &unassignedNumberTreatmentResource{}
 )
 
 type unassignedNumberTreatmentResource struct{ client *clients.Client }
@@ -79,23 +80,66 @@ func (r *unassignedNumberTreatmentResource) Create(ctx context.Context, req reso
 		return
 	}
 
+	var config unassignedNumberTreatmentModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsUnassignedNumberTreatmentParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if !config.Pattern.IsNull() {
+			sp.Pattern = plan.Pattern.ValueString()
+		}
+		if !config.Target.IsNull() {
+			sp.Target = plan.Target.ValueString()
+		}
+		if !config.TargetType.IsNull() {
+			sp.TargetType = plan.TargetType.ValueString()
+		}
+		if !config.TreatmentPriority.IsNull() {
+			sp.TreatmentPriority = plan.TreatmentPriority.ValueInt64Pointer()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsUnassignedNumberTreatment(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-UnassignedNumberTreatment failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("UnassignedNumberTreatment not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsUnassignedNumberTreatmentParams{}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if !plan.Pattern.IsUnknown() && !plan.Pattern.IsNull() {
+	if !config.Pattern.IsNull() {
 		p.Pattern = plan.Pattern.ValueString()
 	}
-	if !plan.Target.IsUnknown() && !plan.Target.IsNull() {
+	if !config.Target.IsNull() {
 		p.Target = plan.Target.ValueString()
 	}
-	if !plan.TargetType.IsUnknown() && !plan.TargetType.IsNull() {
+	if !config.TargetType.IsNull() {
 		p.TargetType = plan.TargetType.ValueString()
 	}
-	if !plan.TreatmentId.IsUnknown() && !plan.TreatmentId.IsNull() {
+	if !config.TreatmentId.IsNull() {
 		p.TreatmentId = plan.TreatmentId.ValueString()
 	}
-	if !plan.TreatmentPriority.IsUnknown() && !plan.TreatmentPriority.IsNull() {
+	if !config.TreatmentPriority.IsNull() {
 		p.TreatmentPriority = plan.TreatmentPriority.ValueInt64Pointer()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -189,6 +233,10 @@ func (r *unassignedNumberTreatmentResource) Delete(ctx context.Context, req reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("UnassignedNumberTreatment Global not deleted", "The Global UnassignedNumberTreatment is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsUnassignedNumberTreatment(ctx, cs.RemoveCsTeamsUnassignedNumberTreatmentParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-UnassignedNumberTreatment failed", err.Error())
@@ -199,6 +247,56 @@ func (r *unassignedNumberTreatmentResource) Delete(ctx context.Context, req reso
 func (r *unassignedNumberTreatmentResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *unassignedNumberTreatmentResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan unassignedNumberTreatmentModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsUnassignedNumberTreatment(ctx, cs.GetCsTeamsUnassignedNumberTreatmentParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur unassignedNumberTreatmentModel
+	readUnassignedNumberTreatment(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.Pattern.IsUnknown() {
+		plan.Pattern = cur.Pattern
+	}
+	if plan.Target.IsUnknown() {
+		plan.Target = cur.Target
+	}
+	if plan.TargetType.IsUnknown() {
+		plan.TargetType = cur.TargetType
+	}
+	if plan.TreatmentId.IsUnknown() {
+		plan.TreatmentId = cur.TreatmentId
+	}
+	if plan.TreatmentPriority.IsUnknown() {
+		plan.TreatmentPriority = cur.TreatmentPriority
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *unassignedNumberTreatmentResource) identityOf(m unassignedNumberTreatmentModel) string {

@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &emergencyCallingPolicyResource{}
 	_ resource.ResourceWithConfigure   = &emergencyCallingPolicyResource{}
 	_ resource.ResourceWithImportState = &emergencyCallingPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &emergencyCallingPolicyResource{}
 )
 
 type emergencyCallingPolicyResource struct{ client *clients.Client }
@@ -78,27 +79,76 @@ func (r *emergencyCallingPolicyResource) Create(ctx context.Context, req resourc
 		return
 	}
 
+	var config emergencyCallingPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsEmergencyCallingPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if !config.EnhancedEmergencyServiceDisclaimer.IsNull() {
+			sp.EnhancedEmergencyServiceDisclaimer = plan.EnhancedEmergencyServiceDisclaimer.ValueString()
+		}
+		if v := config.ExtendedNotifications.ValueString(); v != "" {
+			sp.ExtendedNotifications = objectParam(v)
+		}
+		if v := config.ExternalLocationLookupMode.ValueString(); v != "" {
+			sp.ExternalLocationLookupMode = objectParam(v)
+		}
+		if !config.NotificationDialOutNumber.IsNull() {
+			sp.NotificationDialOutNumber = plan.NotificationDialOutNumber.ValueString()
+		}
+		if !config.NotificationGroup.IsNull() {
+			sp.NotificationGroup = plan.NotificationGroup.ValueString()
+		}
+		if v := config.NotificationMode.ValueString(); v != "" {
+			sp.NotificationMode = objectParam(v)
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsEmergencyCallingPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-EmergencyCallingPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("EmergencyCallingPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsEmergencyCallingPolicyParams{}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if !plan.EnhancedEmergencyServiceDisclaimer.IsUnknown() && !plan.EnhancedEmergencyServiceDisclaimer.IsNull() {
+	if !config.EnhancedEmergencyServiceDisclaimer.IsNull() {
 		p.EnhancedEmergencyServiceDisclaimer = plan.EnhancedEmergencyServiceDisclaimer.ValueString()
 	}
-	if v := plan.ExtendedNotifications.ValueString(); v != "" {
-		p.ExtendedNotifications = v
+	if v := config.ExtendedNotifications.ValueString(); v != "" {
+		p.ExtendedNotifications = objectParam(v)
 	}
-	if v := plan.ExternalLocationLookupMode.ValueString(); v != "" {
-		p.ExternalLocationLookupMode = v
+	if v := config.ExternalLocationLookupMode.ValueString(); v != "" {
+		p.ExternalLocationLookupMode = objectParam(v)
 	}
-	if !plan.NotificationDialOutNumber.IsUnknown() && !plan.NotificationDialOutNumber.IsNull() {
+	if !config.NotificationDialOutNumber.IsNull() {
 		p.NotificationDialOutNumber = plan.NotificationDialOutNumber.ValueString()
 	}
-	if !plan.NotificationGroup.IsUnknown() && !plan.NotificationGroup.IsNull() {
+	if !config.NotificationGroup.IsNull() {
 		p.NotificationGroup = plan.NotificationGroup.ValueString()
 	}
-	if v := plan.NotificationMode.ValueString(); v != "" {
-		p.NotificationMode = v
+	if v := config.NotificationMode.ValueString(); v != "" {
+		p.NotificationMode = objectParam(v)
 	}
 	p.Identity = plan.Identity.ValueString()
 	if resp.Diagnostics.HasError() {
@@ -158,10 +208,10 @@ func (r *emergencyCallingPolicyResource) Update(ctx context.Context, req resourc
 		sp.EnhancedEmergencyServiceDisclaimer = plan.EnhancedEmergencyServiceDisclaimer.ValueString()
 	}
 	if v := plan.ExtendedNotifications.ValueString(); v != "" {
-		sp.ExtendedNotifications = v
+		sp.ExtendedNotifications = objectParam(v)
 	}
 	if v := plan.ExternalLocationLookupMode.ValueString(); v != "" {
-		sp.ExternalLocationLookupMode = v
+		sp.ExternalLocationLookupMode = objectParam(v)
 	}
 	if !plan.NotificationDialOutNumber.Equal(state.NotificationDialOutNumber) {
 		sp.NotificationDialOutNumber = plan.NotificationDialOutNumber.ValueString()
@@ -170,7 +220,7 @@ func (r *emergencyCallingPolicyResource) Update(ctx context.Context, req resourc
 		sp.NotificationGroup = plan.NotificationGroup.ValueString()
 	}
 	if v := plan.NotificationMode.ValueString(); v != "" {
-		sp.NotificationMode = v
+		sp.NotificationMode = objectParam(v)
 	}
 	if resp.Diagnostics.HasError() {
 		return
@@ -183,11 +233,8 @@ func (r *emergencyCallingPolicyResource) Update(ctx context.Context, req resourc
 	reflected := reconcile.ReflectsFields(map[string]types.String{
 		"Description":                        cfg.Description,
 		"EnhancedEmergencyServiceDisclaimer": cfg.EnhancedEmergencyServiceDisclaimer,
-		"ExtendedNotifications":              cfg.ExtendedNotifications,
-		"ExternalLocationLookupMode":         cfg.ExternalLocationLookupMode,
 		"NotificationDialOutNumber":          cfg.NotificationDialOutNumber,
 		"NotificationGroup":                  cfg.NotificationGroup,
-		"NotificationMode":                   cfg.NotificationMode,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
 	r.reconcileState(&cfg, &plan)
@@ -200,6 +247,10 @@ func (r *emergencyCallingPolicyResource) Delete(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("EmergencyCallingPolicy Global not deleted", "The Global EmergencyCallingPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsEmergencyCallingPolicy(ctx, cs.RemoveCsTeamsEmergencyCallingPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-EmergencyCallingPolicy failed", err.Error())
@@ -210,6 +261,59 @@ func (r *emergencyCallingPolicyResource) Delete(ctx context.Context, req resourc
 func (r *emergencyCallingPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *emergencyCallingPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan emergencyCallingPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsEmergencyCallingPolicy(ctx, cs.GetCsTeamsEmergencyCallingPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur emergencyCallingPolicyModel
+	readEmergencyCallingPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.EnhancedEmergencyServiceDisclaimer.IsUnknown() {
+		plan.EnhancedEmergencyServiceDisclaimer = cur.EnhancedEmergencyServiceDisclaimer
+	}
+	if plan.ExtendedNotifications.IsUnknown() {
+		plan.ExtendedNotifications = cur.ExtendedNotifications
+	}
+	if plan.ExternalLocationLookupMode.IsUnknown() {
+		plan.ExternalLocationLookupMode = cur.ExternalLocationLookupMode
+	}
+	if plan.NotificationDialOutNumber.IsUnknown() {
+		plan.NotificationDialOutNumber = cur.NotificationDialOutNumber
+	}
+	if plan.NotificationGroup.IsUnknown() {
+		plan.NotificationGroup = cur.NotificationGroup
+	}
+	if plan.NotificationMode.IsUnknown() {
+		plan.NotificationMode = cur.NotificationMode
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *emergencyCallingPolicyResource) identityOf(m emergencyCallingPolicyModel) string {
@@ -250,11 +354,11 @@ func readEmergencyCallingPolicy(ctx context.Context, obj map[string]any, m *emer
 	m.ID = types.StringValue(firstNonEmptyStr(getString(obj, "Guid"), getString(obj, "Id"), getString(obj, "Identity")))
 	m.Description = types.StringValue(getString(obj, "Description"))
 	m.EnhancedEmergencyServiceDisclaimer = types.StringValue(getString(obj, "EnhancedEmergencyServiceDisclaimer"))
-	m.ExtendedNotifications = types.StringValue(getString(obj, "ExtendedNotifications"))
-	m.ExternalLocationLookupMode = types.StringValue(getString(obj, "ExternalLocationLookupMode"))
+	m.ExtendedNotifications = types.StringValue(getObjectJSON(obj, "ExtendedNotifications"))
+	m.ExternalLocationLookupMode = types.StringValue(getObjectJSON(obj, "ExternalLocationLookupMode"))
 	m.NotificationDialOutNumber = types.StringValue(getString(obj, "NotificationDialOutNumber"))
 	m.NotificationGroup = types.StringValue(getString(obj, "NotificationGroup"))
-	m.NotificationMode = types.StringValue(getString(obj, "NotificationMode"))
+	m.NotificationMode = types.StringValue(getObjectJSON(obj, "NotificationMode"))
 	_ = ctx
 }
 

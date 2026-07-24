@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &onlineVoicemailPolicyResource{}
 	_ resource.ResourceWithConfigure   = &onlineVoicemailPolicyResource{}
 	_ resource.ResourceWithImportState = &onlineVoicemailPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &onlineVoicemailPolicyResource{}
 )
 
 type onlineVoicemailPolicyResource struct{ client *clients.Client }
@@ -91,44 +92,111 @@ func (r *onlineVoicemailPolicyResource) Create(ctx context.Context, req resource
 		return
 	}
 
+	var config onlineVoicemailPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsOnlineVoicemailPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if !config.EnableEditingCallAnswerRulesSetting.IsNull() {
+			sp.EnableEditingCallAnswerRulesSetting = plan.EnableEditingCallAnswerRulesSetting.ValueBoolPointer()
+		}
+		if !config.EnableTranscription.IsNull() {
+			sp.EnableTranscription = plan.EnableTranscription.ValueBoolPointer()
+		}
+		if !config.EnableTranscriptionProfanityMasking.IsNull() {
+			sp.EnableTranscriptionProfanityMasking = plan.EnableTranscriptionProfanityMasking.ValueBoolPointer()
+		}
+		if !config.EnableTranscriptionTranslation.IsNull() {
+			sp.EnableTranscriptionTranslation = plan.EnableTranscriptionTranslation.ValueBoolPointer()
+		}
+		if !config.EnableVoicemailTriage.IsNull() {
+			sp.EnableVoicemailTriage = plan.EnableVoicemailTriage.ValueBoolPointer()
+		}
+		if v := config.MaximumRecordingLength.ValueString(); v != "" {
+			sp.MaximumRecordingLength = objectParam(v)
+		}
+		if !config.PostambleAudioFile.IsNull() {
+			sp.PostambleAudioFile = plan.PostambleAudioFile.ValueString()
+		}
+		if !config.PreambleAudioFile.IsNull() {
+			sp.PreambleAudioFile = plan.PreambleAudioFile.ValueString()
+		}
+		if !config.PreamblePostambleMandatory.IsNull() {
+			sp.PreamblePostambleMandatory = plan.PreamblePostambleMandatory.ValueBoolPointer()
+		}
+		if !config.PrimarySystemPromptLanguage.IsNull() {
+			sp.PrimarySystemPromptLanguage = plan.PrimarySystemPromptLanguage.ValueString()
+		}
+		if !config.SecondarySystemPromptLanguage.IsNull() {
+			sp.SecondarySystemPromptLanguage = plan.SecondarySystemPromptLanguage.ValueString()
+		}
+		if !config.ShareData.IsNull() {
+			sp.ShareData = plan.ShareData.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsOnlineVoicemailPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-OnlineVoicemailPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("OnlineVoicemailPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsOnlineVoicemailPolicyParams{}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if !plan.EnableEditingCallAnswerRulesSetting.IsUnknown() && !plan.EnableEditingCallAnswerRulesSetting.IsNull() {
+	if !config.EnableEditingCallAnswerRulesSetting.IsNull() {
 		p.EnableEditingCallAnswerRulesSetting = plan.EnableEditingCallAnswerRulesSetting.ValueBoolPointer()
 	}
-	if !plan.EnableTranscription.IsUnknown() && !plan.EnableTranscription.IsNull() {
+	if !config.EnableTranscription.IsNull() {
 		p.EnableTranscription = plan.EnableTranscription.ValueBoolPointer()
 	}
-	if !plan.EnableTranscriptionProfanityMasking.IsUnknown() && !plan.EnableTranscriptionProfanityMasking.IsNull() {
+	if !config.EnableTranscriptionProfanityMasking.IsNull() {
 		p.EnableTranscriptionProfanityMasking = plan.EnableTranscriptionProfanityMasking.ValueBoolPointer()
 	}
-	if !plan.EnableTranscriptionTranslation.IsUnknown() && !plan.EnableTranscriptionTranslation.IsNull() {
+	if !config.EnableTranscriptionTranslation.IsNull() {
 		p.EnableTranscriptionTranslation = plan.EnableTranscriptionTranslation.ValueBoolPointer()
 	}
-	if !plan.EnableVoicemailTriage.IsUnknown() && !plan.EnableVoicemailTriage.IsNull() {
+	if !config.EnableVoicemailTriage.IsNull() {
 		p.EnableVoicemailTriage = plan.EnableVoicemailTriage.ValueBoolPointer()
 	}
-	if v := plan.MaximumRecordingLength.ValueString(); v != "" {
-		p.MaximumRecordingLength = v
+	if v := config.MaximumRecordingLength.ValueString(); v != "" {
+		p.MaximumRecordingLength = objectParam(v)
 	}
-	if !plan.PostambleAudioFile.IsUnknown() && !plan.PostambleAudioFile.IsNull() {
+	if !config.PostambleAudioFile.IsNull() {
 		p.PostambleAudioFile = plan.PostambleAudioFile.ValueString()
 	}
-	if !plan.PreambleAudioFile.IsUnknown() && !plan.PreambleAudioFile.IsNull() {
+	if !config.PreambleAudioFile.IsNull() {
 		p.PreambleAudioFile = plan.PreambleAudioFile.ValueString()
 	}
-	if !plan.PreamblePostambleMandatory.IsUnknown() && !plan.PreamblePostambleMandatory.IsNull() {
+	if !config.PreamblePostambleMandatory.IsNull() {
 		p.PreamblePostambleMandatory = plan.PreamblePostambleMandatory.ValueBoolPointer()
 	}
-	if !plan.PrimarySystemPromptLanguage.IsUnknown() && !plan.PrimarySystemPromptLanguage.IsNull() {
+	if !config.PrimarySystemPromptLanguage.IsNull() {
 		p.PrimarySystemPromptLanguage = plan.PrimarySystemPromptLanguage.ValueString()
 	}
-	if !plan.SecondarySystemPromptLanguage.IsUnknown() && !plan.SecondarySystemPromptLanguage.IsNull() {
+	if !config.SecondarySystemPromptLanguage.IsNull() {
 		p.SecondarySystemPromptLanguage = plan.SecondarySystemPromptLanguage.ValueString()
 	}
-	if !plan.ShareData.IsUnknown() && !plan.ShareData.IsNull() {
+	if !config.ShareData.IsNull() {
 		p.ShareData = plan.ShareData.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -201,7 +269,7 @@ func (r *onlineVoicemailPolicyResource) Update(ctx context.Context, req resource
 		sp.EnableVoicemailTriage = plan.EnableVoicemailTriage.ValueBoolPointer()
 	}
 	if v := plan.MaximumRecordingLength.ValueString(); v != "" {
-		sp.MaximumRecordingLength = v
+		sp.MaximumRecordingLength = objectParam(v)
 	}
 	if !plan.PostambleAudioFile.Equal(state.PostambleAudioFile) {
 		sp.PostambleAudioFile = plan.PostambleAudioFile.ValueString()
@@ -231,7 +299,6 @@ func (r *onlineVoicemailPolicyResource) Update(ctx context.Context, req resource
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{
 		"Description":                   cfg.Description,
-		"MaximumRecordingLength":        cfg.MaximumRecordingLength,
 		"PostambleAudioFile":            cfg.PostambleAudioFile,
 		"PreambleAudioFile":             cfg.PreambleAudioFile,
 		"PrimarySystemPromptLanguage":   cfg.PrimarySystemPromptLanguage,
@@ -249,6 +316,10 @@ func (r *onlineVoicemailPolicyResource) Delete(ctx context.Context, req resource
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("OnlineVoicemailPolicy Global not deleted", "The Global OnlineVoicemailPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsOnlineVoicemailPolicy(ctx, cs.RemoveCsOnlineVoicemailPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-OnlineVoicemailPolicy failed", err.Error())
@@ -259,6 +330,77 @@ func (r *onlineVoicemailPolicyResource) Delete(ctx context.Context, req resource
 func (r *onlineVoicemailPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *onlineVoicemailPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan onlineVoicemailPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsOnlineVoicemailPolicy(ctx, cs.GetCsOnlineVoicemailPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur onlineVoicemailPolicyModel
+	readOnlineVoicemailPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.EnableEditingCallAnswerRulesSetting.IsUnknown() {
+		plan.EnableEditingCallAnswerRulesSetting = cur.EnableEditingCallAnswerRulesSetting
+	}
+	if plan.EnableTranscription.IsUnknown() {
+		plan.EnableTranscription = cur.EnableTranscription
+	}
+	if plan.EnableTranscriptionProfanityMasking.IsUnknown() {
+		plan.EnableTranscriptionProfanityMasking = cur.EnableTranscriptionProfanityMasking
+	}
+	if plan.EnableTranscriptionTranslation.IsUnknown() {
+		plan.EnableTranscriptionTranslation = cur.EnableTranscriptionTranslation
+	}
+	if plan.EnableVoicemailTriage.IsUnknown() {
+		plan.EnableVoicemailTriage = cur.EnableVoicemailTriage
+	}
+	if plan.MaximumRecordingLength.IsUnknown() {
+		plan.MaximumRecordingLength = cur.MaximumRecordingLength
+	}
+	if plan.PostambleAudioFile.IsUnknown() {
+		plan.PostambleAudioFile = cur.PostambleAudioFile
+	}
+	if plan.PreambleAudioFile.IsUnknown() {
+		plan.PreambleAudioFile = cur.PreambleAudioFile
+	}
+	if plan.PreamblePostambleMandatory.IsUnknown() {
+		plan.PreamblePostambleMandatory = cur.PreamblePostambleMandatory
+	}
+	if plan.PrimarySystemPromptLanguage.IsUnknown() {
+		plan.PrimarySystemPromptLanguage = cur.PrimarySystemPromptLanguage
+	}
+	if plan.SecondarySystemPromptLanguage.IsUnknown() {
+		plan.SecondarySystemPromptLanguage = cur.SecondarySystemPromptLanguage
+	}
+	if plan.ShareData.IsUnknown() {
+		plan.ShareData = cur.ShareData
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *onlineVoicemailPolicyResource) identityOf(m onlineVoicemailPolicyModel) string {
@@ -303,7 +445,7 @@ func readOnlineVoicemailPolicy(ctx context.Context, obj map[string]any, m *onlin
 	m.EnableTranscriptionProfanityMasking = types.BoolValue(getBool(obj, "EnableTranscriptionProfanityMasking"))
 	m.EnableTranscriptionTranslation = types.BoolValue(getBool(obj, "EnableTranscriptionTranslation"))
 	m.EnableVoicemailTriage = types.BoolValue(getBool(obj, "EnableVoicemailTriage"))
-	m.MaximumRecordingLength = types.StringValue(getString(obj, "MaximumRecordingLength"))
+	m.MaximumRecordingLength = types.StringValue(getObjectJSON(obj, "MaximumRecordingLength"))
 	m.PostambleAudioFile = types.StringValue(getString(obj, "PostambleAudioFile"))
 	m.PreambleAudioFile = types.StringValue(getString(obj, "PreambleAudioFile"))
 	m.PreamblePostambleMandatory = types.BoolValue(getBool(obj, "PreamblePostambleMandatory"))

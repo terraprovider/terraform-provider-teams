@@ -26,6 +26,7 @@ var (
 	_ resource.Resource                = &updateManagementPolicyResource{}
 	_ resource.ResourceWithConfigure   = &updateManagementPolicyResource{}
 	_ resource.ResourceWithImportState = &updateManagementPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &updateManagementPolicyResource{}
 )
 
 type updateManagementPolicyResource struct{ client *clients.Client }
@@ -86,35 +87,93 @@ func (r *updateManagementPolicyResource) Create(ctx context.Context, req resourc
 		return
 	}
 
+	var config updateManagementPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsUpdateManagementPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.AllowManagedUpdates.IsNull() {
+			sp.AllowManagedUpdates = plan.AllowManagedUpdates.ValueBoolPointer()
+		}
+		if !config.AllowPreview.IsNull() {
+			sp.AllowPreview = plan.AllowPreview.ValueBoolPointer()
+		}
+		if !config.AllowPublicPreview.IsNull() {
+			sp.AllowPublicPreview = plan.AllowPublicPreview.ValueString()
+		}
+		if !config.BlockLegacyAuthorization.IsNull() {
+			sp.BlockLegacyAuthorization = plan.BlockLegacyAuthorization.ValueBoolPointer()
+		}
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if v := config.DisabledInProductMessages.ValueString(); v != "" {
+			sp.DisabledInProductMessages = objectParam(v)
+		}
+		if !config.UpdateDayOfWeek.IsNull() {
+			sp.UpdateDayOfWeek = plan.UpdateDayOfWeek.ValueInt64Pointer()
+		}
+		if !config.UpdateTime.IsNull() {
+			sp.UpdateTime = plan.UpdateTime.ValueString()
+		}
+		if v := config.UpdateTimeOfDay.ValueString(); v != "" {
+			sp.UpdateTimeOfDay = objectParam(v)
+		}
+		if !config.UseNewTeamsClient.IsNull() {
+			sp.UseNewTeamsClient = plan.UseNewTeamsClient.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsUpdateManagementPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-UpdateManagementPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("UpdateManagementPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsUpdateManagementPolicyParams{}
-	if !plan.AllowManagedUpdates.IsUnknown() && !plan.AllowManagedUpdates.IsNull() {
+	if !config.AllowManagedUpdates.IsNull() {
 		p.AllowManagedUpdates = plan.AllowManagedUpdates.ValueBoolPointer()
 	}
-	if !plan.AllowPreview.IsUnknown() && !plan.AllowPreview.IsNull() {
+	if !config.AllowPreview.IsNull() {
 		p.AllowPreview = plan.AllowPreview.ValueBoolPointer()
 	}
-	if !plan.AllowPublicPreview.IsUnknown() && !plan.AllowPublicPreview.IsNull() {
+	if !config.AllowPublicPreview.IsNull() {
 		p.AllowPublicPreview = plan.AllowPublicPreview.ValueString()
 	}
-	if !plan.BlockLegacyAuthorization.IsUnknown() && !plan.BlockLegacyAuthorization.IsNull() {
+	if !config.BlockLegacyAuthorization.IsNull() {
 		p.BlockLegacyAuthorization = plan.BlockLegacyAuthorization.ValueBoolPointer()
 	}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if v := plan.DisabledInProductMessages.ValueString(); v != "" {
-		p.DisabledInProductMessages = v
+	if v := config.DisabledInProductMessages.ValueString(); v != "" {
+		p.DisabledInProductMessages = objectParam(v)
 	}
-	if !plan.UpdateDayOfWeek.IsUnknown() && !plan.UpdateDayOfWeek.IsNull() {
+	if !config.UpdateDayOfWeek.IsNull() {
 		p.UpdateDayOfWeek = plan.UpdateDayOfWeek.ValueInt64Pointer()
 	}
-	if !plan.UpdateTime.IsUnknown() && !plan.UpdateTime.IsNull() {
+	if !config.UpdateTime.IsNull() {
 		p.UpdateTime = plan.UpdateTime.ValueString()
 	}
-	if v := plan.UpdateTimeOfDay.ValueString(); v != "" {
-		p.UpdateTimeOfDay = v
+	if v := config.UpdateTimeOfDay.ValueString(); v != "" {
+		p.UpdateTimeOfDay = objectParam(v)
 	}
-	if !plan.UseNewTeamsClient.IsUnknown() && !plan.UseNewTeamsClient.IsNull() {
+	if !config.UseNewTeamsClient.IsNull() {
 		p.UseNewTeamsClient = plan.UseNewTeamsClient.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -184,7 +243,7 @@ func (r *updateManagementPolicyResource) Update(ctx context.Context, req resourc
 		sp.Description = plan.Description.ValueString()
 	}
 	if v := plan.DisabledInProductMessages.ValueString(); v != "" {
-		sp.DisabledInProductMessages = v
+		sp.DisabledInProductMessages = objectParam(v)
 	}
 	if !plan.UpdateDayOfWeek.Equal(state.UpdateDayOfWeek) {
 		sp.UpdateDayOfWeek = plan.UpdateDayOfWeek.ValueInt64Pointer()
@@ -193,7 +252,7 @@ func (r *updateManagementPolicyResource) Update(ctx context.Context, req resourc
 		sp.UpdateTime = plan.UpdateTime.ValueString()
 	}
 	if v := plan.UpdateTimeOfDay.ValueString(); v != "" {
-		sp.UpdateTimeOfDay = v
+		sp.UpdateTimeOfDay = objectParam(v)
 	}
 	if !plan.UseNewTeamsClient.Equal(state.UseNewTeamsClient) {
 		sp.UseNewTeamsClient = plan.UseNewTeamsClient.ValueString()
@@ -207,12 +266,10 @@ func (r *updateManagementPolicyResource) Update(ctx context.Context, req resourc
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{
-		"AllowPublicPreview":        cfg.AllowPublicPreview,
-		"Description":               cfg.Description,
-		"DisabledInProductMessages": cfg.DisabledInProductMessages,
-		"UpdateTime":                cfg.UpdateTime,
-		"UpdateTimeOfDay":           cfg.UpdateTimeOfDay,
-		"UseNewTeamsClient":         cfg.UseNewTeamsClient,
+		"AllowPublicPreview": cfg.AllowPublicPreview,
+		"Description":        cfg.Description,
+		"UpdateTime":         cfg.UpdateTime,
+		"UseNewTeamsClient":  cfg.UseNewTeamsClient,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
 	r.reconcileState(&cfg, &plan)
@@ -225,6 +282,10 @@ func (r *updateManagementPolicyResource) Delete(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("UpdateManagementPolicy Global not deleted", "The Global UpdateManagementPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsUpdateManagementPolicy(ctx, cs.RemoveCsTeamsUpdateManagementPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-UpdateManagementPolicy failed", err.Error())
@@ -235,6 +296,68 @@ func (r *updateManagementPolicyResource) Delete(ctx context.Context, req resourc
 func (r *updateManagementPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *updateManagementPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan updateManagementPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsUpdateManagementPolicy(ctx, cs.GetCsTeamsUpdateManagementPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur updateManagementPolicyModel
+	readUpdateManagementPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AllowManagedUpdates.IsUnknown() {
+		plan.AllowManagedUpdates = cur.AllowManagedUpdates
+	}
+	if plan.AllowPreview.IsUnknown() {
+		plan.AllowPreview = cur.AllowPreview
+	}
+	if plan.AllowPublicPreview.IsUnknown() {
+		plan.AllowPublicPreview = cur.AllowPublicPreview
+	}
+	if plan.BlockLegacyAuthorization.IsUnknown() {
+		plan.BlockLegacyAuthorization = cur.BlockLegacyAuthorization
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.DisabledInProductMessages.IsUnknown() {
+		plan.DisabledInProductMessages = cur.DisabledInProductMessages
+	}
+	if plan.UpdateDayOfWeek.IsUnknown() {
+		plan.UpdateDayOfWeek = cur.UpdateDayOfWeek
+	}
+	if plan.UpdateTime.IsUnknown() {
+		plan.UpdateTime = cur.UpdateTime
+	}
+	if plan.UpdateTimeOfDay.IsUnknown() {
+		plan.UpdateTimeOfDay = cur.UpdateTimeOfDay
+	}
+	if plan.UseNewTeamsClient.IsUnknown() {
+		plan.UseNewTeamsClient = cur.UseNewTeamsClient
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *updateManagementPolicyResource) identityOf(m updateManagementPolicyModel) string {
@@ -278,10 +401,10 @@ func readUpdateManagementPolicy(ctx context.Context, obj map[string]any, m *upda
 	m.AllowPublicPreview = types.StringValue(getString(obj, "AllowPublicPreview"))
 	m.BlockLegacyAuthorization = types.BoolValue(getBool(obj, "BlockLegacyAuthorization"))
 	m.Description = types.StringValue(getString(obj, "Description"))
-	m.DisabledInProductMessages = types.StringValue(getString(obj, "DisabledInProductMessages"))
+	m.DisabledInProductMessages = types.StringValue(getObjectJSON(obj, "DisabledInProductMessages"))
 	m.UpdateDayOfWeek = types.Int64Value(getInt(obj, "UpdateDayOfWeek"))
 	m.UpdateTime = types.StringValue(getString(obj, "UpdateTime"))
-	m.UpdateTimeOfDay = types.StringValue(getString(obj, "UpdateTimeOfDay"))
+	m.UpdateTimeOfDay = types.StringValue(getObjectJSON(obj, "UpdateTimeOfDay"))
 	m.UseNewTeamsClient = types.StringValue(getString(obj, "UseNewTeamsClient"))
 	_ = ctx
 }

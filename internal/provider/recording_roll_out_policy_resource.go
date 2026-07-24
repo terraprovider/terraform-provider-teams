@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &recordingRollOutPolicyResource{}
 	_ resource.ResourceWithConfigure   = &recordingRollOutPolicyResource{}
 	_ resource.ResourceWithImportState = &recordingRollOutPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &recordingRollOutPolicyResource{}
 )
 
 type recordingRollOutPolicyResource struct{ client *clients.Client }
@@ -66,8 +67,39 @@ func (r *recordingRollOutPolicyResource) Create(ctx context.Context, req resourc
 		return
 	}
 
+	var config recordingRollOutPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsRecordingRollOutPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.MeetingRecordingOwnership.IsNull() {
+			sp.MeetingRecordingOwnership = plan.MeetingRecordingOwnership.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsRecordingRollOutPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-RecordingRollOutPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("RecordingRollOutPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsRecordingRollOutPolicyParams{}
-	if !plan.MeetingRecordingOwnership.IsUnknown() && !plan.MeetingRecordingOwnership.IsNull() {
+	if !config.MeetingRecordingOwnership.IsNull() {
 		p.MeetingRecordingOwnership = plan.MeetingRecordingOwnership.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -146,6 +178,10 @@ func (r *recordingRollOutPolicyResource) Delete(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("RecordingRollOutPolicy Global not deleted", "The Global RecordingRollOutPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsRecordingRollOutPolicy(ctx, cs.RemoveCsTeamsRecordingRollOutPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-RecordingRollOutPolicy failed", err.Error())
@@ -156,6 +192,41 @@ func (r *recordingRollOutPolicyResource) Delete(ctx context.Context, req resourc
 func (r *recordingRollOutPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *recordingRollOutPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan recordingRollOutPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsRecordingRollOutPolicy(ctx, cs.GetCsTeamsRecordingRollOutPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur recordingRollOutPolicyModel
+	readRecordingRollOutPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.MeetingRecordingOwnership.IsUnknown() {
+		plan.MeetingRecordingOwnership = cur.MeetingRecordingOwnership
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *recordingRollOutPolicyResource) identityOf(m recordingRollOutPolicyModel) string {

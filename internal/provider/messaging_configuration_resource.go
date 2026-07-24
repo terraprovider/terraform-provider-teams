@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &messagingConfigurationResource{}
 	_ resource.ResourceWithConfigure   = &messagingConfigurationResource{}
 	_ resource.ResourceWithImportState = &messagingConfigurationResource{}
+	_ resource.ResourceWithModifyPlan  = &messagingConfigurationResource{}
 )
 
 type messagingConfigurationResource struct{ client *clients.Client }
@@ -84,36 +85,41 @@ func (r *messagingConfigurationResource) Create(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config messagingConfigurationModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTeamsMessagingConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.Communities.IsUnknown() && !plan.Communities.IsNull() {
+	if !config.Communities.IsNull() {
 		sp.Communities = plan.Communities.ValueString()
 	}
-	if !plan.ContentBasedPhishingCheck.IsUnknown() && !plan.ContentBasedPhishingCheck.IsNull() {
+	if !config.ContentBasedPhishingCheck.IsNull() {
 		sp.ContentBasedPhishingCheck = plan.ContentBasedPhishingCheck.ValueString()
 	}
-	if !plan.CustomEmojis.IsUnknown() && !plan.CustomEmojis.IsNull() {
+	if !config.CustomEmojis.IsNull() {
 		sp.CustomEmojis = plan.CustomEmojis.ValueBoolPointer()
 	}
-	if !plan.EnableInOrganizationChatControl.IsUnknown() && !plan.EnableInOrganizationChatControl.IsNull() {
+	if !config.EnableInOrganizationChatControl.IsNull() {
 		sp.EnableInOrganizationChatControl = plan.EnableInOrganizationChatControl.ValueBoolPointer()
 	}
-	if !plan.EnableVideoMessageCaptions.IsUnknown() && !plan.EnableVideoMessageCaptions.IsNull() {
+	if !config.EnableVideoMessageCaptions.IsNull() {
 		sp.EnableVideoMessageCaptions = plan.EnableVideoMessageCaptions.ValueBoolPointer()
 	}
-	if !plan.FileTypeCheck.IsUnknown() && !plan.FileTypeCheck.IsNull() {
+	if !config.FileTypeCheck.IsNull() {
 		sp.FileTypeCheck = plan.FileTypeCheck.ValueString()
 	}
-	if !plan.MessagingNotes.IsUnknown() && !plan.MessagingNotes.IsNull() {
+	if !config.MessagingNotes.IsNull() {
 		sp.MessagingNotes = plan.MessagingNotes.ValueString()
 	}
-	if !plan.ReportIncorrectSecurityDetections.IsUnknown() && !plan.ReportIncorrectSecurityDetections.IsNull() {
+	if !config.ReportIncorrectSecurityDetections.IsNull() {
 		sp.ReportIncorrectSecurityDetections = plan.ReportIncorrectSecurityDetections.ValueString()
 	}
-	if v := plan.Storyline.ValueString(); v != "" {
-		sp.Storyline = v
+	if v := config.Storyline.ValueString(); v != "" {
+		sp.Storyline = objectParam(v)
 	}
-	if !plan.UrlReputationCheck.IsUnknown() && !plan.UrlReputationCheck.IsNull() {
+	if !config.UrlReputationCheck.IsNull() {
 		sp.UrlReputationCheck = plan.UrlReputationCheck.ValueString()
 	}
 	if resp.Diagnostics.HasError() {
@@ -180,7 +186,7 @@ func (r *messagingConfigurationResource) Update(ctx context.Context, req resourc
 		sp.ReportIncorrectSecurityDetections = plan.ReportIncorrectSecurityDetections.ValueString()
 	}
 	if v := plan.Storyline.ValueString(); v != "" {
-		sp.Storyline = v
+		sp.Storyline = objectParam(v)
 	}
 	if !plan.UrlReputationCheck.Equal(state.UrlReputationCheck) {
 		sp.UrlReputationCheck = plan.UrlReputationCheck.ValueString()
@@ -199,7 +205,6 @@ func (r *messagingConfigurationResource) Update(ctx context.Context, req resourc
 		"FileTypeCheck":                     cfg.FileTypeCheck,
 		"MessagingNotes":                    cfg.MessagingNotes,
 		"ReportIncorrectSecurityDetections": cfg.ReportIncorrectSecurityDetections,
-		"Storyline":                         cfg.Storyline,
 		"UrlReputationCheck":                cfg.UrlReputationCheck,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
@@ -214,6 +219,68 @@ func (r *messagingConfigurationResource) Delete(_ context.Context, _ resource.De
 func (r *messagingConfigurationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *messagingConfigurationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan messagingConfigurationModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsMessagingConfiguration(ctx, cs.GetCsTeamsMessagingConfigurationParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur messagingConfigurationModel
+	readMessagingConfiguration(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.Communities.IsUnknown() {
+		plan.Communities = cur.Communities
+	}
+	if plan.ContentBasedPhishingCheck.IsUnknown() {
+		plan.ContentBasedPhishingCheck = cur.ContentBasedPhishingCheck
+	}
+	if plan.CustomEmojis.IsUnknown() {
+		plan.CustomEmojis = cur.CustomEmojis
+	}
+	if plan.EnableInOrganizationChatControl.IsUnknown() {
+		plan.EnableInOrganizationChatControl = cur.EnableInOrganizationChatControl
+	}
+	if plan.EnableVideoMessageCaptions.IsUnknown() {
+		plan.EnableVideoMessageCaptions = cur.EnableVideoMessageCaptions
+	}
+	if plan.FileTypeCheck.IsUnknown() {
+		plan.FileTypeCheck = cur.FileTypeCheck
+	}
+	if plan.MessagingNotes.IsUnknown() {
+		plan.MessagingNotes = cur.MessagingNotes
+	}
+	if plan.ReportIncorrectSecurityDetections.IsUnknown() {
+		plan.ReportIncorrectSecurityDetections = cur.ReportIncorrectSecurityDetections
+	}
+	if plan.Storyline.IsUnknown() {
+		plan.Storyline = cur.Storyline
+	}
+	if plan.UrlReputationCheck.IsUnknown() {
+		plan.UrlReputationCheck = cur.UrlReputationCheck
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *messagingConfigurationResource) identityOf(m messagingConfigurationModel) string {
@@ -260,7 +327,7 @@ func readMessagingConfiguration(ctx context.Context, obj map[string]any, m *mess
 	m.FileTypeCheck = types.StringValue(getString(obj, "FileTypeCheck"))
 	m.MessagingNotes = types.StringValue(getString(obj, "MessagingNotes"))
 	m.ReportIncorrectSecurityDetections = types.StringValue(getString(obj, "ReportIncorrectSecurityDetections"))
-	m.Storyline = types.StringValue(getString(obj, "Storyline"))
+	m.Storyline = types.StringValue(getObjectJSON(obj, "Storyline"))
 	m.UrlReputationCheck = types.StringValue(getString(obj, "UrlReputationCheck"))
 	_ = ctx
 }

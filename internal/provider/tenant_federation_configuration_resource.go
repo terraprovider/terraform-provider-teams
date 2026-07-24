@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &tenantFederationConfigurationResource{}
 	_ resource.ResourceWithConfigure   = &tenantFederationConfigurationResource{}
 	_ resource.ResourceWithImportState = &tenantFederationConfigurationResource{}
+	_ resource.ResourceWithModifyPlan  = &tenantFederationConfigurationResource{}
 )
 
 type tenantFederationConfigurationResource struct{ client *clients.Client }
@@ -96,51 +97,56 @@ func (r *tenantFederationConfigurationResource) Create(ctx context.Context, req 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config tenantFederationConfigurationModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTenantFederationConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.AllowFederatedUsers.IsUnknown() && !plan.AllowFederatedUsers.IsNull() {
+	if !config.AllowFederatedUsers.IsNull() {
 		sp.AllowFederatedUsers = plan.AllowFederatedUsers.ValueBoolPointer()
 	}
-	if !plan.AllowTeamsConsumer.IsUnknown() && !plan.AllowTeamsConsumer.IsNull() {
+	if !config.AllowTeamsConsumer.IsNull() {
 		sp.AllowTeamsConsumer = plan.AllowTeamsConsumer.ValueBoolPointer()
 	}
-	if !plan.AllowTeamsConsumerInbound.IsUnknown() && !plan.AllowTeamsConsumerInbound.IsNull() {
+	if !config.AllowTeamsConsumerInbound.IsNull() {
 		sp.AllowTeamsConsumerInbound = plan.AllowTeamsConsumerInbound.ValueBoolPointer()
 	}
-	if v := plan.AllowedDomains.ValueString(); v != "" {
-		sp.AllowedDomains = v
+	if v := config.AllowedDomains.ValueString(); v != "" {
+		sp.AllowedDomains = objectParam(v)
 	}
-	if v := plan.AllowedDomainsAsAList.ValueString(); v != "" {
-		sp.AllowedDomainsAsAList = v
+	if v := config.AllowedDomainsAsAList.ValueString(); v != "" {
+		sp.AllowedDomainsAsAList = objectParam(v)
 	}
-	if v := plan.AllowedTrialTenantDomains.ValueString(); v != "" {
-		sp.AllowedTrialTenantDomains = v
+	if v := config.AllowedTrialTenantDomains.ValueString(); v != "" {
+		sp.AllowedTrialTenantDomains = objectParam(v)
 	}
-	if !plan.BlockAllSubdomains.IsUnknown() && !plan.BlockAllSubdomains.IsNull() {
+	if !config.BlockAllSubdomains.IsNull() {
 		sp.BlockAllSubdomains = plan.BlockAllSubdomains.ValueBoolPointer()
 	}
-	if v := plan.BlockedDomains.ValueString(); v != "" {
-		sp.BlockedDomains = v
+	if v := config.BlockedDomains.ValueString(); v != "" {
+		sp.BlockedDomains = objectParam(v)
 	}
-	if !plan.EnableExternalAccessRestrictionsForChatParticipants.IsUnknown() && !plan.EnableExternalAccessRestrictionsForChatParticipants.IsNull() {
+	if !config.EnableExternalAccessRestrictionsForChatParticipants.IsNull() {
 		sp.EnableExternalAccessRestrictionsForChatParticipants = plan.EnableExternalAccessRestrictionsForChatParticipants.ValueBoolPointer()
 	}
-	if !plan.EnableMutualFederationForChatParticipants.IsUnknown() && !plan.EnableMutualFederationForChatParticipants.IsNull() {
+	if !config.EnableMutualFederationForChatParticipants.IsNull() {
 		sp.EnableMutualFederationForChatParticipants = plan.EnableMutualFederationForChatParticipants.ValueBoolPointer()
 	}
-	if !plan.ExternalAccessWithTrialTenants.IsUnknown() && !plan.ExternalAccessWithTrialTenants.IsNull() {
+	if !config.ExternalAccessWithTrialTenants.IsNull() {
 		sp.ExternalAccessWithTrialTenants = plan.ExternalAccessWithTrialTenants.ValueString()
 	}
-	if !plan.RestrictTeamsConsumerToExternalUserProfiles.IsUnknown() && !plan.RestrictTeamsConsumerToExternalUserProfiles.IsNull() {
+	if !config.RestrictTeamsConsumerToExternalUserProfiles.IsNull() {
 		sp.RestrictTeamsConsumerToExternalUserProfiles = plan.RestrictTeamsConsumerToExternalUserProfiles.ValueBoolPointer()
 	}
-	if !plan.SecurityTeamAllowBlockListDelegation.IsUnknown() && !plan.SecurityTeamAllowBlockListDelegation.IsNull() {
+	if !config.SecurityTeamAllowBlockListDelegation.IsNull() {
 		sp.SecurityTeamAllowBlockListDelegation = plan.SecurityTeamAllowBlockListDelegation.ValueString()
 	}
-	if !plan.SharedSipAddressSpace.IsUnknown() && !plan.SharedSipAddressSpace.IsNull() {
+	if !config.SharedSipAddressSpace.IsNull() {
 		sp.SharedSipAddressSpace = plan.SharedSipAddressSpace.ValueBoolPointer()
 	}
-	if !plan.TreatDiscoveredPartnersAsUnverified.IsUnknown() && !plan.TreatDiscoveredPartnersAsUnverified.IsNull() {
+	if !config.TreatDiscoveredPartnersAsUnverified.IsNull() {
 		sp.TreatDiscoveredPartnersAsUnverified = plan.TreatDiscoveredPartnersAsUnverified.ValueBoolPointer()
 	}
 	if resp.Diagnostics.HasError() {
@@ -192,19 +198,19 @@ func (r *tenantFederationConfigurationResource) Update(ctx context.Context, req 
 		sp.AllowTeamsConsumerInbound = plan.AllowTeamsConsumerInbound.ValueBoolPointer()
 	}
 	if v := plan.AllowedDomains.ValueString(); v != "" {
-		sp.AllowedDomains = v
+		sp.AllowedDomains = objectParam(v)
 	}
 	if v := plan.AllowedDomainsAsAList.ValueString(); v != "" {
-		sp.AllowedDomainsAsAList = v
+		sp.AllowedDomainsAsAList = objectParam(v)
 	}
 	if v := plan.AllowedTrialTenantDomains.ValueString(); v != "" {
-		sp.AllowedTrialTenantDomains = v
+		sp.AllowedTrialTenantDomains = objectParam(v)
 	}
 	if !plan.BlockAllSubdomains.Equal(state.BlockAllSubdomains) {
 		sp.BlockAllSubdomains = plan.BlockAllSubdomains.ValueBoolPointer()
 	}
 	if v := plan.BlockedDomains.ValueString(); v != "" {
-		sp.BlockedDomains = v
+		sp.BlockedDomains = objectParam(v)
 	}
 	if !plan.EnableExternalAccessRestrictionsForChatParticipants.Equal(state.EnableExternalAccessRestrictionsForChatParticipants) {
 		sp.EnableExternalAccessRestrictionsForChatParticipants = plan.EnableExternalAccessRestrictionsForChatParticipants.ValueBoolPointer()
@@ -236,10 +242,6 @@ func (r *tenantFederationConfigurationResource) Update(ctx context.Context, req 
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{
-		"AllowedDomains":                       cfg.AllowedDomains,
-		"AllowedDomainsAsAList":                cfg.AllowedDomainsAsAList,
-		"AllowedTrialTenantDomains":            cfg.AllowedTrialTenantDomains,
-		"BlockedDomains":                       cfg.BlockedDomains,
 		"ExternalAccessWithTrialTenants":       cfg.ExternalAccessWithTrialTenants,
 		"SecurityTeamAllowBlockListDelegation": cfg.SecurityTeamAllowBlockListDelegation,
 	}, getString)
@@ -255,6 +257,83 @@ func (r *tenantFederationConfigurationResource) Delete(_ context.Context, _ reso
 func (r *tenantFederationConfigurationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *tenantFederationConfigurationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan tenantFederationConfigurationModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsTenantFederationConfiguration(ctx, cs.GetCsTenantFederationConfigurationParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur tenantFederationConfigurationModel
+	readTenantFederationConfiguration(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AllowFederatedUsers.IsUnknown() {
+		plan.AllowFederatedUsers = cur.AllowFederatedUsers
+	}
+	if plan.AllowTeamsConsumer.IsUnknown() {
+		plan.AllowTeamsConsumer = cur.AllowTeamsConsumer
+	}
+	if plan.AllowTeamsConsumerInbound.IsUnknown() {
+		plan.AllowTeamsConsumerInbound = cur.AllowTeamsConsumerInbound
+	}
+	if plan.AllowedDomains.IsUnknown() {
+		plan.AllowedDomains = cur.AllowedDomains
+	}
+	if plan.AllowedDomainsAsAList.IsUnknown() {
+		plan.AllowedDomainsAsAList = cur.AllowedDomainsAsAList
+	}
+	if plan.AllowedTrialTenantDomains.IsUnknown() {
+		plan.AllowedTrialTenantDomains = cur.AllowedTrialTenantDomains
+	}
+	if plan.BlockAllSubdomains.IsUnknown() {
+		plan.BlockAllSubdomains = cur.BlockAllSubdomains
+	}
+	if plan.BlockedDomains.IsUnknown() {
+		plan.BlockedDomains = cur.BlockedDomains
+	}
+	if plan.EnableExternalAccessRestrictionsForChatParticipants.IsUnknown() {
+		plan.EnableExternalAccessRestrictionsForChatParticipants = cur.EnableExternalAccessRestrictionsForChatParticipants
+	}
+	if plan.EnableMutualFederationForChatParticipants.IsUnknown() {
+		plan.EnableMutualFederationForChatParticipants = cur.EnableMutualFederationForChatParticipants
+	}
+	if plan.ExternalAccessWithTrialTenants.IsUnknown() {
+		plan.ExternalAccessWithTrialTenants = cur.ExternalAccessWithTrialTenants
+	}
+	if plan.RestrictTeamsConsumerToExternalUserProfiles.IsUnknown() {
+		plan.RestrictTeamsConsumerToExternalUserProfiles = cur.RestrictTeamsConsumerToExternalUserProfiles
+	}
+	if plan.SecurityTeamAllowBlockListDelegation.IsUnknown() {
+		plan.SecurityTeamAllowBlockListDelegation = cur.SecurityTeamAllowBlockListDelegation
+	}
+	if plan.SharedSipAddressSpace.IsUnknown() {
+		plan.SharedSipAddressSpace = cur.SharedSipAddressSpace
+	}
+	if plan.TreatDiscoveredPartnersAsUnverified.IsUnknown() {
+		plan.TreatDiscoveredPartnersAsUnverified = cur.TreatDiscoveredPartnersAsUnverified
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *tenantFederationConfigurationResource) identityOf(m tenantFederationConfigurationModel) string {
@@ -296,11 +375,11 @@ func readTenantFederationConfiguration(ctx context.Context, obj map[string]any, 
 	m.AllowFederatedUsers = types.BoolValue(getBool(obj, "AllowFederatedUsers"))
 	m.AllowTeamsConsumer = types.BoolValue(getBool(obj, "AllowTeamsConsumer"))
 	m.AllowTeamsConsumerInbound = types.BoolValue(getBool(obj, "AllowTeamsConsumerInbound"))
-	m.AllowedDomains = types.StringValue(getString(obj, "AllowedDomains"))
-	m.AllowedDomainsAsAList = types.StringValue(getString(obj, "AllowedDomainsAsAList"))
-	m.AllowedTrialTenantDomains = types.StringValue(getString(obj, "AllowedTrialTenantDomains"))
+	m.AllowedDomains = types.StringValue(getObjectJSON(obj, "AllowedDomains"))
+	m.AllowedDomainsAsAList = types.StringValue(getObjectJSON(obj, "AllowedDomainsAsAList"))
+	m.AllowedTrialTenantDomains = types.StringValue(getObjectJSON(obj, "AllowedTrialTenantDomains"))
 	m.BlockAllSubdomains = types.BoolValue(getBool(obj, "BlockAllSubdomains"))
-	m.BlockedDomains = types.StringValue(getString(obj, "BlockedDomains"))
+	m.BlockedDomains = types.StringValue(getObjectJSON(obj, "BlockedDomains"))
 	m.EnableExternalAccessRestrictionsForChatParticipants = types.BoolValue(getBool(obj, "EnableExternalAccessRestrictionsForChatParticipants"))
 	m.EnableMutualFederationForChatParticipants = types.BoolValue(getBool(obj, "EnableMutualFederationForChatParticipants"))
 	m.ExternalAccessWithTrialTenants = types.StringValue(getString(obj, "ExternalAccessWithTrialTenants"))

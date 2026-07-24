@@ -26,6 +26,7 @@ var (
 	_ resource.Resource                = &onlineDialInConferencingTenantSettingsResource{}
 	_ resource.ResourceWithConfigure   = &onlineDialInConferencingTenantSettingsResource{}
 	_ resource.ResourceWithImportState = &onlineDialInConferencingTenantSettingsResource{}
+	_ resource.ResourceWithModifyPlan  = &onlineDialInConferencingTenantSettingsResource{}
 )
 
 type onlineDialInConferencingTenantSettingsResource struct{ client *clients.Client }
@@ -107,66 +108,71 @@ func (r *onlineDialInConferencingTenantSettingsResource) Create(ctx context.Cont
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config onlineDialInConferencingTenantSettingsModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsOnlineDialInConferencingTenantSettingsParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.AllowFederatedUsersToDialOutToSelf.IsUnknown() && !plan.AllowFederatedUsersToDialOutToSelf.IsNull() {
+	if !config.AllowFederatedUsersToDialOutToSelf.IsNull() {
 		sp.AllowFederatedUsersToDialOutToSelf = plan.AllowFederatedUsersToDialOutToSelf.ValueString()
 	}
-	if !plan.AllowFederatedUsersToDialOutToThirdParty.IsUnknown() && !plan.AllowFederatedUsersToDialOutToThirdParty.IsNull() {
+	if !config.AllowFederatedUsersToDialOutToThirdParty.IsNull() {
 		sp.AllowFederatedUsersToDialOutToThirdParty = plan.AllowFederatedUsersToDialOutToThirdParty.ValueString()
 	}
-	if !plan.AllowPSTNOnlyMeetingsByDefault.IsUnknown() && !plan.AllowPSTNOnlyMeetingsByDefault.IsNull() {
+	if !config.AllowPSTNOnlyMeetingsByDefault.IsNull() {
 		sp.AllowPSTNOnlyMeetingsByDefault = plan.AllowPSTNOnlyMeetingsByDefault.ValueBoolPointer()
 	}
-	if v := plan.AllowedDialOutExternalDomains.ValueString(); v != "" {
-		sp.AllowedDialOutExternalDomains = v
+	if v := config.AllowedDialOutExternalDomains.ValueString(); v != "" {
+		sp.AllowedDialOutExternalDomains = objectParam(v)
 	}
-	if !plan.AutomaticallyMigrateUserMeetings.IsUnknown() && !plan.AutomaticallyMigrateUserMeetings.IsNull() {
+	if !config.AutomaticallyMigrateUserMeetings.IsNull() {
 		sp.AutomaticallyMigrateUserMeetings = plan.AutomaticallyMigrateUserMeetings.ValueBoolPointer()
 	}
-	if !plan.AutomaticallyReplaceAcpProvider.IsUnknown() && !plan.AutomaticallyReplaceAcpProvider.IsNull() {
+	if !config.AutomaticallyReplaceAcpProvider.IsNull() {
 		sp.AutomaticallyReplaceAcpProvider = plan.AutomaticallyReplaceAcpProvider.ValueBoolPointer()
 	}
-	if !plan.AutomaticallySendEmailsToUsers.IsUnknown() && !plan.AutomaticallySendEmailsToUsers.IsNull() {
+	if !config.AutomaticallySendEmailsToUsers.IsNull() {
 		sp.AutomaticallySendEmailsToUsers = plan.AutomaticallySendEmailsToUsers.ValueBoolPointer()
 	}
-	if !plan.DynamicCallerIdMode.IsUnknown() && !plan.DynamicCallerIdMode.IsNull() {
+	if !config.DynamicCallerIdMode.IsNull() {
 		sp.DynamicCallerIdMode = plan.DynamicCallerIdMode.ValueString()
 	}
-	if !plan.EnableDialOutJoinConfirmation.IsUnknown() && !plan.EnableDialOutJoinConfirmation.IsNull() {
+	if !config.EnableDialOutJoinConfirmation.IsNull() {
 		sp.EnableDialOutJoinConfirmation = plan.EnableDialOutJoinConfirmation.ValueBoolPointer()
 	}
-	if !plan.EnableEntryExitNotifications.IsUnknown() && !plan.EnableEntryExitNotifications.IsNull() {
+	if !config.EnableEntryExitNotifications.IsNull() {
 		sp.EnableEntryExitNotifications = plan.EnableEntryExitNotifications.ValueBoolPointer()
 	}
-	if !plan.EnableNameRecording.IsUnknown() && !plan.EnableNameRecording.IsNull() {
+	if !config.EnableNameRecording.IsNull() {
 		sp.EnableNameRecording = plan.EnableNameRecording.ValueBoolPointer()
 	}
-	if !plan.EntryExitAnnouncementsType.IsUnknown() && !plan.EntryExitAnnouncementsType.IsNull() {
+	if !config.EntryExitAnnouncementsType.IsNull() {
 		sp.EntryExitAnnouncementsType = plan.EntryExitAnnouncementsType.ValueString()
 	}
-	if !plan.IncludeTollFreeNumberInMeetingInvites.IsUnknown() && !plan.IncludeTollFreeNumberInMeetingInvites.IsNull() {
+	if !config.IncludeTollFreeNumberInMeetingInvites.IsNull() {
 		sp.IncludeTollFreeNumberInMeetingInvites = plan.IncludeTollFreeNumberInMeetingInvites.ValueBoolPointer()
 	}
-	if !plan.MaskPstnNumbersType.IsUnknown() && !plan.MaskPstnNumbersType.IsNull() {
+	if !config.MaskPstnNumbersType.IsNull() {
 		sp.MaskPstnNumbersType = plan.MaskPstnNumbersType.ValueString()
 	}
-	if !plan.MigrateServiceNumbersOnCrossForestMove.IsUnknown() && !plan.MigrateServiceNumbersOnCrossForestMove.IsNull() {
+	if !config.MigrateServiceNumbersOnCrossForestMove.IsNull() {
 		sp.MigrateServiceNumbersOnCrossForestMove = plan.MigrateServiceNumbersOnCrossForestMove.ValueBoolPointer()
 	}
-	if !plan.PinLength.IsUnknown() && !plan.PinLength.IsNull() {
+	if !config.PinLength.IsNull() {
 		sp.PinLength = plan.PinLength.ValueInt64Pointer()
 	}
-	if !plan.SendEmailFromAddress.IsUnknown() && !plan.SendEmailFromAddress.IsNull() {
+	if !config.SendEmailFromAddress.IsNull() {
 		sp.SendEmailFromAddress = plan.SendEmailFromAddress.ValueString()
 	}
-	if !plan.SendEmailFromDisplayName.IsUnknown() && !plan.SendEmailFromDisplayName.IsNull() {
+	if !config.SendEmailFromDisplayName.IsNull() {
 		sp.SendEmailFromDisplayName = plan.SendEmailFromDisplayName.ValueString()
 	}
-	if !plan.SendEmailFromOverride.IsUnknown() && !plan.SendEmailFromOverride.IsNull() {
+	if !config.SendEmailFromOverride.IsNull() {
 		sp.SendEmailFromOverride = plan.SendEmailFromOverride.ValueBoolPointer()
 	}
-	if !plan.UseUniqueConferenceIds.IsUnknown() && !plan.UseUniqueConferenceIds.IsNull() {
+	if !config.UseUniqueConferenceIds.IsNull() {
 		sp.UseUniqueConferenceIds = plan.UseUniqueConferenceIds.ValueBoolPointer()
 	}
 	if resp.Diagnostics.HasError() {
@@ -218,7 +224,7 @@ func (r *onlineDialInConferencingTenantSettingsResource) Update(ctx context.Cont
 		sp.AllowPSTNOnlyMeetingsByDefault = plan.AllowPSTNOnlyMeetingsByDefault.ValueBoolPointer()
 	}
 	if v := plan.AllowedDialOutExternalDomains.ValueString(); v != "" {
-		sp.AllowedDialOutExternalDomains = v
+		sp.AllowedDialOutExternalDomains = objectParam(v)
 	}
 	if !plan.AutomaticallyMigrateUserMeetings.Equal(state.AutomaticallyMigrateUserMeetings) {
 		sp.AutomaticallyMigrateUserMeetings = plan.AutomaticallyMigrateUserMeetings.ValueBoolPointer()
@@ -279,7 +285,6 @@ func (r *onlineDialInConferencingTenantSettingsResource) Update(ctx context.Cont
 	reflected := reconcile.ReflectsFields(map[string]types.String{
 		"AllowFederatedUsersToDialOutToSelf":       cfg.AllowFederatedUsersToDialOutToSelf,
 		"AllowFederatedUsersToDialOutToThirdParty": cfg.AllowFederatedUsersToDialOutToThirdParty,
-		"AllowedDialOutExternalDomains":            cfg.AllowedDialOutExternalDomains,
 		"DynamicCallerIdMode":                      cfg.DynamicCallerIdMode,
 		"EntryExitAnnouncementsType":               cfg.EntryExitAnnouncementsType,
 		"MaskPstnNumbersType":                      cfg.MaskPstnNumbersType,
@@ -298,6 +303,98 @@ func (r *onlineDialInConferencingTenantSettingsResource) Delete(_ context.Contex
 func (r *onlineDialInConferencingTenantSettingsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *onlineDialInConferencingTenantSettingsResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan onlineDialInConferencingTenantSettingsModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsOnlineDialInConferencingTenantSettings(ctx, cs.GetCsOnlineDialInConferencingTenantSettingsParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur onlineDialInConferencingTenantSettingsModel
+	readOnlineDialInConferencingTenantSettings(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AllowFederatedUsersToDialOutToSelf.IsUnknown() {
+		plan.AllowFederatedUsersToDialOutToSelf = cur.AllowFederatedUsersToDialOutToSelf
+	}
+	if plan.AllowFederatedUsersToDialOutToThirdParty.IsUnknown() {
+		plan.AllowFederatedUsersToDialOutToThirdParty = cur.AllowFederatedUsersToDialOutToThirdParty
+	}
+	if plan.AllowPSTNOnlyMeetingsByDefault.IsUnknown() {
+		plan.AllowPSTNOnlyMeetingsByDefault = cur.AllowPSTNOnlyMeetingsByDefault
+	}
+	if plan.AllowedDialOutExternalDomains.IsUnknown() {
+		plan.AllowedDialOutExternalDomains = cur.AllowedDialOutExternalDomains
+	}
+	if plan.AutomaticallyMigrateUserMeetings.IsUnknown() {
+		plan.AutomaticallyMigrateUserMeetings = cur.AutomaticallyMigrateUserMeetings
+	}
+	if plan.AutomaticallyReplaceAcpProvider.IsUnknown() {
+		plan.AutomaticallyReplaceAcpProvider = cur.AutomaticallyReplaceAcpProvider
+	}
+	if plan.AutomaticallySendEmailsToUsers.IsUnknown() {
+		plan.AutomaticallySendEmailsToUsers = cur.AutomaticallySendEmailsToUsers
+	}
+	if plan.DynamicCallerIdMode.IsUnknown() {
+		plan.DynamicCallerIdMode = cur.DynamicCallerIdMode
+	}
+	if plan.EnableDialOutJoinConfirmation.IsUnknown() {
+		plan.EnableDialOutJoinConfirmation = cur.EnableDialOutJoinConfirmation
+	}
+	if plan.EnableEntryExitNotifications.IsUnknown() {
+		plan.EnableEntryExitNotifications = cur.EnableEntryExitNotifications
+	}
+	if plan.EnableNameRecording.IsUnknown() {
+		plan.EnableNameRecording = cur.EnableNameRecording
+	}
+	if plan.EntryExitAnnouncementsType.IsUnknown() {
+		plan.EntryExitAnnouncementsType = cur.EntryExitAnnouncementsType
+	}
+	if plan.IncludeTollFreeNumberInMeetingInvites.IsUnknown() {
+		plan.IncludeTollFreeNumberInMeetingInvites = cur.IncludeTollFreeNumberInMeetingInvites
+	}
+	if plan.MaskPstnNumbersType.IsUnknown() {
+		plan.MaskPstnNumbersType = cur.MaskPstnNumbersType
+	}
+	if plan.MigrateServiceNumbersOnCrossForestMove.IsUnknown() {
+		plan.MigrateServiceNumbersOnCrossForestMove = cur.MigrateServiceNumbersOnCrossForestMove
+	}
+	if plan.PinLength.IsUnknown() {
+		plan.PinLength = cur.PinLength
+	}
+	if plan.SendEmailFromAddress.IsUnknown() {
+		plan.SendEmailFromAddress = cur.SendEmailFromAddress
+	}
+	if plan.SendEmailFromDisplayName.IsUnknown() {
+		plan.SendEmailFromDisplayName = cur.SendEmailFromDisplayName
+	}
+	if plan.SendEmailFromOverride.IsUnknown() {
+		plan.SendEmailFromOverride = cur.SendEmailFromOverride
+	}
+	if plan.UseUniqueConferenceIds.IsUnknown() {
+		plan.UseUniqueConferenceIds = cur.UseUniqueConferenceIds
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *onlineDialInConferencingTenantSettingsResource) identityOf(m onlineDialInConferencingTenantSettingsModel) string {
@@ -339,7 +436,7 @@ func readOnlineDialInConferencingTenantSettings(ctx context.Context, obj map[str
 	m.AllowFederatedUsersToDialOutToSelf = types.StringValue(getString(obj, "AllowFederatedUsersToDialOutToSelf"))
 	m.AllowFederatedUsersToDialOutToThirdParty = types.StringValue(getString(obj, "AllowFederatedUsersToDialOutToThirdParty"))
 	m.AllowPSTNOnlyMeetingsByDefault = types.BoolValue(getBool(obj, "AllowPSTNOnlyMeetingsByDefault"))
-	m.AllowedDialOutExternalDomains = types.StringValue(getString(obj, "AllowedDialOutExternalDomains"))
+	m.AllowedDialOutExternalDomains = types.StringValue(getObjectJSON(obj, "AllowedDialOutExternalDomains"))
 	m.AutomaticallyMigrateUserMeetings = types.BoolValue(getBool(obj, "AutomaticallyMigrateUserMeetings"))
 	m.AutomaticallyReplaceAcpProvider = types.BoolValue(getBool(obj, "AutomaticallyReplaceAcpProvider"))
 	m.AutomaticallySendEmailsToUsers = types.BoolValue(getBool(obj, "AutomaticallySendEmailsToUsers"))

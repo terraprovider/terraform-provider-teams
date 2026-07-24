@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &onlineVoiceRouteResource{}
 	_ resource.ResourceWithConfigure   = &onlineVoiceRouteResource{}
 	_ resource.ResourceWithImportState = &onlineVoiceRouteResource{}
+	_ resource.ResourceWithModifyPlan  = &onlineVoiceRouteResource{}
 )
 
 type onlineVoiceRouteResource struct{ client *clients.Client }
@@ -79,26 +80,72 @@ func (r *onlineVoiceRouteResource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
+	var config onlineVoiceRouteModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsOnlineVoiceRouteParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.BridgeSourcePhoneNumber.IsNull() {
+			sp.BridgeSourcePhoneNumber = plan.BridgeSourcePhoneNumber.ValueString()
+		}
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if !config.NumberPattern.IsNull() {
+			sp.NumberPattern = plan.NumberPattern.ValueString()
+		}
+		if v := config.OnlinePstnGatewayList.ValueString(); v != "" {
+			sp.OnlinePstnGatewayList = objectParam(v)
+		}
+		if v := config.OnlinePstnUsages.ValueString(); v != "" {
+			sp.OnlinePstnUsages = objectParam(v)
+		}
+		if !config.Priority.IsNull() {
+			sp.Priority = plan.Priority.ValueInt64Pointer()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsOnlineVoiceRoute(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-OnlineVoiceRoute failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("OnlineVoiceRoute not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsOnlineVoiceRouteParams{}
-	if !plan.BridgeSourcePhoneNumber.IsUnknown() && !plan.BridgeSourcePhoneNumber.IsNull() {
+	if !config.BridgeSourcePhoneNumber.IsNull() {
 		p.BridgeSourcePhoneNumber = plan.BridgeSourcePhoneNumber.ValueString()
 	}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if !plan.Name.IsUnknown() && !plan.Name.IsNull() {
+	if !config.Name.IsNull() {
 		p.Name = plan.Name.ValueString()
 	}
-	if !plan.NumberPattern.IsUnknown() && !plan.NumberPattern.IsNull() {
+	if !config.NumberPattern.IsNull() {
 		p.NumberPattern = plan.NumberPattern.ValueString()
 	}
-	if v := plan.OnlinePstnGatewayList.ValueString(); v != "" {
-		p.OnlinePstnGatewayList = v
+	if v := config.OnlinePstnGatewayList.ValueString(); v != "" {
+		p.OnlinePstnGatewayList = objectParam(v)
 	}
-	if v := plan.OnlinePstnUsages.ValueString(); v != "" {
-		p.OnlinePstnUsages = v
+	if v := config.OnlinePstnUsages.ValueString(); v != "" {
+		p.OnlinePstnUsages = objectParam(v)
 	}
-	if !plan.Priority.IsUnknown() && !plan.Priority.IsNull() {
+	if !config.Priority.IsNull() {
 		p.Priority = plan.Priority.ValueInt64Pointer()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -162,10 +209,10 @@ func (r *onlineVoiceRouteResource) Update(ctx context.Context, req resource.Upda
 		sp.NumberPattern = plan.NumberPattern.ValueString()
 	}
 	if v := plan.OnlinePstnGatewayList.ValueString(); v != "" {
-		sp.OnlinePstnGatewayList = v
+		sp.OnlinePstnGatewayList = objectParam(v)
 	}
 	if v := plan.OnlinePstnUsages.ValueString(); v != "" {
-		sp.OnlinePstnUsages = v
+		sp.OnlinePstnUsages = objectParam(v)
 	}
 	if !plan.Priority.Equal(state.Priority) {
 		sp.Priority = plan.Priority.ValueInt64Pointer()
@@ -182,8 +229,6 @@ func (r *onlineVoiceRouteResource) Update(ctx context.Context, req resource.Upda
 		"BridgeSourcePhoneNumber": cfg.BridgeSourcePhoneNumber,
 		"Description":             cfg.Description,
 		"NumberPattern":           cfg.NumberPattern,
-		"OnlinePstnGatewayList":   cfg.OnlinePstnGatewayList,
-		"OnlinePstnUsages":        cfg.OnlinePstnUsages,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
 	r.reconcileState(&cfg, &plan)
@@ -196,6 +241,10 @@ func (r *onlineVoiceRouteResource) Delete(ctx context.Context, req resource.Dele
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("OnlineVoiceRoute Global not deleted", "The Global OnlineVoiceRoute is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsOnlineVoiceRoute(ctx, cs.RemoveCsOnlineVoiceRouteParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-OnlineVoiceRoute failed", err.Error())
@@ -206,6 +255,59 @@ func (r *onlineVoiceRouteResource) Delete(ctx context.Context, req resource.Dele
 func (r *onlineVoiceRouteResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *onlineVoiceRouteResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan onlineVoiceRouteModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsOnlineVoiceRoute(ctx, cs.GetCsOnlineVoiceRouteParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur onlineVoiceRouteModel
+	readOnlineVoiceRoute(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.BridgeSourcePhoneNumber.IsUnknown() {
+		plan.BridgeSourcePhoneNumber = cur.BridgeSourcePhoneNumber
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.Name.IsUnknown() {
+		plan.Name = cur.Name
+	}
+	if plan.NumberPattern.IsUnknown() {
+		plan.NumberPattern = cur.NumberPattern
+	}
+	if plan.OnlinePstnGatewayList.IsUnknown() {
+		plan.OnlinePstnGatewayList = cur.OnlinePstnGatewayList
+	}
+	if plan.OnlinePstnUsages.IsUnknown() {
+		plan.OnlinePstnUsages = cur.OnlinePstnUsages
+	}
+	if plan.Priority.IsUnknown() {
+		plan.Priority = cur.Priority
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *onlineVoiceRouteResource) identityOf(m onlineVoiceRouteModel) string {
@@ -248,8 +350,8 @@ func readOnlineVoiceRoute(ctx context.Context, obj map[string]any, m *onlineVoic
 	m.Description = types.StringValue(getString(obj, "Description"))
 	m.Name = types.StringValue(getString(obj, "Name"))
 	m.NumberPattern = types.StringValue(getString(obj, "NumberPattern"))
-	m.OnlinePstnGatewayList = types.StringValue(getString(obj, "OnlinePstnGatewayList"))
-	m.OnlinePstnUsages = types.StringValue(getString(obj, "OnlinePstnUsages"))
+	m.OnlinePstnGatewayList = types.StringValue(getObjectJSON(obj, "OnlinePstnGatewayList"))
+	m.OnlinePstnUsages = types.StringValue(getObjectJSON(obj, "OnlinePstnUsages"))
 	m.Priority = types.Int64Value(getInt(obj, "Priority"))
 	_ = ctx
 }

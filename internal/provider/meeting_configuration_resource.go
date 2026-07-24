@@ -26,6 +26,7 @@ var (
 	_ resource.Resource                = &meetingConfigurationResource{}
 	_ resource.ResourceWithConfigure   = &meetingConfigurationResource{}
 	_ resource.ResourceWithImportState = &meetingConfigurationResource{}
+	_ resource.ResourceWithModifyPlan  = &meetingConfigurationResource{}
 )
 
 type meetingConfigurationResource struct{ client *clients.Client }
@@ -105,66 +106,71 @@ func (r *meetingConfigurationResource) Create(ctx context.Context, req resource.
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config meetingConfigurationModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTeamsMeetingConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.ClientAppSharingPort.IsUnknown() && !plan.ClientAppSharingPort.IsNull() {
+	if !config.ClientAppSharingPort.IsNull() {
 		sp.ClientAppSharingPort = plan.ClientAppSharingPort.ValueInt64Pointer()
 	}
-	if !plan.ClientAppSharingPortRange.IsUnknown() && !plan.ClientAppSharingPortRange.IsNull() {
+	if !config.ClientAppSharingPortRange.IsNull() {
 		sp.ClientAppSharingPortRange = plan.ClientAppSharingPortRange.ValueInt64Pointer()
 	}
-	if !plan.ClientAudioPort.IsUnknown() && !plan.ClientAudioPort.IsNull() {
+	if !config.ClientAudioPort.IsNull() {
 		sp.ClientAudioPort = plan.ClientAudioPort.ValueInt64Pointer()
 	}
-	if !plan.ClientAudioPortRange.IsUnknown() && !plan.ClientAudioPortRange.IsNull() {
+	if !config.ClientAudioPortRange.IsNull() {
 		sp.ClientAudioPortRange = plan.ClientAudioPortRange.ValueInt64Pointer()
 	}
-	if !plan.ClientMediaPortRangeEnabled.IsUnknown() && !plan.ClientMediaPortRangeEnabled.IsNull() {
+	if !config.ClientMediaPortRangeEnabled.IsNull() {
 		sp.ClientMediaPortRangeEnabled = plan.ClientMediaPortRangeEnabled.ValueBoolPointer()
 	}
-	if !plan.ClientVideoPort.IsUnknown() && !plan.ClientVideoPort.IsNull() {
+	if !config.ClientVideoPort.IsNull() {
 		sp.ClientVideoPort = plan.ClientVideoPort.ValueInt64Pointer()
 	}
-	if !plan.ClientVideoPortRange.IsUnknown() && !plan.ClientVideoPortRange.IsNull() {
+	if !config.ClientVideoPortRange.IsNull() {
 		sp.ClientVideoPortRange = plan.ClientVideoPortRange.ValueInt64Pointer()
 	}
-	if !plan.CustomFooterText.IsUnknown() && !plan.CustomFooterText.IsNull() {
+	if !config.CustomFooterText.IsNull() {
 		sp.CustomFooterText = plan.CustomFooterText.ValueString()
 	}
-	if !plan.DisableAnonymousJoin.IsUnknown() && !plan.DisableAnonymousJoin.IsNull() {
+	if !config.DisableAnonymousJoin.IsNull() {
 		sp.DisableAnonymousJoin = plan.DisableAnonymousJoin.ValueBoolPointer()
 	}
-	if !plan.DisableAppInteractionForAnonymousUsers.IsUnknown() && !plan.DisableAppInteractionForAnonymousUsers.IsNull() {
+	if !config.DisableAppInteractionForAnonymousUsers.IsNull() {
 		sp.DisableAppInteractionForAnonymousUsers = plan.DisableAppInteractionForAnonymousUsers.ValueBoolPointer()
 	}
-	if !plan.EnableAttributedTranscripts.IsUnknown() && !plan.EnableAttributedTranscripts.IsNull() {
+	if !config.EnableAttributedTranscripts.IsNull() {
 		sp.EnableAttributedTranscripts = plan.EnableAttributedTranscripts.ValueBoolPointer()
 	}
-	if !plan.EnableGraphTranscriptAccess.IsUnknown() && !plan.EnableGraphTranscriptAccess.IsNull() {
+	if !config.EnableGraphTranscriptAccess.IsNull() {
 		sp.EnableGraphTranscriptAccess = plan.EnableGraphTranscriptAccess.ValueBoolPointer()
 	}
-	if !plan.EnableQoS.IsUnknown() && !plan.EnableQoS.IsNull() {
+	if !config.EnableQoS.IsNull() {
 		sp.EnableQoS = plan.EnableQoS.ValueBoolPointer()
 	}
-	if !plan.FeedbackSurveyForAnonymousUsers.IsUnknown() && !plan.FeedbackSurveyForAnonymousUsers.IsNull() {
+	if !config.FeedbackSurveyForAnonymousUsers.IsNull() {
 		sp.FeedbackSurveyForAnonymousUsers = plan.FeedbackSurveyForAnonymousUsers.ValueString()
 	}
-	if !plan.HelpURL.IsUnknown() && !plan.HelpURL.IsNull() {
+	if !config.HelpURL.IsNull() {
 		sp.HelpURL = plan.HelpURL.ValueString()
 	}
-	if !plan.LegalURL.IsUnknown() && !plan.LegalURL.IsNull() {
+	if !config.LegalURL.IsNull() {
 		sp.LegalURL = plan.LegalURL.ValueString()
 	}
-	if !plan.LimitPresenterRolePermissions.IsUnknown() && !plan.LimitPresenterRolePermissions.IsNull() {
+	if !config.LimitPresenterRolePermissions.IsNull() {
 		sp.LimitPresenterRolePermissions = plan.LimitPresenterRolePermissions.ValueBoolPointer()
 	}
-	if !plan.LogoURL.IsUnknown() && !plan.LogoURL.IsNull() {
+	if !config.LogoURL.IsNull() {
 		sp.LogoURL = plan.LogoURL.ValueString()
 	}
-	if v := plan.PublishedEntraAuthenticationContexts.ValueString(); v != "" {
-		sp.PublishedEntraAuthenticationContexts = v
+	if v := config.PublishedEntraAuthenticationContexts.ValueString(); v != "" {
+		sp.PublishedEntraAuthenticationContexts = objectParam(v)
 	}
-	if !plan.ReportMeeting.IsUnknown() && !plan.ReportMeeting.IsNull() {
+	if !config.ReportMeeting.IsNull() {
 		sp.ReportMeeting = plan.ReportMeeting.ValueString()
 	}
 	if resp.Diagnostics.HasError() {
@@ -261,7 +267,7 @@ func (r *meetingConfigurationResource) Update(ctx context.Context, req resource.
 		sp.LogoURL = plan.LogoURL.ValueString()
 	}
 	if v := plan.PublishedEntraAuthenticationContexts.ValueString(); v != "" {
-		sp.PublishedEntraAuthenticationContexts = v
+		sp.PublishedEntraAuthenticationContexts = objectParam(v)
 	}
 	if !plan.ReportMeeting.Equal(state.ReportMeeting) {
 		sp.ReportMeeting = plan.ReportMeeting.ValueString()
@@ -275,13 +281,12 @@ func (r *meetingConfigurationResource) Update(ctx context.Context, req resource.
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{
-		"CustomFooterText":                     cfg.CustomFooterText,
-		"FeedbackSurveyForAnonymousUsers":      cfg.FeedbackSurveyForAnonymousUsers,
-		"HelpURL":                              cfg.HelpURL,
-		"LegalURL":                             cfg.LegalURL,
-		"LogoURL":                              cfg.LogoURL,
-		"PublishedEntraAuthenticationContexts": cfg.PublishedEntraAuthenticationContexts,
-		"ReportMeeting":                        cfg.ReportMeeting,
+		"CustomFooterText":                cfg.CustomFooterText,
+		"FeedbackSurveyForAnonymousUsers": cfg.FeedbackSurveyForAnonymousUsers,
+		"HelpURL":                         cfg.HelpURL,
+		"LegalURL":                        cfg.LegalURL,
+		"LogoURL":                         cfg.LogoURL,
+		"ReportMeeting":                   cfg.ReportMeeting,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
 	r.reconcileState(&cfg, &plan)
@@ -295,6 +300,98 @@ func (r *meetingConfigurationResource) Delete(_ context.Context, _ resource.Dele
 func (r *meetingConfigurationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *meetingConfigurationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan meetingConfigurationModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsMeetingConfiguration(ctx, cs.GetCsTeamsMeetingConfigurationParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur meetingConfigurationModel
+	readMeetingConfiguration(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.ClientAppSharingPort.IsUnknown() {
+		plan.ClientAppSharingPort = cur.ClientAppSharingPort
+	}
+	if plan.ClientAppSharingPortRange.IsUnknown() {
+		plan.ClientAppSharingPortRange = cur.ClientAppSharingPortRange
+	}
+	if plan.ClientAudioPort.IsUnknown() {
+		plan.ClientAudioPort = cur.ClientAudioPort
+	}
+	if plan.ClientAudioPortRange.IsUnknown() {
+		plan.ClientAudioPortRange = cur.ClientAudioPortRange
+	}
+	if plan.ClientMediaPortRangeEnabled.IsUnknown() {
+		plan.ClientMediaPortRangeEnabled = cur.ClientMediaPortRangeEnabled
+	}
+	if plan.ClientVideoPort.IsUnknown() {
+		plan.ClientVideoPort = cur.ClientVideoPort
+	}
+	if plan.ClientVideoPortRange.IsUnknown() {
+		plan.ClientVideoPortRange = cur.ClientVideoPortRange
+	}
+	if plan.CustomFooterText.IsUnknown() {
+		plan.CustomFooterText = cur.CustomFooterText
+	}
+	if plan.DisableAnonymousJoin.IsUnknown() {
+		plan.DisableAnonymousJoin = cur.DisableAnonymousJoin
+	}
+	if plan.DisableAppInteractionForAnonymousUsers.IsUnknown() {
+		plan.DisableAppInteractionForAnonymousUsers = cur.DisableAppInteractionForAnonymousUsers
+	}
+	if plan.EnableAttributedTranscripts.IsUnknown() {
+		plan.EnableAttributedTranscripts = cur.EnableAttributedTranscripts
+	}
+	if plan.EnableGraphTranscriptAccess.IsUnknown() {
+		plan.EnableGraphTranscriptAccess = cur.EnableGraphTranscriptAccess
+	}
+	if plan.EnableQoS.IsUnknown() {
+		plan.EnableQoS = cur.EnableQoS
+	}
+	if plan.FeedbackSurveyForAnonymousUsers.IsUnknown() {
+		plan.FeedbackSurveyForAnonymousUsers = cur.FeedbackSurveyForAnonymousUsers
+	}
+	if plan.HelpURL.IsUnknown() {
+		plan.HelpURL = cur.HelpURL
+	}
+	if plan.LegalURL.IsUnknown() {
+		plan.LegalURL = cur.LegalURL
+	}
+	if plan.LimitPresenterRolePermissions.IsUnknown() {
+		plan.LimitPresenterRolePermissions = cur.LimitPresenterRolePermissions
+	}
+	if plan.LogoURL.IsUnknown() {
+		plan.LogoURL = cur.LogoURL
+	}
+	if plan.PublishedEntraAuthenticationContexts.IsUnknown() {
+		plan.PublishedEntraAuthenticationContexts = cur.PublishedEntraAuthenticationContexts
+	}
+	if plan.ReportMeeting.IsUnknown() {
+		plan.ReportMeeting = cur.ReportMeeting
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *meetingConfigurationResource) identityOf(m meetingConfigurationModel) string {
@@ -351,7 +448,7 @@ func readMeetingConfiguration(ctx context.Context, obj map[string]any, m *meetin
 	m.LegalURL = types.StringValue(getString(obj, "LegalURL"))
 	m.LimitPresenterRolePermissions = types.BoolValue(getBool(obj, "LimitPresenterRolePermissions"))
 	m.LogoURL = types.StringValue(getString(obj, "LogoURL"))
-	m.PublishedEntraAuthenticationContexts = types.StringValue(getString(obj, "PublishedEntraAuthenticationContexts"))
+	m.PublishedEntraAuthenticationContexts = types.StringValue(getObjectJSON(obj, "PublishedEntraAuthenticationContexts"))
 	m.ReportMeeting = types.StringValue(getString(obj, "ReportMeeting"))
 	_ = ctx
 }

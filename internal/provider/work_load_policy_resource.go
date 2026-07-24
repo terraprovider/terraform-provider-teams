@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &workLoadPolicyResource{}
 	_ resource.ResourceWithConfigure   = &workLoadPolicyResource{}
 	_ resource.ResourceWithImportState = &workLoadPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &workLoadPolicyResource{}
 )
 
 type workLoadPolicyResource struct{ client *clients.Client }
@@ -79,26 +80,75 @@ func (r *workLoadPolicyResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
+	var config workLoadPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsWorkLoadPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.AllowCalling.IsNull() {
+			sp.AllowCalling = plan.AllowCalling.ValueBoolPointer()
+		}
+		if !config.AllowCallingPinned.IsNull() {
+			sp.AllowCallingPinned = plan.AllowCallingPinned.ValueBoolPointer()
+		}
+		if !config.AllowMeeting.IsNull() {
+			sp.AllowMeeting = plan.AllowMeeting.ValueBoolPointer()
+		}
+		if !config.AllowMeetingPinned.IsNull() {
+			sp.AllowMeetingPinned = plan.AllowMeetingPinned.ValueBoolPointer()
+		}
+		if !config.AllowMessaging.IsNull() {
+			sp.AllowMessaging = plan.AllowMessaging.ValueBoolPointer()
+		}
+		if !config.AllowMessagingPinned.IsNull() {
+			sp.AllowMessagingPinned = plan.AllowMessagingPinned.ValueBoolPointer()
+		}
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsWorkLoadPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-WorkLoadPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("WorkLoadPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsWorkLoadPolicyParams{}
-	if !plan.AllowCalling.IsUnknown() && !plan.AllowCalling.IsNull() {
+	if !config.AllowCalling.IsNull() {
 		p.AllowCalling = plan.AllowCalling.ValueBoolPointer()
 	}
-	if !plan.AllowCallingPinned.IsUnknown() && !plan.AllowCallingPinned.IsNull() {
+	if !config.AllowCallingPinned.IsNull() {
 		p.AllowCallingPinned = plan.AllowCallingPinned.ValueBoolPointer()
 	}
-	if !plan.AllowMeeting.IsUnknown() && !plan.AllowMeeting.IsNull() {
+	if !config.AllowMeeting.IsNull() {
 		p.AllowMeeting = plan.AllowMeeting.ValueBoolPointer()
 	}
-	if !plan.AllowMeetingPinned.IsUnknown() && !plan.AllowMeetingPinned.IsNull() {
+	if !config.AllowMeetingPinned.IsNull() {
 		p.AllowMeetingPinned = plan.AllowMeetingPinned.ValueBoolPointer()
 	}
-	if !plan.AllowMessaging.IsUnknown() && !plan.AllowMessaging.IsNull() {
+	if !config.AllowMessaging.IsNull() {
 		p.AllowMessaging = plan.AllowMessaging.ValueBoolPointer()
 	}
-	if !plan.AllowMessagingPinned.IsUnknown() && !plan.AllowMessagingPinned.IsNull() {
+	if !config.AllowMessagingPinned.IsNull() {
 		p.AllowMessagingPinned = plan.AllowMessagingPinned.ValueBoolPointer()
 	}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -195,6 +245,10 @@ func (r *workLoadPolicyResource) Delete(ctx context.Context, req resource.Delete
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("WorkLoadPolicy Global not deleted", "The Global WorkLoadPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsWorkLoadPolicy(ctx, cs.RemoveCsTeamsWorkLoadPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-WorkLoadPolicy failed", err.Error())
@@ -205,6 +259,59 @@ func (r *workLoadPolicyResource) Delete(ctx context.Context, req resource.Delete
 func (r *workLoadPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *workLoadPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan workLoadPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsWorkLoadPolicy(ctx, cs.GetCsTeamsWorkLoadPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur workLoadPolicyModel
+	readWorkLoadPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AllowCalling.IsUnknown() {
+		plan.AllowCalling = cur.AllowCalling
+	}
+	if plan.AllowCallingPinned.IsUnknown() {
+		plan.AllowCallingPinned = cur.AllowCallingPinned
+	}
+	if plan.AllowMeeting.IsUnknown() {
+		plan.AllowMeeting = cur.AllowMeeting
+	}
+	if plan.AllowMeetingPinned.IsUnknown() {
+		plan.AllowMeetingPinned = cur.AllowMeetingPinned
+	}
+	if plan.AllowMessaging.IsUnknown() {
+		plan.AllowMessaging = cur.AllowMessaging
+	}
+	if plan.AllowMessagingPinned.IsUnknown() {
+		plan.AllowMessagingPinned = cur.AllowMessagingPinned
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *workLoadPolicyResource) identityOf(m workLoadPolicyModel) string {

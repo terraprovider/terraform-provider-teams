@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &personalAttendantPolicyResource{}
 	_ resource.ResourceWithConfigure   = &personalAttendantPolicyResource{}
 	_ resource.ResourceWithImportState = &personalAttendantPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &personalAttendantPolicyResource{}
 )
 
 type personalAttendantPolicyResource struct{ client *clients.Client }
@@ -82,29 +83,81 @@ func (r *personalAttendantPolicyResource) Create(ctx context.Context, req resour
 		return
 	}
 
+	var config personalAttendantPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsPersonalAttendantPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.AutomaticRecording.IsNull() {
+			sp.AutomaticRecording = plan.AutomaticRecording.ValueString()
+		}
+		if !config.AutomaticTranscription.IsNull() {
+			sp.AutomaticTranscription = plan.AutomaticTranscription.ValueString()
+		}
+		if !config.CalendarBookings.IsNull() {
+			sp.CalendarBookings = plan.CalendarBookings.ValueString()
+		}
+		if !config.CallScreening.IsNull() {
+			sp.CallScreening = plan.CallScreening.ValueString()
+		}
+		if !config.InboundFederatedCalls.IsNull() {
+			sp.InboundFederatedCalls = plan.InboundFederatedCalls.ValueString()
+		}
+		if !config.InboundInternalCalls.IsNull() {
+			sp.InboundInternalCalls = plan.InboundInternalCalls.ValueString()
+		}
+		if !config.InboundPSTNCalls.IsNull() {
+			sp.InboundPSTNCalls = plan.InboundPSTNCalls.ValueString()
+		}
+		if !config.PersonalAttendant.IsNull() {
+			sp.PersonalAttendant = plan.PersonalAttendant.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsPersonalAttendantPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-PersonalAttendantPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("PersonalAttendantPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsPersonalAttendantPolicyParams{}
-	if !plan.AutomaticRecording.IsUnknown() && !plan.AutomaticRecording.IsNull() {
+	if !config.AutomaticRecording.IsNull() {
 		p.AutomaticRecording = plan.AutomaticRecording.ValueString()
 	}
-	if !plan.AutomaticTranscription.IsUnknown() && !plan.AutomaticTranscription.IsNull() {
+	if !config.AutomaticTranscription.IsNull() {
 		p.AutomaticTranscription = plan.AutomaticTranscription.ValueString()
 	}
-	if !plan.CalendarBookings.IsUnknown() && !plan.CalendarBookings.IsNull() {
+	if !config.CalendarBookings.IsNull() {
 		p.CalendarBookings = plan.CalendarBookings.ValueString()
 	}
-	if !plan.CallScreening.IsUnknown() && !plan.CallScreening.IsNull() {
+	if !config.CallScreening.IsNull() {
 		p.CallScreening = plan.CallScreening.ValueString()
 	}
-	if !plan.InboundFederatedCalls.IsUnknown() && !plan.InboundFederatedCalls.IsNull() {
+	if !config.InboundFederatedCalls.IsNull() {
 		p.InboundFederatedCalls = plan.InboundFederatedCalls.ValueString()
 	}
-	if !plan.InboundInternalCalls.IsUnknown() && !plan.InboundInternalCalls.IsNull() {
+	if !config.InboundInternalCalls.IsNull() {
 		p.InboundInternalCalls = plan.InboundInternalCalls.ValueString()
 	}
-	if !plan.InboundPSTNCalls.IsUnknown() && !plan.InboundPSTNCalls.IsNull() {
+	if !config.InboundPSTNCalls.IsNull() {
 		p.InboundPSTNCalls = plan.InboundPSTNCalls.ValueString()
 	}
-	if !plan.PersonalAttendant.IsUnknown() && !plan.PersonalAttendant.IsNull() {
+	if !config.PersonalAttendant.IsNull() {
 		p.PersonalAttendant = plan.PersonalAttendant.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -211,6 +264,10 @@ func (r *personalAttendantPolicyResource) Delete(ctx context.Context, req resour
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("PersonalAttendantPolicy Global not deleted", "The Global PersonalAttendantPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsPersonalAttendantPolicy(ctx, cs.RemoveCsTeamsPersonalAttendantPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-PersonalAttendantPolicy failed", err.Error())
@@ -221,6 +278,62 @@ func (r *personalAttendantPolicyResource) Delete(ctx context.Context, req resour
 func (r *personalAttendantPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *personalAttendantPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan personalAttendantPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsPersonalAttendantPolicy(ctx, cs.GetCsTeamsPersonalAttendantPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur personalAttendantPolicyModel
+	readPersonalAttendantPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AutomaticRecording.IsUnknown() {
+		plan.AutomaticRecording = cur.AutomaticRecording
+	}
+	if plan.AutomaticTranscription.IsUnknown() {
+		plan.AutomaticTranscription = cur.AutomaticTranscription
+	}
+	if plan.CalendarBookings.IsUnknown() {
+		plan.CalendarBookings = cur.CalendarBookings
+	}
+	if plan.CallScreening.IsUnknown() {
+		plan.CallScreening = cur.CallScreening
+	}
+	if plan.InboundFederatedCalls.IsUnknown() {
+		plan.InboundFederatedCalls = cur.InboundFederatedCalls
+	}
+	if plan.InboundInternalCalls.IsUnknown() {
+		plan.InboundInternalCalls = cur.InboundInternalCalls
+	}
+	if plan.InboundPSTNCalls.IsUnknown() {
+		plan.InboundPSTNCalls = cur.InboundPSTNCalls
+	}
+	if plan.PersonalAttendant.IsUnknown() {
+		plan.PersonalAttendant = cur.PersonalAttendant
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *personalAttendantPolicyResource) identityOf(m personalAttendantPolicyModel) string {

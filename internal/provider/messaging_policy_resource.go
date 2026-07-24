@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &messagingPolicyResource{}
 	_ resource.ResourceWithConfigure   = &messagingPolicyResource{}
 	_ resource.ResourceWithImportState = &messagingPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &messagingPolicyResource{}
 )
 
 type messagingPolicyResource struct{ client *clients.Client }
@@ -143,122 +144,267 @@ func (r *messagingPolicyResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
+	var config messagingPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsMessagingPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.AllowChatWithGroup.IsNull() {
+			sp.AllowChatWithGroup = plan.AllowChatWithGroup.ValueBoolPointer()
+		}
+		if !config.AllowCommunicationComplianceEndUserReporting.IsNull() {
+			sp.AllowCommunicationComplianceEndUserReporting = plan.AllowCommunicationComplianceEndUserReporting.ValueBoolPointer()
+		}
+		if !config.AllowCustomGroupChatAvatars.IsNull() {
+			sp.AllowCustomGroupChatAvatars = plan.AllowCustomGroupChatAvatars.ValueBoolPointer()
+		}
+		if !config.AllowFluidCollaborate.IsNull() {
+			sp.AllowFluidCollaborate = plan.AllowFluidCollaborate.ValueBoolPointer()
+		}
+		if !config.AllowFullChatPermissionUserToDeleteAnyMessage.IsNull() {
+			sp.AllowFullChatPermissionUserToDeleteAnyMessage = plan.AllowFullChatPermissionUserToDeleteAnyMessage.ValueBoolPointer()
+		}
+		if !config.AllowGiphy.IsNull() {
+			sp.AllowGiphy = plan.AllowGiphy.ValueBoolPointer()
+		}
+		if !config.AllowGiphyDisplay.IsNull() {
+			sp.AllowGiphyDisplay = plan.AllowGiphyDisplay.ValueBoolPointer()
+		}
+		if !config.AllowGroupChatJoinLinks.IsNull() {
+			sp.AllowGroupChatJoinLinks = plan.AllowGroupChatJoinLinks.ValueBoolPointer()
+		}
+		if !config.AllowImmersiveReader.IsNull() {
+			sp.AllowImmersiveReader = plan.AllowImmersiveReader.ValueBoolPointer()
+		}
+		if !config.AllowMemes.IsNull() {
+			sp.AllowMemes = plan.AllowMemes.ValueBoolPointer()
+		}
+		if !config.AllowOwnerDeleteMessage.IsNull() {
+			sp.AllowOwnerDeleteMessage = plan.AllowOwnerDeleteMessage.ValueBoolPointer()
+		}
+		if !config.AllowPasteInternetImage.IsNull() {
+			sp.AllowPasteInternetImage = plan.AllowPasteInternetImage.ValueBoolPointer()
+		}
+		if !config.AllowPriorityMessages.IsNull() {
+			sp.AllowPriorityMessages = plan.AllowPriorityMessages.ValueBoolPointer()
+		}
+		if !config.AllowProactiveSummaries.IsNull() {
+			sp.AllowProactiveSummaries = plan.AllowProactiveSummaries.ValueBoolPointer()
+		}
+		if !config.AllowRemoveUser.IsNull() {
+			sp.AllowRemoveUser = plan.AllowRemoveUser.ValueBoolPointer()
+		}
+		if !config.AllowSecurityEndUserReporting.IsNull() {
+			sp.AllowSecurityEndUserReporting = plan.AllowSecurityEndUserReporting.ValueBoolPointer()
+		}
+		if !config.AllowSmartCompose.IsNull() {
+			sp.AllowSmartCompose = plan.AllowSmartCompose.ValueBoolPointer()
+		}
+		if !config.AllowSmartReply.IsNull() {
+			sp.AllowSmartReply = plan.AllowSmartReply.ValueBoolPointer()
+		}
+		if !config.AllowStickers.IsNull() {
+			sp.AllowStickers = plan.AllowStickers.ValueBoolPointer()
+		}
+		if !config.AllowUrlPreviews.IsNull() {
+			sp.AllowUrlPreviews = plan.AllowUrlPreviews.ValueBoolPointer()
+		}
+		if !config.AllowUserChat.IsNull() {
+			sp.AllowUserChat = plan.AllowUserChat.ValueBoolPointer()
+		}
+		if !config.AllowUserDeleteChat.IsNull() {
+			sp.AllowUserDeleteChat = plan.AllowUserDeleteChat.ValueBoolPointer()
+		}
+		if !config.AllowUserDeleteMessage.IsNull() {
+			sp.AllowUserDeleteMessage = plan.AllowUserDeleteMessage.ValueBoolPointer()
+		}
+		if !config.AllowUserEditMessage.IsNull() {
+			sp.AllowUserEditMessage = plan.AllowUserEditMessage.ValueBoolPointer()
+		}
+		if !config.AllowUserTranslation.IsNull() {
+			sp.AllowUserTranslation = plan.AllowUserTranslation.ValueBoolPointer()
+		}
+		if !config.AllowVideoMessages.IsNull() {
+			sp.AllowVideoMessages = plan.AllowVideoMessages.ValueBoolPointer()
+		}
+		if !config.AudioMessageEnabledType.IsNull() {
+			sp.AudioMessageEnabledType = plan.AudioMessageEnabledType.ValueString()
+		}
+		if !config.AutoShareFilesInExternalChats.IsNull() {
+			sp.AutoShareFilesInExternalChats = plan.AutoShareFilesInExternalChats.ValueString()
+		}
+		if !config.ChannelsInChatListEnabledType.IsNull() {
+			sp.ChannelsInChatListEnabledType = plan.ChannelsInChatListEnabledType.ValueString()
+		}
+		if !config.ChatPermissionRole.IsNull() {
+			sp.ChatPermissionRole = plan.ChatPermissionRole.ValueString()
+		}
+		if !config.CreateCustomEmojis.IsNull() {
+			sp.CreateCustomEmojis = plan.CreateCustomEmojis.ValueBoolPointer()
+		}
+		if !config.DeleteCustomEmojis.IsNull() {
+			sp.DeleteCustomEmojis = plan.DeleteCustomEmojis.ValueBoolPointer()
+		}
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if !config.DesignerForBackgroundsAndImages.IsNull() {
+			sp.DesignerForBackgroundsAndImages = plan.DesignerForBackgroundsAndImages.ValueString()
+		}
+		if !config.GiphyRatingType.IsNull() {
+			sp.GiphyRatingType = plan.GiphyRatingType.ValueString()
+		}
+		if !config.InOrganizationChatControl.IsNull() {
+			sp.InOrganizationChatControl = plan.InOrganizationChatControl.ValueString()
+		}
+		if !config.ReadReceiptsEnabledType.IsNull() {
+			sp.ReadReceiptsEnabledType = plan.ReadReceiptsEnabledType.ValueString()
+		}
+		if !config.UseB2BInvitesToAddExternalUsers.IsNull() {
+			sp.UseB2BInvitesToAddExternalUsers = plan.UseB2BInvitesToAddExternalUsers.ValueBoolPointer()
+		}
+		if !config.UsersCanDeleteBotMessages.IsNull() {
+			sp.UsersCanDeleteBotMessages = plan.UsersCanDeleteBotMessages.ValueBoolPointer()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsMessagingPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-MessagingPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("MessagingPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsMessagingPolicyParams{}
-	if !plan.AllowChatWithGroup.IsUnknown() && !plan.AllowChatWithGroup.IsNull() {
+	if !config.AllowChatWithGroup.IsNull() {
 		p.AllowChatWithGroup = plan.AllowChatWithGroup.ValueBoolPointer()
 	}
-	if !plan.AllowCommunicationComplianceEndUserReporting.IsUnknown() && !plan.AllowCommunicationComplianceEndUserReporting.IsNull() {
+	if !config.AllowCommunicationComplianceEndUserReporting.IsNull() {
 		p.AllowCommunicationComplianceEndUserReporting = plan.AllowCommunicationComplianceEndUserReporting.ValueBoolPointer()
 	}
-	if !plan.AllowCustomGroupChatAvatars.IsUnknown() && !plan.AllowCustomGroupChatAvatars.IsNull() {
+	if !config.AllowCustomGroupChatAvatars.IsNull() {
 		p.AllowCustomGroupChatAvatars = plan.AllowCustomGroupChatAvatars.ValueBoolPointer()
 	}
-	if !plan.AllowFluidCollaborate.IsUnknown() && !plan.AllowFluidCollaborate.IsNull() {
+	if !config.AllowFluidCollaborate.IsNull() {
 		p.AllowFluidCollaborate = plan.AllowFluidCollaborate.ValueBoolPointer()
 	}
-	if !plan.AllowFullChatPermissionUserToDeleteAnyMessage.IsUnknown() && !plan.AllowFullChatPermissionUserToDeleteAnyMessage.IsNull() {
+	if !config.AllowFullChatPermissionUserToDeleteAnyMessage.IsNull() {
 		p.AllowFullChatPermissionUserToDeleteAnyMessage = plan.AllowFullChatPermissionUserToDeleteAnyMessage.ValueBoolPointer()
 	}
-	if !plan.AllowGiphy.IsUnknown() && !plan.AllowGiphy.IsNull() {
+	if !config.AllowGiphy.IsNull() {
 		p.AllowGiphy = plan.AllowGiphy.ValueBoolPointer()
 	}
-	if !plan.AllowGiphyDisplay.IsUnknown() && !plan.AllowGiphyDisplay.IsNull() {
+	if !config.AllowGiphyDisplay.IsNull() {
 		p.AllowGiphyDisplay = plan.AllowGiphyDisplay.ValueBoolPointer()
 	}
-	if !plan.AllowGroupChatJoinLinks.IsUnknown() && !plan.AllowGroupChatJoinLinks.IsNull() {
+	if !config.AllowGroupChatJoinLinks.IsNull() {
 		p.AllowGroupChatJoinLinks = plan.AllowGroupChatJoinLinks.ValueBoolPointer()
 	}
-	if !plan.AllowImmersiveReader.IsUnknown() && !plan.AllowImmersiveReader.IsNull() {
+	if !config.AllowImmersiveReader.IsNull() {
 		p.AllowImmersiveReader = plan.AllowImmersiveReader.ValueBoolPointer()
 	}
-	if !plan.AllowMemes.IsUnknown() && !plan.AllowMemes.IsNull() {
+	if !config.AllowMemes.IsNull() {
 		p.AllowMemes = plan.AllowMemes.ValueBoolPointer()
 	}
-	if !plan.AllowOwnerDeleteMessage.IsUnknown() && !plan.AllowOwnerDeleteMessage.IsNull() {
+	if !config.AllowOwnerDeleteMessage.IsNull() {
 		p.AllowOwnerDeleteMessage = plan.AllowOwnerDeleteMessage.ValueBoolPointer()
 	}
-	if !plan.AllowPasteInternetImage.IsUnknown() && !plan.AllowPasteInternetImage.IsNull() {
+	if !config.AllowPasteInternetImage.IsNull() {
 		p.AllowPasteInternetImage = plan.AllowPasteInternetImage.ValueBoolPointer()
 	}
-	if !plan.AllowPriorityMessages.IsUnknown() && !plan.AllowPriorityMessages.IsNull() {
+	if !config.AllowPriorityMessages.IsNull() {
 		p.AllowPriorityMessages = plan.AllowPriorityMessages.ValueBoolPointer()
 	}
-	if !plan.AllowProactiveSummaries.IsUnknown() && !plan.AllowProactiveSummaries.IsNull() {
+	if !config.AllowProactiveSummaries.IsNull() {
 		p.AllowProactiveSummaries = plan.AllowProactiveSummaries.ValueBoolPointer()
 	}
-	if !plan.AllowRemoveUser.IsUnknown() && !plan.AllowRemoveUser.IsNull() {
+	if !config.AllowRemoveUser.IsNull() {
 		p.AllowRemoveUser = plan.AllowRemoveUser.ValueBoolPointer()
 	}
-	if !plan.AllowSecurityEndUserReporting.IsUnknown() && !plan.AllowSecurityEndUserReporting.IsNull() {
+	if !config.AllowSecurityEndUserReporting.IsNull() {
 		p.AllowSecurityEndUserReporting = plan.AllowSecurityEndUserReporting.ValueBoolPointer()
 	}
-	if !plan.AllowSmartCompose.IsUnknown() && !plan.AllowSmartCompose.IsNull() {
+	if !config.AllowSmartCompose.IsNull() {
 		p.AllowSmartCompose = plan.AllowSmartCompose.ValueBoolPointer()
 	}
-	if !plan.AllowSmartReply.IsUnknown() && !plan.AllowSmartReply.IsNull() {
+	if !config.AllowSmartReply.IsNull() {
 		p.AllowSmartReply = plan.AllowSmartReply.ValueBoolPointer()
 	}
-	if !plan.AllowStickers.IsUnknown() && !plan.AllowStickers.IsNull() {
+	if !config.AllowStickers.IsNull() {
 		p.AllowStickers = plan.AllowStickers.ValueBoolPointer()
 	}
-	if !plan.AllowUrlPreviews.IsUnknown() && !plan.AllowUrlPreviews.IsNull() {
+	if !config.AllowUrlPreviews.IsNull() {
 		p.AllowUrlPreviews = plan.AllowUrlPreviews.ValueBoolPointer()
 	}
-	if !plan.AllowUserChat.IsUnknown() && !plan.AllowUserChat.IsNull() {
+	if !config.AllowUserChat.IsNull() {
 		p.AllowUserChat = plan.AllowUserChat.ValueBoolPointer()
 	}
-	if !plan.AllowUserDeleteChat.IsUnknown() && !plan.AllowUserDeleteChat.IsNull() {
+	if !config.AllowUserDeleteChat.IsNull() {
 		p.AllowUserDeleteChat = plan.AllowUserDeleteChat.ValueBoolPointer()
 	}
-	if !plan.AllowUserDeleteMessage.IsUnknown() && !plan.AllowUserDeleteMessage.IsNull() {
+	if !config.AllowUserDeleteMessage.IsNull() {
 		p.AllowUserDeleteMessage = plan.AllowUserDeleteMessage.ValueBoolPointer()
 	}
-	if !plan.AllowUserEditMessage.IsUnknown() && !plan.AllowUserEditMessage.IsNull() {
+	if !config.AllowUserEditMessage.IsNull() {
 		p.AllowUserEditMessage = plan.AllowUserEditMessage.ValueBoolPointer()
 	}
-	if !plan.AllowUserTranslation.IsUnknown() && !plan.AllowUserTranslation.IsNull() {
+	if !config.AllowUserTranslation.IsNull() {
 		p.AllowUserTranslation = plan.AllowUserTranslation.ValueBoolPointer()
 	}
-	if !plan.AllowVideoMessages.IsUnknown() && !plan.AllowVideoMessages.IsNull() {
+	if !config.AllowVideoMessages.IsNull() {
 		p.AllowVideoMessages = plan.AllowVideoMessages.ValueBoolPointer()
 	}
-	if !plan.AudioMessageEnabledType.IsUnknown() && !plan.AudioMessageEnabledType.IsNull() {
+	if !config.AudioMessageEnabledType.IsNull() {
 		p.AudioMessageEnabledType = plan.AudioMessageEnabledType.ValueString()
 	}
-	if !plan.AutoShareFilesInExternalChats.IsUnknown() && !plan.AutoShareFilesInExternalChats.IsNull() {
+	if !config.AutoShareFilesInExternalChats.IsNull() {
 		p.AutoShareFilesInExternalChats = plan.AutoShareFilesInExternalChats.ValueString()
 	}
-	if !plan.ChannelsInChatListEnabledType.IsUnknown() && !plan.ChannelsInChatListEnabledType.IsNull() {
+	if !config.ChannelsInChatListEnabledType.IsNull() {
 		p.ChannelsInChatListEnabledType = plan.ChannelsInChatListEnabledType.ValueString()
 	}
-	if !plan.ChatPermissionRole.IsUnknown() && !plan.ChatPermissionRole.IsNull() {
+	if !config.ChatPermissionRole.IsNull() {
 		p.ChatPermissionRole = plan.ChatPermissionRole.ValueString()
 	}
-	if !plan.CreateCustomEmojis.IsUnknown() && !plan.CreateCustomEmojis.IsNull() {
+	if !config.CreateCustomEmojis.IsNull() {
 		p.CreateCustomEmojis = plan.CreateCustomEmojis.ValueBoolPointer()
 	}
-	if !plan.DeleteCustomEmojis.IsUnknown() && !plan.DeleteCustomEmojis.IsNull() {
+	if !config.DeleteCustomEmojis.IsNull() {
 		p.DeleteCustomEmojis = plan.DeleteCustomEmojis.ValueBoolPointer()
 	}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if !plan.DesignerForBackgroundsAndImages.IsUnknown() && !plan.DesignerForBackgroundsAndImages.IsNull() {
+	if !config.DesignerForBackgroundsAndImages.IsNull() {
 		p.DesignerForBackgroundsAndImages = plan.DesignerForBackgroundsAndImages.ValueString()
 	}
-	if !plan.GiphyRatingType.IsUnknown() && !plan.GiphyRatingType.IsNull() {
+	if !config.GiphyRatingType.IsNull() {
 		p.GiphyRatingType = plan.GiphyRatingType.ValueString()
 	}
-	if !plan.InOrganizationChatControl.IsUnknown() && !plan.InOrganizationChatControl.IsNull() {
+	if !config.InOrganizationChatControl.IsNull() {
 		p.InOrganizationChatControl = plan.InOrganizationChatControl.ValueString()
 	}
-	if !plan.ReadReceiptsEnabledType.IsUnknown() && !plan.ReadReceiptsEnabledType.IsNull() {
+	if !config.ReadReceiptsEnabledType.IsNull() {
 		p.ReadReceiptsEnabledType = plan.ReadReceiptsEnabledType.ValueString()
 	}
-	if !plan.UseB2BInvitesToAddExternalUsers.IsUnknown() && !plan.UseB2BInvitesToAddExternalUsers.IsNull() {
+	if !config.UseB2BInvitesToAddExternalUsers.IsNull() {
 		p.UseB2BInvitesToAddExternalUsers = plan.UseB2BInvitesToAddExternalUsers.ValueBoolPointer()
 	}
-	if !plan.UsersCanDeleteBotMessages.IsUnknown() && !plan.UsersCanDeleteBotMessages.IsNull() {
+	if !config.UsersCanDeleteBotMessages.IsNull() {
 		p.UsersCanDeleteBotMessages = plan.UsersCanDeleteBotMessages.ValueBoolPointer()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -459,6 +605,10 @@ func (r *messagingPolicyResource) Delete(ctx context.Context, req resource.Delet
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("MessagingPolicy Global not deleted", "The Global MessagingPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsMessagingPolicy(ctx, cs.RemoveCsTeamsMessagingPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-MessagingPolicy failed", err.Error())
@@ -469,6 +619,155 @@ func (r *messagingPolicyResource) Delete(ctx context.Context, req resource.Delet
 func (r *messagingPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *messagingPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan messagingPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsMessagingPolicy(ctx, cs.GetCsTeamsMessagingPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur messagingPolicyModel
+	readMessagingPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AllowChatWithGroup.IsUnknown() {
+		plan.AllowChatWithGroup = cur.AllowChatWithGroup
+	}
+	if plan.AllowCommunicationComplianceEndUserReporting.IsUnknown() {
+		plan.AllowCommunicationComplianceEndUserReporting = cur.AllowCommunicationComplianceEndUserReporting
+	}
+	if plan.AllowCustomGroupChatAvatars.IsUnknown() {
+		plan.AllowCustomGroupChatAvatars = cur.AllowCustomGroupChatAvatars
+	}
+	if plan.AllowFluidCollaborate.IsUnknown() {
+		plan.AllowFluidCollaborate = cur.AllowFluidCollaborate
+	}
+	if plan.AllowFullChatPermissionUserToDeleteAnyMessage.IsUnknown() {
+		plan.AllowFullChatPermissionUserToDeleteAnyMessage = cur.AllowFullChatPermissionUserToDeleteAnyMessage
+	}
+	if plan.AllowGiphy.IsUnknown() {
+		plan.AllowGiphy = cur.AllowGiphy
+	}
+	if plan.AllowGiphyDisplay.IsUnknown() {
+		plan.AllowGiphyDisplay = cur.AllowGiphyDisplay
+	}
+	if plan.AllowGroupChatJoinLinks.IsUnknown() {
+		plan.AllowGroupChatJoinLinks = cur.AllowGroupChatJoinLinks
+	}
+	if plan.AllowImmersiveReader.IsUnknown() {
+		plan.AllowImmersiveReader = cur.AllowImmersiveReader
+	}
+	if plan.AllowMemes.IsUnknown() {
+		plan.AllowMemes = cur.AllowMemes
+	}
+	if plan.AllowOwnerDeleteMessage.IsUnknown() {
+		plan.AllowOwnerDeleteMessage = cur.AllowOwnerDeleteMessage
+	}
+	if plan.AllowPasteInternetImage.IsUnknown() {
+		plan.AllowPasteInternetImage = cur.AllowPasteInternetImage
+	}
+	if plan.AllowPriorityMessages.IsUnknown() {
+		plan.AllowPriorityMessages = cur.AllowPriorityMessages
+	}
+	if plan.AllowProactiveSummaries.IsUnknown() {
+		plan.AllowProactiveSummaries = cur.AllowProactiveSummaries
+	}
+	if plan.AllowRemoveUser.IsUnknown() {
+		plan.AllowRemoveUser = cur.AllowRemoveUser
+	}
+	if plan.AllowSecurityEndUserReporting.IsUnknown() {
+		plan.AllowSecurityEndUserReporting = cur.AllowSecurityEndUserReporting
+	}
+	if plan.AllowSmartCompose.IsUnknown() {
+		plan.AllowSmartCompose = cur.AllowSmartCompose
+	}
+	if plan.AllowSmartReply.IsUnknown() {
+		plan.AllowSmartReply = cur.AllowSmartReply
+	}
+	if plan.AllowStickers.IsUnknown() {
+		plan.AllowStickers = cur.AllowStickers
+	}
+	if plan.AllowUrlPreviews.IsUnknown() {
+		plan.AllowUrlPreviews = cur.AllowUrlPreviews
+	}
+	if plan.AllowUserChat.IsUnknown() {
+		plan.AllowUserChat = cur.AllowUserChat
+	}
+	if plan.AllowUserDeleteChat.IsUnknown() {
+		plan.AllowUserDeleteChat = cur.AllowUserDeleteChat
+	}
+	if plan.AllowUserDeleteMessage.IsUnknown() {
+		plan.AllowUserDeleteMessage = cur.AllowUserDeleteMessage
+	}
+	if plan.AllowUserEditMessage.IsUnknown() {
+		plan.AllowUserEditMessage = cur.AllowUserEditMessage
+	}
+	if plan.AllowUserTranslation.IsUnknown() {
+		plan.AllowUserTranslation = cur.AllowUserTranslation
+	}
+	if plan.AllowVideoMessages.IsUnknown() {
+		plan.AllowVideoMessages = cur.AllowVideoMessages
+	}
+	if plan.AudioMessageEnabledType.IsUnknown() {
+		plan.AudioMessageEnabledType = cur.AudioMessageEnabledType
+	}
+	if plan.AutoShareFilesInExternalChats.IsUnknown() {
+		plan.AutoShareFilesInExternalChats = cur.AutoShareFilesInExternalChats
+	}
+	if plan.ChannelsInChatListEnabledType.IsUnknown() {
+		plan.ChannelsInChatListEnabledType = cur.ChannelsInChatListEnabledType
+	}
+	if plan.ChatPermissionRole.IsUnknown() {
+		plan.ChatPermissionRole = cur.ChatPermissionRole
+	}
+	if plan.CreateCustomEmojis.IsUnknown() {
+		plan.CreateCustomEmojis = cur.CreateCustomEmojis
+	}
+	if plan.DeleteCustomEmojis.IsUnknown() {
+		plan.DeleteCustomEmojis = cur.DeleteCustomEmojis
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.DesignerForBackgroundsAndImages.IsUnknown() {
+		plan.DesignerForBackgroundsAndImages = cur.DesignerForBackgroundsAndImages
+	}
+	if plan.GiphyRatingType.IsUnknown() {
+		plan.GiphyRatingType = cur.GiphyRatingType
+	}
+	if plan.InOrganizationChatControl.IsUnknown() {
+		plan.InOrganizationChatControl = cur.InOrganizationChatControl
+	}
+	if plan.ReadReceiptsEnabledType.IsUnknown() {
+		plan.ReadReceiptsEnabledType = cur.ReadReceiptsEnabledType
+	}
+	if plan.UseB2BInvitesToAddExternalUsers.IsUnknown() {
+		plan.UseB2BInvitesToAddExternalUsers = cur.UseB2BInvitesToAddExternalUsers
+	}
+	if plan.UsersCanDeleteBotMessages.IsUnknown() {
+		plan.UsersCanDeleteBotMessages = cur.UsersCanDeleteBotMessages
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *messagingPolicyResource) identityOf(m messagingPolicyModel) string {

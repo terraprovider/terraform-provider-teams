@@ -164,6 +164,12 @@ func buildResource(noun string, verbs map[string]spec.Cmdlet) (genframework.Reso
 		// Teams policies are named by -Identity (the create key == the instance
 		// name); there is no separate Name attribute.
 		IdentityIsName: true,
+		// Every Teams policy type has a built-in "Global" instance (the tenant
+		// default) that already exists and cannot be created or removed. Declaring
+		// it adopts the existing object (Create applies Set instead of New) and
+		// Delete drops it from state — no manual `terraform import`. Custom
+		// instances (any other identity) keep normal New/Remove CRUD.
+		AdoptIdentity: "Global",
 		// Tri-state policy settings: create/update must send only the fields the
 		// operator set (New/Set-Cs* semantics). Otherwise unconfigured *bool
 		// params serialize as explicit false and the API 403s on gated toggles.

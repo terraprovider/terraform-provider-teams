@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &tenantNetworkRegionResource{}
 	_ resource.ResourceWithConfigure   = &tenantNetworkRegionResource{}
 	_ resource.ResourceWithImportState = &tenantNetworkRegionResource{}
+	_ resource.ResourceWithModifyPlan  = &tenantNetworkRegionResource{}
 )
 
 type tenantNetworkRegionResource struct{ client *clients.Client }
@@ -72,17 +73,54 @@ func (r *tenantNetworkRegionResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
+	var config tenantNetworkRegionModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTenantNetworkRegionParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.CentralSite.IsNull() {
+			sp.CentralSite = plan.CentralSite.ValueString()
+		}
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if !config.NetworkRegionID.IsNull() {
+			sp.NetworkRegionID = plan.NetworkRegionID.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTenantNetworkRegion(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-TenantNetworkRegion failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("TenantNetworkRegion not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTenantNetworkRegionParams{}
-	if !plan.BypassID.IsUnknown() && !plan.BypassID.IsNull() {
+	if !config.BypassID.IsNull() {
 		p.BypassID = plan.BypassID.ValueString()
 	}
-	if !plan.CentralSite.IsUnknown() && !plan.CentralSite.IsNull() {
+	if !config.CentralSite.IsNull() {
 		p.CentralSite = plan.CentralSite.ValueString()
 	}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if !plan.NetworkRegionID.IsUnknown() && !plan.NetworkRegionID.IsNull() {
+	if !config.NetworkRegionID.IsNull() {
 		p.NetworkRegionID = plan.NetworkRegionID.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -169,6 +207,10 @@ func (r *tenantNetworkRegionResource) Delete(ctx context.Context, req resource.D
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("TenantNetworkRegion Global not deleted", "The Global TenantNetworkRegion is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTenantNetworkRegion(ctx, cs.RemoveCsTenantNetworkRegionParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-TenantNetworkRegion failed", err.Error())
@@ -179,6 +221,50 @@ func (r *tenantNetworkRegionResource) Delete(ctx context.Context, req resource.D
 func (r *tenantNetworkRegionResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *tenantNetworkRegionResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan tenantNetworkRegionModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTenantNetworkRegion(ctx, cs.GetCsTenantNetworkRegionParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur tenantNetworkRegionModel
+	readTenantNetworkRegion(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.BypassID.IsUnknown() {
+		plan.BypassID = cur.BypassID
+	}
+	if plan.CentralSite.IsUnknown() {
+		plan.CentralSite = cur.CentralSite
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.NetworkRegionID.IsUnknown() {
+		plan.NetworkRegionID = cur.NetworkRegionID
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *tenantNetworkRegionResource) identityOf(m tenantNetworkRegionModel) string {

@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &migrationConfigurationResource{}
 	_ resource.ResourceWithConfigure   = &migrationConfigurationResource{}
 	_ resource.ResourceWithImportState = &migrationConfigurationResource{}
+	_ resource.ResourceWithModifyPlan  = &migrationConfigurationResource{}
 )
 
 type migrationConfigurationResource struct{ client *clients.Client }
@@ -66,9 +67,14 @@ func (r *migrationConfigurationResource) Create(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config migrationConfigurationModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTeamsMigrationConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.EnableLegacyClientInterop.IsUnknown() && !plan.EnableLegacyClientInterop.IsNull() {
+	if !config.EnableLegacyClientInterop.IsNull() {
 		sp.EnableLegacyClientInterop = plan.EnableLegacyClientInterop.ValueBoolPointer()
 	}
 	if resp.Diagnostics.HasError() {
@@ -134,6 +140,41 @@ func (r *migrationConfigurationResource) Delete(_ context.Context, _ resource.De
 func (r *migrationConfigurationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *migrationConfigurationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan migrationConfigurationModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsMigrationConfiguration(ctx, cs.GetCsTeamsMigrationConfigurationParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur migrationConfigurationModel
+	readMigrationConfiguration(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.EnableLegacyClientInterop.IsUnknown() {
+		plan.EnableLegacyClientInterop = cur.EnableLegacyClientInterop
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *migrationConfigurationResource) identityOf(m migrationConfigurationModel) string {

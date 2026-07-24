@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &mobilityPolicyResource{}
 	_ resource.ResourceWithConfigure   = &mobilityPolicyResource{}
 	_ resource.ResourceWithImportState = &mobilityPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &mobilityPolicyResource{}
 )
 
 type mobilityPolicyResource struct{ client *clients.Client }
@@ -74,20 +75,63 @@ func (r *mobilityPolicyResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
+	var config mobilityPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsMobilityPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if !config.IPAudioMobileMode.IsNull() {
+			sp.IPAudioMobileMode = plan.IPAudioMobileMode.ValueString()
+		}
+		if !config.IPVideoMobileMode.IsNull() {
+			sp.IPVideoMobileMode = plan.IPVideoMobileMode.ValueString()
+		}
+		if !config.LinksInTeams.IsNull() {
+			sp.LinksInTeams = plan.LinksInTeams.ValueString()
+		}
+		if !config.MobileDialerPreference.IsNull() {
+			sp.MobileDialerPreference = plan.MobileDialerPreference.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsMobilityPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-MobilityPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("MobilityPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsMobilityPolicyParams{}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if !plan.IPAudioMobileMode.IsUnknown() && !plan.IPAudioMobileMode.IsNull() {
+	if !config.IPAudioMobileMode.IsNull() {
 		p.IPAudioMobileMode = plan.IPAudioMobileMode.ValueString()
 	}
-	if !plan.IPVideoMobileMode.IsUnknown() && !plan.IPVideoMobileMode.IsNull() {
+	if !config.IPVideoMobileMode.IsNull() {
 		p.IPVideoMobileMode = plan.IPVideoMobileMode.ValueString()
 	}
-	if !plan.LinksInTeams.IsUnknown() && !plan.LinksInTeams.IsNull() {
+	if !config.LinksInTeams.IsNull() {
 		p.LinksInTeams = plan.LinksInTeams.ValueString()
 	}
-	if !plan.MobileDialerPreference.IsUnknown() && !plan.MobileDialerPreference.IsNull() {
+	if !config.MobileDialerPreference.IsNull() {
 		p.MobileDialerPreference = plan.MobileDialerPreference.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -182,6 +226,10 @@ func (r *mobilityPolicyResource) Delete(ctx context.Context, req resource.Delete
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("MobilityPolicy Global not deleted", "The Global MobilityPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsMobilityPolicy(ctx, cs.RemoveCsTeamsMobilityPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-MobilityPolicy failed", err.Error())
@@ -192,6 +240,53 @@ func (r *mobilityPolicyResource) Delete(ctx context.Context, req resource.Delete
 func (r *mobilityPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *mobilityPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan mobilityPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsMobilityPolicy(ctx, cs.GetCsTeamsMobilityPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur mobilityPolicyModel
+	readMobilityPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.IPAudioMobileMode.IsUnknown() {
+		plan.IPAudioMobileMode = cur.IPAudioMobileMode
+	}
+	if plan.IPVideoMobileMode.IsUnknown() {
+		plan.IPVideoMobileMode = cur.IPVideoMobileMode
+	}
+	if plan.LinksInTeams.IsUnknown() {
+		plan.LinksInTeams = cur.LinksInTeams
+	}
+	if plan.MobileDialerPreference.IsUnknown() {
+		plan.MobileDialerPreference = cur.MobileDialerPreference
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *mobilityPolicyResource) identityOf(m mobilityPolicyModel) string {

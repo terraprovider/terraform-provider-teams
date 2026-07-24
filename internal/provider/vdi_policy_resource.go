@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &vdiPolicyResource{}
 	_ resource.ResourceWithConfigure   = &vdiPolicyResource{}
 	_ resource.ResourceWithImportState = &vdiPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &vdiPolicyResource{}
 )
 
 type vdiPolicyResource struct{ client *clients.Client }
@@ -71,14 +72,51 @@ func (r *vdiPolicyResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
+	var config vdiPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsVdiPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.DisableAudioVideoInCallsAndMeetings.IsNull() {
+			sp.DisableAudioVideoInCallsAndMeetings = plan.DisableAudioVideoInCallsAndMeetings.ValueBoolPointer()
+		}
+		if !config.DisableCallsAndMeetings.IsNull() {
+			sp.DisableCallsAndMeetings = plan.DisableCallsAndMeetings.ValueBoolPointer()
+		}
+		if !config.VDI2Optimization.IsNull() {
+			sp.VDI2Optimization = plan.VDI2Optimization.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsVdiPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-VdiPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("VdiPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsVdiPolicyParams{}
-	if !plan.DisableAudioVideoInCallsAndMeetings.IsUnknown() && !plan.DisableAudioVideoInCallsAndMeetings.IsNull() {
+	if !config.DisableAudioVideoInCallsAndMeetings.IsNull() {
 		p.DisableAudioVideoInCallsAndMeetings = plan.DisableAudioVideoInCallsAndMeetings.ValueBoolPointer()
 	}
-	if !plan.DisableCallsAndMeetings.IsUnknown() && !plan.DisableCallsAndMeetings.IsNull() {
+	if !config.DisableCallsAndMeetings.IsNull() {
 		p.DisableCallsAndMeetings = plan.DisableCallsAndMeetings.ValueBoolPointer()
 	}
-	if !plan.VDI2Optimization.IsUnknown() && !plan.VDI2Optimization.IsNull() {
+	if !config.VDI2Optimization.IsNull() {
 		p.VDI2Optimization = plan.VDI2Optimization.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -163,6 +201,10 @@ func (r *vdiPolicyResource) Delete(ctx context.Context, req resource.DeleteReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("VdiPolicy Global not deleted", "The Global VdiPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsVdiPolicy(ctx, cs.RemoveCsTeamsVdiPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-VdiPolicy failed", err.Error())
@@ -173,6 +215,47 @@ func (r *vdiPolicyResource) Delete(ctx context.Context, req resource.DeleteReque
 func (r *vdiPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *vdiPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan vdiPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsVdiPolicy(ctx, cs.GetCsTeamsVdiPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur vdiPolicyModel
+	readVdiPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.DisableAudioVideoInCallsAndMeetings.IsUnknown() {
+		plan.DisableAudioVideoInCallsAndMeetings = cur.DisableAudioVideoInCallsAndMeetings
+	}
+	if plan.DisableCallsAndMeetings.IsUnknown() {
+		plan.DisableCallsAndMeetings = cur.DisableCallsAndMeetings
+	}
+	if plan.VDI2Optimization.IsUnknown() {
+		plan.VDI2Optimization = cur.VDI2Optimization
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *vdiPolicyResource) identityOf(m vdiPolicyModel) string {

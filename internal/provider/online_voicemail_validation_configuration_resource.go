@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &onlineVoicemailValidationConfigurationResource{}
 	_ resource.ResourceWithConfigure   = &onlineVoicemailValidationConfigurationResource{}
 	_ resource.ResourceWithImportState = &onlineVoicemailValidationConfigurationResource{}
+	_ resource.ResourceWithModifyPlan  = &onlineVoicemailValidationConfigurationResource{}
 )
 
 type onlineVoicemailValidationConfigurationResource struct{ client *clients.Client }
@@ -70,12 +71,17 @@ func (r *onlineVoicemailValidationConfigurationResource) Create(ctx context.Cont
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config onlineVoicemailValidationConfigurationModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsOnlineVoicemailValidationConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.AudioFileValidationEnabled.IsUnknown() && !plan.AudioFileValidationEnabled.IsNull() {
+	if !config.AudioFileValidationEnabled.IsNull() {
 		sp.AudioFileValidationEnabled = plan.AudioFileValidationEnabled.ValueBoolPointer()
 	}
-	if !plan.AudioFileValidationUri.IsUnknown() && !plan.AudioFileValidationUri.IsNull() {
+	if !config.AudioFileValidationUri.IsNull() {
 		sp.AudioFileValidationUri = plan.AudioFileValidationUri.ValueString()
 	}
 	if resp.Diagnostics.HasError() {
@@ -146,6 +152,44 @@ func (r *onlineVoicemailValidationConfigurationResource) Delete(_ context.Contex
 func (r *onlineVoicemailValidationConfigurationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *onlineVoicemailValidationConfigurationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan onlineVoicemailValidationConfigurationModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsOnlineVoicemailValidationConfiguration(ctx, cs.GetCsOnlineVoicemailValidationConfigurationParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur onlineVoicemailValidationConfigurationModel
+	readOnlineVoicemailValidationConfiguration(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AudioFileValidationEnabled.IsUnknown() {
+		plan.AudioFileValidationEnabled = cur.AudioFileValidationEnabled
+	}
+	if plan.AudioFileValidationUri.IsUnknown() {
+		plan.AudioFileValidationUri = cur.AudioFileValidationUri
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *onlineVoicemailValidationConfigurationResource) identityOf(m onlineVoicemailValidationConfigurationModel) string {

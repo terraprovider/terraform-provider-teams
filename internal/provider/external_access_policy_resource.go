@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &externalAccessPolicyResource{}
 	_ resource.ResourceWithConfigure   = &externalAccessPolicyResource{}
 	_ resource.ResourceWithImportState = &externalAccessPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &externalAccessPolicyResource{}
 )
 
 type externalAccessPolicyResource struct{ client *clients.Client }
@@ -93,47 +94,117 @@ func (r *externalAccessPolicyResource) Create(ctx context.Context, req resource.
 		return
 	}
 
+	var config externalAccessPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsExternalAccessPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if v := config.AllowedExternalDomains.ValueString(); v != "" {
+			sp.AllowedExternalDomains = objectParam(v)
+		}
+		if v := config.BlockedExternalDomains.ValueString(); v != "" {
+			sp.BlockedExternalDomains = objectParam(v)
+		}
+		if v := config.CommunicationWithExternalOrgs.ValueString(); v != "" {
+			sp.CommunicationWithExternalOrgs = objectParam(v)
+		}
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if !config.EnableAcsFederationAccess.IsNull() {
+			sp.EnableAcsFederationAccess = plan.EnableAcsFederationAccess.ValueBoolPointer()
+		}
+		if !config.EnableFederationAccess.IsNull() {
+			sp.EnableFederationAccess = plan.EnableFederationAccess.ValueBoolPointer()
+		}
+		if !config.EnableOutsideAccess.IsNull() {
+			sp.EnableOutsideAccess = plan.EnableOutsideAccess.ValueBoolPointer()
+		}
+		if !config.EnablePublicCloudAudioVideoAccess.IsNull() {
+			sp.EnablePublicCloudAudioVideoAccess = plan.EnablePublicCloudAudioVideoAccess.ValueBoolPointer()
+		}
+		if !config.EnableTeamsConsumerAccess.IsNull() {
+			sp.EnableTeamsConsumerAccess = plan.EnableTeamsConsumerAccess.ValueBoolPointer()
+		}
+		if !config.EnableTeamsConsumerInbound.IsNull() {
+			sp.EnableTeamsConsumerInbound = plan.EnableTeamsConsumerInbound.ValueBoolPointer()
+		}
+		if !config.EnableTeamsSmsAccess.IsNull() {
+			sp.EnableTeamsSmsAccess = plan.EnableTeamsSmsAccess.ValueBoolPointer()
+		}
+		if !config.EnableXmppAccess.IsNull() {
+			sp.EnableXmppAccess = plan.EnableXmppAccess.ValueBoolPointer()
+		}
+		if !config.FederatedBilateralChats.IsNull() {
+			sp.FederatedBilateralChats = plan.FederatedBilateralChats.ValueBoolPointer()
+		}
+		if !config.RestrictTeamsConsumerAccessToExternalUserProfiles.IsNull() {
+			sp.RestrictTeamsConsumerAccessToExternalUserProfiles = plan.RestrictTeamsConsumerAccessToExternalUserProfiles.ValueBoolPointer()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsExternalAccessPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-ExternalAccessPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("ExternalAccessPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsExternalAccessPolicyParams{}
-	if v := plan.AllowedExternalDomains.ValueString(); v != "" {
-		p.AllowedExternalDomains = v
+	if v := config.AllowedExternalDomains.ValueString(); v != "" {
+		p.AllowedExternalDomains = objectParam(v)
 	}
-	if v := plan.BlockedExternalDomains.ValueString(); v != "" {
-		p.BlockedExternalDomains = v
+	if v := config.BlockedExternalDomains.ValueString(); v != "" {
+		p.BlockedExternalDomains = objectParam(v)
 	}
-	if v := plan.CommunicationWithExternalOrgs.ValueString(); v != "" {
-		p.CommunicationWithExternalOrgs = v
+	if v := config.CommunicationWithExternalOrgs.ValueString(); v != "" {
+		p.CommunicationWithExternalOrgs = objectParam(v)
 	}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if !plan.EnableAcsFederationAccess.IsUnknown() && !plan.EnableAcsFederationAccess.IsNull() {
+	if !config.EnableAcsFederationAccess.IsNull() {
 		p.EnableAcsFederationAccess = plan.EnableAcsFederationAccess.ValueBoolPointer()
 	}
-	if !plan.EnableFederationAccess.IsUnknown() && !plan.EnableFederationAccess.IsNull() {
+	if !config.EnableFederationAccess.IsNull() {
 		p.EnableFederationAccess = plan.EnableFederationAccess.ValueBoolPointer()
 	}
-	if !plan.EnableOutsideAccess.IsUnknown() && !plan.EnableOutsideAccess.IsNull() {
+	if !config.EnableOutsideAccess.IsNull() {
 		p.EnableOutsideAccess = plan.EnableOutsideAccess.ValueBoolPointer()
 	}
-	if !plan.EnablePublicCloudAudioVideoAccess.IsUnknown() && !plan.EnablePublicCloudAudioVideoAccess.IsNull() {
+	if !config.EnablePublicCloudAudioVideoAccess.IsNull() {
 		p.EnablePublicCloudAudioVideoAccess = plan.EnablePublicCloudAudioVideoAccess.ValueBoolPointer()
 	}
-	if !plan.EnableTeamsConsumerAccess.IsUnknown() && !plan.EnableTeamsConsumerAccess.IsNull() {
+	if !config.EnableTeamsConsumerAccess.IsNull() {
 		p.EnableTeamsConsumerAccess = plan.EnableTeamsConsumerAccess.ValueBoolPointer()
 	}
-	if !plan.EnableTeamsConsumerInbound.IsUnknown() && !plan.EnableTeamsConsumerInbound.IsNull() {
+	if !config.EnableTeamsConsumerInbound.IsNull() {
 		p.EnableTeamsConsumerInbound = plan.EnableTeamsConsumerInbound.ValueBoolPointer()
 	}
-	if !plan.EnableTeamsSmsAccess.IsUnknown() && !plan.EnableTeamsSmsAccess.IsNull() {
+	if !config.EnableTeamsSmsAccess.IsNull() {
 		p.EnableTeamsSmsAccess = plan.EnableTeamsSmsAccess.ValueBoolPointer()
 	}
-	if !plan.EnableXmppAccess.IsUnknown() && !plan.EnableXmppAccess.IsNull() {
+	if !config.EnableXmppAccess.IsNull() {
 		p.EnableXmppAccess = plan.EnableXmppAccess.ValueBoolPointer()
 	}
-	if !plan.FederatedBilateralChats.IsUnknown() && !plan.FederatedBilateralChats.IsNull() {
+	if !config.FederatedBilateralChats.IsNull() {
 		p.FederatedBilateralChats = plan.FederatedBilateralChats.ValueBoolPointer()
 	}
-	if !plan.RestrictTeamsConsumerAccessToExternalUserProfiles.IsUnknown() && !plan.RestrictTeamsConsumerAccessToExternalUserProfiles.IsNull() {
+	if !config.RestrictTeamsConsumerAccessToExternalUserProfiles.IsNull() {
 		p.RestrictTeamsConsumerAccessToExternalUserProfiles = plan.RestrictTeamsConsumerAccessToExternalUserProfiles.ValueBoolPointer()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -188,13 +259,13 @@ func (r *externalAccessPolicyResource) Update(ctx context.Context, req resource.
 	sp := cs.SetCsExternalAccessPolicyParams{}
 	sp.Identity = id
 	if v := plan.AllowedExternalDomains.ValueString(); v != "" {
-		sp.AllowedExternalDomains = v
+		sp.AllowedExternalDomains = objectParam(v)
 	}
 	if v := plan.BlockedExternalDomains.ValueString(); v != "" {
-		sp.BlockedExternalDomains = v
+		sp.BlockedExternalDomains = objectParam(v)
 	}
 	if v := plan.CommunicationWithExternalOrgs.ValueString(); v != "" {
-		sp.CommunicationWithExternalOrgs = v
+		sp.CommunicationWithExternalOrgs = objectParam(v)
 	}
 	if !plan.Description.Equal(state.Description) {
 		sp.Description = plan.Description.ValueString()
@@ -238,10 +309,7 @@ func (r *externalAccessPolicyResource) Update(ctx context.Context, req resource.
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{
-		"AllowedExternalDomains":        cfg.AllowedExternalDomains,
-		"BlockedExternalDomains":        cfg.BlockedExternalDomains,
-		"CommunicationWithExternalOrgs": cfg.CommunicationWithExternalOrgs,
-		"Description":                   cfg.Description,
+		"Description": cfg.Description,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
 	r.reconcileState(&cfg, &plan)
@@ -254,6 +322,10 @@ func (r *externalAccessPolicyResource) Delete(ctx context.Context, req resource.
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("ExternalAccessPolicy Global not deleted", "The Global ExternalAccessPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsExternalAccessPolicy(ctx, cs.RemoveCsExternalAccessPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-ExternalAccessPolicy failed", err.Error())
@@ -264,6 +336,80 @@ func (r *externalAccessPolicyResource) Delete(ctx context.Context, req resource.
 func (r *externalAccessPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *externalAccessPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan externalAccessPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsExternalAccessPolicy(ctx, cs.GetCsExternalAccessPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur externalAccessPolicyModel
+	readExternalAccessPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AllowedExternalDomains.IsUnknown() {
+		plan.AllowedExternalDomains = cur.AllowedExternalDomains
+	}
+	if plan.BlockedExternalDomains.IsUnknown() {
+		plan.BlockedExternalDomains = cur.BlockedExternalDomains
+	}
+	if plan.CommunicationWithExternalOrgs.IsUnknown() {
+		plan.CommunicationWithExternalOrgs = cur.CommunicationWithExternalOrgs
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.EnableAcsFederationAccess.IsUnknown() {
+		plan.EnableAcsFederationAccess = cur.EnableAcsFederationAccess
+	}
+	if plan.EnableFederationAccess.IsUnknown() {
+		plan.EnableFederationAccess = cur.EnableFederationAccess
+	}
+	if plan.EnableOutsideAccess.IsUnknown() {
+		plan.EnableOutsideAccess = cur.EnableOutsideAccess
+	}
+	if plan.EnablePublicCloudAudioVideoAccess.IsUnknown() {
+		plan.EnablePublicCloudAudioVideoAccess = cur.EnablePublicCloudAudioVideoAccess
+	}
+	if plan.EnableTeamsConsumerAccess.IsUnknown() {
+		plan.EnableTeamsConsumerAccess = cur.EnableTeamsConsumerAccess
+	}
+	if plan.EnableTeamsConsumerInbound.IsUnknown() {
+		plan.EnableTeamsConsumerInbound = cur.EnableTeamsConsumerInbound
+	}
+	if plan.EnableTeamsSmsAccess.IsUnknown() {
+		plan.EnableTeamsSmsAccess = cur.EnableTeamsSmsAccess
+	}
+	if plan.EnableXmppAccess.IsUnknown() {
+		plan.EnableXmppAccess = cur.EnableXmppAccess
+	}
+	if plan.FederatedBilateralChats.IsUnknown() {
+		plan.FederatedBilateralChats = cur.FederatedBilateralChats
+	}
+	if plan.RestrictTeamsConsumerAccessToExternalUserProfiles.IsUnknown() {
+		plan.RestrictTeamsConsumerAccessToExternalUserProfiles = cur.RestrictTeamsConsumerAccessToExternalUserProfiles
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *externalAccessPolicyResource) identityOf(m externalAccessPolicyModel) string {
@@ -302,9 +448,9 @@ func (r *externalAccessPolicyResource) refresh(ctx context.Context, identity str
 
 func readExternalAccessPolicy(ctx context.Context, obj map[string]any, m *externalAccessPolicyModel) {
 	m.ID = types.StringValue(firstNonEmptyStr(getString(obj, "Guid"), getString(obj, "Id"), getString(obj, "Identity")))
-	m.AllowedExternalDomains = types.StringValue(getString(obj, "AllowedExternalDomains"))
-	m.BlockedExternalDomains = types.StringValue(getString(obj, "BlockedExternalDomains"))
-	m.CommunicationWithExternalOrgs = types.StringValue(getString(obj, "CommunicationWithExternalOrgs"))
+	m.AllowedExternalDomains = types.StringValue(getObjectJSON(obj, "AllowedExternalDomains"))
+	m.BlockedExternalDomains = types.StringValue(getObjectJSON(obj, "BlockedExternalDomains"))
+	m.CommunicationWithExternalOrgs = types.StringValue(getObjectJSON(obj, "CommunicationWithExternalOrgs"))
 	m.Description = types.StringValue(getString(obj, "Description"))
 	m.EnableAcsFederationAccess = types.BoolValue(getBool(obj, "EnableAcsFederationAccess"))
 	m.EnableFederationAccess = types.BoolValue(getBool(obj, "EnableFederationAccess"))

@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &complianceRecordingPolicyResource{}
 	_ resource.ResourceWithConfigure   = &complianceRecordingPolicyResource{}
 	_ resource.ResourceWithImportState = &complianceRecordingPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &complianceRecordingPolicyResource{}
 )
 
 type complianceRecordingPolicyResource struct{ client *clients.Client }
@@ -85,32 +86,87 @@ func (r *complianceRecordingPolicyResource) Create(ctx context.Context, req reso
 		return
 	}
 
-	p := cs.NewCsTeamsComplianceRecordingPolicyParams{}
-	if v := plan.ComplianceRecordingApplications.ValueString(); v != "" {
-		p.ComplianceRecordingApplications = v
+	var config complianceRecordingPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
-	if !plan.CustomBanner.IsUnknown() && !plan.CustomBanner.IsNull() {
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsComplianceRecordingPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if v := config.ComplianceRecordingApplications.ValueString(); v != "" {
+			sp.ComplianceRecordingApplications = objectParam(v)
+		}
+		if !config.CustomBanner.IsNull() {
+			sp.CustomBanner = plan.CustomBanner.ValueString()
+		}
+		if !config.CustomPromptsEnabled.IsNull() {
+			sp.CustomPromptsEnabled = plan.CustomPromptsEnabled.ValueBoolPointer()
+		}
+		if !config.CustomPromptsPackageId.IsNull() {
+			sp.CustomPromptsPackageId = plan.CustomPromptsPackageId.ValueString()
+		}
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if !config.DisableComplianceRecordingAudioNotificationForCalls.IsNull() {
+			sp.DisableComplianceRecordingAudioNotificationForCalls = plan.DisableComplianceRecordingAudioNotificationForCalls.ValueBoolPointer()
+		}
+		if !config.Enabled.IsNull() {
+			sp.Enabled = plan.Enabled.ValueBoolPointer()
+		}
+		if !config.RecordReroutedCalls.IsNull() {
+			sp.RecordReroutedCalls = plan.RecordReroutedCalls.ValueBoolPointer()
+		}
+		if !config.WarnUserOnRemoval.IsNull() {
+			sp.WarnUserOnRemoval = plan.WarnUserOnRemoval.ValueBoolPointer()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsComplianceRecordingPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-ComplianceRecordingPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("ComplianceRecordingPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
+	p := cs.NewCsTeamsComplianceRecordingPolicyParams{}
+	if v := config.ComplianceRecordingApplications.ValueString(); v != "" {
+		p.ComplianceRecordingApplications = objectParam(v)
+	}
+	if !config.CustomBanner.IsNull() {
 		p.CustomBanner = plan.CustomBanner.ValueString()
 	}
-	if !plan.CustomPromptsEnabled.IsUnknown() && !plan.CustomPromptsEnabled.IsNull() {
+	if !config.CustomPromptsEnabled.IsNull() {
 		p.CustomPromptsEnabled = plan.CustomPromptsEnabled.ValueBoolPointer()
 	}
-	if !plan.CustomPromptsPackageId.IsUnknown() && !plan.CustomPromptsPackageId.IsNull() {
+	if !config.CustomPromptsPackageId.IsNull() {
 		p.CustomPromptsPackageId = plan.CustomPromptsPackageId.ValueString()
 	}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if !plan.DisableComplianceRecordingAudioNotificationForCalls.IsUnknown() && !plan.DisableComplianceRecordingAudioNotificationForCalls.IsNull() {
+	if !config.DisableComplianceRecordingAudioNotificationForCalls.IsNull() {
 		p.DisableComplianceRecordingAudioNotificationForCalls = plan.DisableComplianceRecordingAudioNotificationForCalls.ValueBoolPointer()
 	}
-	if !plan.Enabled.IsUnknown() && !plan.Enabled.IsNull() {
+	if !config.Enabled.IsNull() {
 		p.Enabled = plan.Enabled.ValueBoolPointer()
 	}
-	if !plan.RecordReroutedCalls.IsUnknown() && !plan.RecordReroutedCalls.IsNull() {
+	if !config.RecordReroutedCalls.IsNull() {
 		p.RecordReroutedCalls = plan.RecordReroutedCalls.ValueBoolPointer()
 	}
-	if !plan.WarnUserOnRemoval.IsUnknown() && !plan.WarnUserOnRemoval.IsNull() {
+	if !config.WarnUserOnRemoval.IsNull() {
 		p.WarnUserOnRemoval = plan.WarnUserOnRemoval.ValueBoolPointer()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -165,7 +221,7 @@ func (r *complianceRecordingPolicyResource) Update(ctx context.Context, req reso
 	sp := cs.SetCsTeamsComplianceRecordingPolicyParams{}
 	sp.Identity = id
 	if v := plan.ComplianceRecordingApplications.ValueString(); v != "" {
-		sp.ComplianceRecordingApplications = v
+		sp.ComplianceRecordingApplications = objectParam(v)
 	}
 	if !plan.CustomBanner.Equal(state.CustomBanner) {
 		sp.CustomBanner = plan.CustomBanner.ValueString()
@@ -200,10 +256,9 @@ func (r *complianceRecordingPolicyResource) Update(ctx context.Context, req reso
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{
-		"ComplianceRecordingApplications": cfg.ComplianceRecordingApplications,
-		"CustomBanner":                    cfg.CustomBanner,
-		"CustomPromptsPackageId":          cfg.CustomPromptsPackageId,
-		"Description":                     cfg.Description,
+		"CustomBanner":           cfg.CustomBanner,
+		"CustomPromptsPackageId": cfg.CustomPromptsPackageId,
+		"Description":            cfg.Description,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
 	r.reconcileState(&cfg, &plan)
@@ -216,6 +271,10 @@ func (r *complianceRecordingPolicyResource) Delete(ctx context.Context, req reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("ComplianceRecordingPolicy Global not deleted", "The Global ComplianceRecordingPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsComplianceRecordingPolicy(ctx, cs.RemoveCsTeamsComplianceRecordingPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-ComplianceRecordingPolicy failed", err.Error())
@@ -226,6 +285,65 @@ func (r *complianceRecordingPolicyResource) Delete(ctx context.Context, req reso
 func (r *complianceRecordingPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *complianceRecordingPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan complianceRecordingPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsComplianceRecordingPolicy(ctx, cs.GetCsTeamsComplianceRecordingPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur complianceRecordingPolicyModel
+	readComplianceRecordingPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.ComplianceRecordingApplications.IsUnknown() {
+		plan.ComplianceRecordingApplications = cur.ComplianceRecordingApplications
+	}
+	if plan.CustomBanner.IsUnknown() {
+		plan.CustomBanner = cur.CustomBanner
+	}
+	if plan.CustomPromptsEnabled.IsUnknown() {
+		plan.CustomPromptsEnabled = cur.CustomPromptsEnabled
+	}
+	if plan.CustomPromptsPackageId.IsUnknown() {
+		plan.CustomPromptsPackageId = cur.CustomPromptsPackageId
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.DisableComplianceRecordingAudioNotificationForCalls.IsUnknown() {
+		plan.DisableComplianceRecordingAudioNotificationForCalls = cur.DisableComplianceRecordingAudioNotificationForCalls
+	}
+	if plan.Enabled.IsUnknown() {
+		plan.Enabled = cur.Enabled
+	}
+	if plan.RecordReroutedCalls.IsUnknown() {
+		plan.RecordReroutedCalls = cur.RecordReroutedCalls
+	}
+	if plan.WarnUserOnRemoval.IsUnknown() {
+		plan.WarnUserOnRemoval = cur.WarnUserOnRemoval
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *complianceRecordingPolicyResource) identityOf(m complianceRecordingPolicyModel) string {
@@ -264,7 +382,7 @@ func (r *complianceRecordingPolicyResource) refresh(ctx context.Context, identit
 
 func readComplianceRecordingPolicy(ctx context.Context, obj map[string]any, m *complianceRecordingPolicyModel) {
 	m.ID = types.StringValue(firstNonEmptyStr(getString(obj, "Guid"), getString(obj, "Id"), getString(obj, "Identity")))
-	m.ComplianceRecordingApplications = types.StringValue(getString(obj, "ComplianceRecordingApplications"))
+	m.ComplianceRecordingApplications = types.StringValue(getObjectJSON(obj, "ComplianceRecordingApplications"))
 	m.CustomBanner = types.StringValue(getString(obj, "CustomBanner"))
 	m.CustomPromptsEnabled = types.BoolValue(getBool(obj, "CustomPromptsEnabled"))
 	m.CustomPromptsPackageId = types.StringValue(getString(obj, "CustomPromptsPackageId"))

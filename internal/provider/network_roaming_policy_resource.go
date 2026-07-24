@@ -26,6 +26,7 @@ var (
 	_ resource.Resource                = &networkRoamingPolicyResource{}
 	_ resource.ResourceWithConfigure   = &networkRoamingPolicyResource{}
 	_ resource.ResourceWithImportState = &networkRoamingPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &networkRoamingPolicyResource{}
 )
 
 type networkRoamingPolicyResource struct{ client *clients.Client }
@@ -72,14 +73,51 @@ func (r *networkRoamingPolicyResource) Create(ctx context.Context, req resource.
 		return
 	}
 
+	var config networkRoamingPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsNetworkRoamingPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.AllowIPVideo.IsNull() {
+			sp.AllowIPVideo = plan.AllowIPVideo.ValueBoolPointer()
+		}
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if !config.MediaBitRateKb.IsNull() {
+			sp.MediaBitRateKb = plan.MediaBitRateKb.ValueInt64Pointer()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsNetworkRoamingPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-NetworkRoamingPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("NetworkRoamingPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsNetworkRoamingPolicyParams{}
-	if !plan.AllowIPVideo.IsUnknown() && !plan.AllowIPVideo.IsNull() {
+	if !config.AllowIPVideo.IsNull() {
 		p.AllowIPVideo = plan.AllowIPVideo.ValueBoolPointer()
 	}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if !plan.MediaBitRateKb.IsUnknown() && !plan.MediaBitRateKb.IsNull() {
+	if !config.MediaBitRateKb.IsNull() {
 		p.MediaBitRateKb = plan.MediaBitRateKb.ValueInt64Pointer()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -164,6 +202,10 @@ func (r *networkRoamingPolicyResource) Delete(ctx context.Context, req resource.
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("NetworkRoamingPolicy Global not deleted", "The Global NetworkRoamingPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsNetworkRoamingPolicy(ctx, cs.RemoveCsTeamsNetworkRoamingPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-NetworkRoamingPolicy failed", err.Error())
@@ -174,6 +216,47 @@ func (r *networkRoamingPolicyResource) Delete(ctx context.Context, req resource.
 func (r *networkRoamingPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *networkRoamingPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan networkRoamingPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsNetworkRoamingPolicy(ctx, cs.GetCsTeamsNetworkRoamingPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur networkRoamingPolicyModel
+	readNetworkRoamingPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AllowIPVideo.IsUnknown() {
+		plan.AllowIPVideo = cur.AllowIPVideo
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.MediaBitRateKb.IsUnknown() {
+		plan.MediaBitRateKb = cur.MediaBitRateKb
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *networkRoamingPolicyResource) identityOf(m networkRoamingPolicyModel) string {

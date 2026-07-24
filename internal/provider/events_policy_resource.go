@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &eventsPolicyResource{}
 	_ resource.ResourceWithConfigure   = &eventsPolicyResource{}
 	_ resource.ResourceWithImportState = &eventsPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &eventsPolicyResource{}
 )
 
 type eventsPolicyResource struct{ client *clients.Client }
@@ -115,80 +116,183 @@ func (r *eventsPolicyResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
+	var config eventsPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsEventsPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.AllowEmailEditing.IsNull() {
+			sp.AllowEmailEditing = plan.AllowEmailEditing.ValueString()
+		}
+		if !config.AllowEngagementReport.IsNull() {
+			sp.AllowEngagementReport = plan.AllowEngagementReport.ValueString()
+		}
+		if !config.AllowEventIntegrations.IsNull() {
+			sp.AllowEventIntegrations = plan.AllowEventIntegrations.ValueBoolPointer()
+		}
+		if !config.AllowTownhalls.IsNull() {
+			sp.AllowTownhalls = plan.AllowTownhalls.ValueString()
+		}
+		if !config.AllowWebinars.IsNull() {
+			sp.AllowWebinars = plan.AllowWebinars.ValueString()
+		}
+		if !config.AllowedQuestionTypesInRegistrationForm.IsNull() {
+			sp.AllowedQuestionTypesInRegistrationForm = plan.AllowedQuestionTypesInRegistrationForm.ValueString()
+		}
+		if !config.AllowedTownhallTypesForRecordingPublish.IsNull() {
+			sp.AllowedTownhallTypesForRecordingPublish = plan.AllowedTownhallTypesForRecordingPublish.ValueString()
+		}
+		if !config.AllowedWebinarTypesForRecordingPublish.IsNull() {
+			sp.AllowedWebinarTypesForRecordingPublish = plan.AllowedWebinarTypesForRecordingPublish.ValueString()
+		}
+		if !config.BackroomChat.IsNull() {
+			sp.BackroomChat = plan.BackroomChat.ValueString()
+		}
+		if !config.BroadcastPremiumApps.IsNull() {
+			sp.BroadcastPremiumApps = plan.BroadcastPremiumApps.ValueString()
+		}
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if !config.EventAccessType.IsNull() {
+			sp.EventAccessType = plan.EventAccessType.ValueString()
+		}
+		if !config.ExternalPresenterJoinVerification.IsNull() {
+			sp.ExternalPresenterJoinVerification = plan.ExternalPresenterJoinVerification.ValueString()
+		}
+		if !config.HighBitrateForTownhall.IsNull() {
+			sp.HighBitrateForTownhall = plan.HighBitrateForTownhall.ValueString()
+		}
+		if !config.ImmersiveEvents.IsNull() {
+			sp.ImmersiveEvents = plan.ImmersiveEvents.ValueString()
+		}
+		if !config.InfoShownInReportMode.IsNull() {
+			sp.InfoShownInReportMode = plan.InfoShownInReportMode.ValueString()
+		}
+		if !config.RecordingForTownhall.IsNull() {
+			sp.RecordingForTownhall = plan.RecordingForTownhall.ValueString()
+		}
+		if !config.RecordingForWebinar.IsNull() {
+			sp.RecordingForWebinar = plan.RecordingForWebinar.ValueString()
+		}
+		if !config.Registration.IsNull() {
+			sp.Registration = plan.Registration.ValueString()
+		}
+		if !config.TownhallChatExperience.IsNull() {
+			sp.TownhallChatExperience = plan.TownhallChatExperience.ValueString()
+		}
+		if !config.TownhallEventAttendeeAccess.IsNull() {
+			sp.TownhallEventAttendeeAccess = plan.TownhallEventAttendeeAccess.ValueString()
+		}
+		if !config.TownhallMaxResolution.IsNull() {
+			sp.TownhallMaxResolution = plan.TownhallMaxResolution.ValueString()
+		}
+		if !config.TranscriptionForTownhall.IsNull() {
+			sp.TranscriptionForTownhall = plan.TranscriptionForTownhall.ValueString()
+		}
+		if !config.TranscriptionForWebinar.IsNull() {
+			sp.TranscriptionForWebinar = plan.TranscriptionForWebinar.ValueString()
+		}
+		if !config.UseMicrosoftECDN.IsNull() {
+			sp.UseMicrosoftECDN = plan.UseMicrosoftECDN.ValueBoolPointer()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsEventsPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-EventsPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("EventsPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsEventsPolicyParams{}
-	if !plan.AllowEmailEditing.IsUnknown() && !plan.AllowEmailEditing.IsNull() {
+	if !config.AllowEmailEditing.IsNull() {
 		p.AllowEmailEditing = plan.AllowEmailEditing.ValueString()
 	}
-	if !plan.AllowEngagementReport.IsUnknown() && !plan.AllowEngagementReport.IsNull() {
+	if !config.AllowEngagementReport.IsNull() {
 		p.AllowEngagementReport = plan.AllowEngagementReport.ValueString()
 	}
-	if !plan.AllowEventIntegrations.IsUnknown() && !plan.AllowEventIntegrations.IsNull() {
+	if !config.AllowEventIntegrations.IsNull() {
 		p.AllowEventIntegrations = plan.AllowEventIntegrations.ValueBoolPointer()
 	}
-	if !plan.AllowTownhalls.IsUnknown() && !plan.AllowTownhalls.IsNull() {
+	if !config.AllowTownhalls.IsNull() {
 		p.AllowTownhalls = plan.AllowTownhalls.ValueString()
 	}
-	if !plan.AllowWebinars.IsUnknown() && !plan.AllowWebinars.IsNull() {
+	if !config.AllowWebinars.IsNull() {
 		p.AllowWebinars = plan.AllowWebinars.ValueString()
 	}
-	if !plan.AllowedQuestionTypesInRegistrationForm.IsUnknown() && !plan.AllowedQuestionTypesInRegistrationForm.IsNull() {
+	if !config.AllowedQuestionTypesInRegistrationForm.IsNull() {
 		p.AllowedQuestionTypesInRegistrationForm = plan.AllowedQuestionTypesInRegistrationForm.ValueString()
 	}
-	if !plan.AllowedTownhallTypesForRecordingPublish.IsUnknown() && !plan.AllowedTownhallTypesForRecordingPublish.IsNull() {
+	if !config.AllowedTownhallTypesForRecordingPublish.IsNull() {
 		p.AllowedTownhallTypesForRecordingPublish = plan.AllowedTownhallTypesForRecordingPublish.ValueString()
 	}
-	if !plan.AllowedWebinarTypesForRecordingPublish.IsUnknown() && !plan.AllowedWebinarTypesForRecordingPublish.IsNull() {
+	if !config.AllowedWebinarTypesForRecordingPublish.IsNull() {
 		p.AllowedWebinarTypesForRecordingPublish = plan.AllowedWebinarTypesForRecordingPublish.ValueString()
 	}
-	if !plan.BackroomChat.IsUnknown() && !plan.BackroomChat.IsNull() {
+	if !config.BackroomChat.IsNull() {
 		p.BackroomChat = plan.BackroomChat.ValueString()
 	}
-	if !plan.BroadcastPremiumApps.IsUnknown() && !plan.BroadcastPremiumApps.IsNull() {
+	if !config.BroadcastPremiumApps.IsNull() {
 		p.BroadcastPremiumApps = plan.BroadcastPremiumApps.ValueString()
 	}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if !plan.EventAccessType.IsUnknown() && !plan.EventAccessType.IsNull() {
+	if !config.EventAccessType.IsNull() {
 		p.EventAccessType = plan.EventAccessType.ValueString()
 	}
-	if !plan.ExternalPresenterJoinVerification.IsUnknown() && !plan.ExternalPresenterJoinVerification.IsNull() {
+	if !config.ExternalPresenterJoinVerification.IsNull() {
 		p.ExternalPresenterJoinVerification = plan.ExternalPresenterJoinVerification.ValueString()
 	}
-	if !plan.HighBitrateForTownhall.IsUnknown() && !plan.HighBitrateForTownhall.IsNull() {
+	if !config.HighBitrateForTownhall.IsNull() {
 		p.HighBitrateForTownhall = plan.HighBitrateForTownhall.ValueString()
 	}
-	if !plan.ImmersiveEvents.IsUnknown() && !plan.ImmersiveEvents.IsNull() {
+	if !config.ImmersiveEvents.IsNull() {
 		p.ImmersiveEvents = plan.ImmersiveEvents.ValueString()
 	}
-	if !plan.InfoShownInReportMode.IsUnknown() && !plan.InfoShownInReportMode.IsNull() {
+	if !config.InfoShownInReportMode.IsNull() {
 		p.InfoShownInReportMode = plan.InfoShownInReportMode.ValueString()
 	}
-	if !plan.RecordingForTownhall.IsUnknown() && !plan.RecordingForTownhall.IsNull() {
+	if !config.RecordingForTownhall.IsNull() {
 		p.RecordingForTownhall = plan.RecordingForTownhall.ValueString()
 	}
-	if !plan.RecordingForWebinar.IsUnknown() && !plan.RecordingForWebinar.IsNull() {
+	if !config.RecordingForWebinar.IsNull() {
 		p.RecordingForWebinar = plan.RecordingForWebinar.ValueString()
 	}
-	if !plan.Registration.IsUnknown() && !plan.Registration.IsNull() {
+	if !config.Registration.IsNull() {
 		p.Registration = plan.Registration.ValueString()
 	}
-	if !plan.TownhallChatExperience.IsUnknown() && !plan.TownhallChatExperience.IsNull() {
+	if !config.TownhallChatExperience.IsNull() {
 		p.TownhallChatExperience = plan.TownhallChatExperience.ValueString()
 	}
-	if !plan.TownhallEventAttendeeAccess.IsUnknown() && !plan.TownhallEventAttendeeAccess.IsNull() {
+	if !config.TownhallEventAttendeeAccess.IsNull() {
 		p.TownhallEventAttendeeAccess = plan.TownhallEventAttendeeAccess.ValueString()
 	}
-	if !plan.TownhallMaxResolution.IsUnknown() && !plan.TownhallMaxResolution.IsNull() {
+	if !config.TownhallMaxResolution.IsNull() {
 		p.TownhallMaxResolution = plan.TownhallMaxResolution.ValueString()
 	}
-	if !plan.TranscriptionForTownhall.IsUnknown() && !plan.TranscriptionForTownhall.IsNull() {
+	if !config.TranscriptionForTownhall.IsNull() {
 		p.TranscriptionForTownhall = plan.TranscriptionForTownhall.ValueString()
 	}
-	if !plan.TranscriptionForWebinar.IsUnknown() && !plan.TranscriptionForWebinar.IsNull() {
+	if !config.TranscriptionForWebinar.IsNull() {
 		p.TranscriptionForWebinar = plan.TranscriptionForWebinar.ValueString()
 	}
-	if !plan.UseMicrosoftECDN.IsUnknown() && !plan.UseMicrosoftECDN.IsNull() {
+	if !config.UseMicrosoftECDN.IsNull() {
 		p.UseMicrosoftECDN = plan.UseMicrosoftECDN.ValueBoolPointer()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -361,6 +465,10 @@ func (r *eventsPolicyResource) Delete(ctx context.Context, req resource.DeleteRe
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("EventsPolicy Global not deleted", "The Global EventsPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsEventsPolicy(ctx, cs.RemoveCsTeamsEventsPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-EventsPolicy failed", err.Error())
@@ -371,6 +479,113 @@ func (r *eventsPolicyResource) Delete(ctx context.Context, req resource.DeleteRe
 func (r *eventsPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *eventsPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan eventsPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsEventsPolicy(ctx, cs.GetCsTeamsEventsPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur eventsPolicyModel
+	readEventsPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AllowEmailEditing.IsUnknown() {
+		plan.AllowEmailEditing = cur.AllowEmailEditing
+	}
+	if plan.AllowEngagementReport.IsUnknown() {
+		plan.AllowEngagementReport = cur.AllowEngagementReport
+	}
+	if plan.AllowEventIntegrations.IsUnknown() {
+		plan.AllowEventIntegrations = cur.AllowEventIntegrations
+	}
+	if plan.AllowTownhalls.IsUnknown() {
+		plan.AllowTownhalls = cur.AllowTownhalls
+	}
+	if plan.AllowWebinars.IsUnknown() {
+		plan.AllowWebinars = cur.AllowWebinars
+	}
+	if plan.AllowedQuestionTypesInRegistrationForm.IsUnknown() {
+		plan.AllowedQuestionTypesInRegistrationForm = cur.AllowedQuestionTypesInRegistrationForm
+	}
+	if plan.AllowedTownhallTypesForRecordingPublish.IsUnknown() {
+		plan.AllowedTownhallTypesForRecordingPublish = cur.AllowedTownhallTypesForRecordingPublish
+	}
+	if plan.AllowedWebinarTypesForRecordingPublish.IsUnknown() {
+		plan.AllowedWebinarTypesForRecordingPublish = cur.AllowedWebinarTypesForRecordingPublish
+	}
+	if plan.BackroomChat.IsUnknown() {
+		plan.BackroomChat = cur.BackroomChat
+	}
+	if plan.BroadcastPremiumApps.IsUnknown() {
+		plan.BroadcastPremiumApps = cur.BroadcastPremiumApps
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.EventAccessType.IsUnknown() {
+		plan.EventAccessType = cur.EventAccessType
+	}
+	if plan.ExternalPresenterJoinVerification.IsUnknown() {
+		plan.ExternalPresenterJoinVerification = cur.ExternalPresenterJoinVerification
+	}
+	if plan.HighBitrateForTownhall.IsUnknown() {
+		plan.HighBitrateForTownhall = cur.HighBitrateForTownhall
+	}
+	if plan.ImmersiveEvents.IsUnknown() {
+		plan.ImmersiveEvents = cur.ImmersiveEvents
+	}
+	if plan.InfoShownInReportMode.IsUnknown() {
+		plan.InfoShownInReportMode = cur.InfoShownInReportMode
+	}
+	if plan.RecordingForTownhall.IsUnknown() {
+		plan.RecordingForTownhall = cur.RecordingForTownhall
+	}
+	if plan.RecordingForWebinar.IsUnknown() {
+		plan.RecordingForWebinar = cur.RecordingForWebinar
+	}
+	if plan.Registration.IsUnknown() {
+		plan.Registration = cur.Registration
+	}
+	if plan.TownhallChatExperience.IsUnknown() {
+		plan.TownhallChatExperience = cur.TownhallChatExperience
+	}
+	if plan.TownhallEventAttendeeAccess.IsUnknown() {
+		plan.TownhallEventAttendeeAccess = cur.TownhallEventAttendeeAccess
+	}
+	if plan.TownhallMaxResolution.IsUnknown() {
+		plan.TownhallMaxResolution = cur.TownhallMaxResolution
+	}
+	if plan.TranscriptionForTownhall.IsUnknown() {
+		plan.TranscriptionForTownhall = cur.TranscriptionForTownhall
+	}
+	if plan.TranscriptionForWebinar.IsUnknown() {
+		plan.TranscriptionForWebinar = cur.TranscriptionForWebinar
+	}
+	if plan.UseMicrosoftECDN.IsUnknown() {
+		plan.UseMicrosoftECDN = cur.UseMicrosoftECDN
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *eventsPolicyResource) identityOf(m eventsPolicyModel) string {

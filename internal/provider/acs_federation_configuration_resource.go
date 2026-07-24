@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &acsFederationConfigurationResource{}
 	_ resource.ResourceWithConfigure   = &acsFederationConfigurationResource{}
 	_ resource.ResourceWithImportState = &acsFederationConfigurationResource{}
+	_ resource.ResourceWithModifyPlan  = &acsFederationConfigurationResource{}
 )
 
 type acsFederationConfigurationResource struct{ client *clients.Client }
@@ -76,21 +77,26 @@ func (r *acsFederationConfigurationResource) Create(ctx context.Context, req res
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config acsFederationConfigurationModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTeamsAcsFederationConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if v := plan.AllowedAcsResources.ValueString(); v != "" {
-		sp.AllowedAcsResources = v
+	if v := config.AllowedAcsResources.ValueString(); v != "" {
+		sp.AllowedAcsResources = objectParam(v)
 	}
-	if !plan.EnableAcsUsers.IsUnknown() && !plan.EnableAcsUsers.IsNull() {
+	if !config.EnableAcsUsers.IsNull() {
 		sp.EnableAcsUsers = plan.EnableAcsUsers.ValueBoolPointer()
 	}
-	if !plan.HideBannerForAllowedAcsUsers.IsUnknown() && !plan.HideBannerForAllowedAcsUsers.IsNull() {
+	if !config.HideBannerForAllowedAcsUsers.IsNull() {
 		sp.HideBannerForAllowedAcsUsers = plan.HideBannerForAllowedAcsUsers.ValueBoolPointer()
 	}
-	if !plan.LabelForAllowedAcsUsers.IsUnknown() && !plan.LabelForAllowedAcsUsers.IsNull() {
+	if !config.LabelForAllowedAcsUsers.IsNull() {
 		sp.LabelForAllowedAcsUsers = plan.LabelForAllowedAcsUsers.ValueString()
 	}
-	if !plan.RequireAcsFederationForMeeting.IsUnknown() && !plan.RequireAcsFederationForMeeting.IsNull() {
+	if !config.RequireAcsFederationForMeeting.IsNull() {
 		sp.RequireAcsFederationForMeeting = plan.RequireAcsFederationForMeeting.ValueBoolPointer()
 	}
 	if resp.Diagnostics.HasError() {
@@ -133,7 +139,7 @@ func (r *acsFederationConfigurationResource) Update(ctx context.Context, req res
 	sp := cs.SetCsTeamsAcsFederationConfigurationParams{}
 	sp.Identity = id
 	if v := plan.AllowedAcsResources.ValueString(); v != "" {
-		sp.AllowedAcsResources = v
+		sp.AllowedAcsResources = objectParam(v)
 	}
 	if !plan.EnableAcsUsers.Equal(state.EnableAcsUsers) {
 		sp.EnableAcsUsers = plan.EnableAcsUsers.ValueBoolPointer()
@@ -156,7 +162,6 @@ func (r *acsFederationConfigurationResource) Update(ctx context.Context, req res
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{
-		"AllowedAcsResources":     cfg.AllowedAcsResources,
 		"LabelForAllowedAcsUsers": cfg.LabelForAllowedAcsUsers,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
@@ -171,6 +176,53 @@ func (r *acsFederationConfigurationResource) Delete(_ context.Context, _ resourc
 func (r *acsFederationConfigurationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *acsFederationConfigurationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan acsFederationConfigurationModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsAcsFederationConfiguration(ctx, cs.GetCsTeamsAcsFederationConfigurationParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur acsFederationConfigurationModel
+	readAcsFederationConfiguration(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AllowedAcsResources.IsUnknown() {
+		plan.AllowedAcsResources = cur.AllowedAcsResources
+	}
+	if plan.EnableAcsUsers.IsUnknown() {
+		plan.EnableAcsUsers = cur.EnableAcsUsers
+	}
+	if plan.HideBannerForAllowedAcsUsers.IsUnknown() {
+		plan.HideBannerForAllowedAcsUsers = cur.HideBannerForAllowedAcsUsers
+	}
+	if plan.LabelForAllowedAcsUsers.IsUnknown() {
+		plan.LabelForAllowedAcsUsers = cur.LabelForAllowedAcsUsers
+	}
+	if plan.RequireAcsFederationForMeeting.IsUnknown() {
+		plan.RequireAcsFederationForMeeting = cur.RequireAcsFederationForMeeting
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *acsFederationConfigurationResource) identityOf(m acsFederationConfigurationModel) string {
@@ -209,7 +261,7 @@ func (r *acsFederationConfigurationResource) refresh(ctx context.Context, identi
 
 func readAcsFederationConfiguration(ctx context.Context, obj map[string]any, m *acsFederationConfigurationModel) {
 	m.ID = types.StringValue(firstNonEmptyStr(getString(obj, "Guid"), getString(obj, "Id"), getString(obj, "Identity")))
-	m.AllowedAcsResources = types.StringValue(getString(obj, "AllowedAcsResources"))
+	m.AllowedAcsResources = types.StringValue(getObjectJSON(obj, "AllowedAcsResources"))
 	m.EnableAcsUsers = types.BoolValue(getBool(obj, "EnableAcsUsers"))
 	m.HideBannerForAllowedAcsUsers = types.BoolValue(getBool(obj, "HideBannerForAllowedAcsUsers"))
 	m.LabelForAllowedAcsUsers = types.StringValue(getString(obj, "LabelForAllowedAcsUsers"))

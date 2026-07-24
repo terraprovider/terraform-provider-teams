@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &voiceApplicationsPolicyResource{}
 	_ resource.ResourceWithConfigure   = &voiceApplicationsPolicyResource{}
 	_ resource.ResourceWithImportState = &voiceApplicationsPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &voiceApplicationsPolicyResource{}
 )
 
 type voiceApplicationsPolicyResource struct{ client *clients.Client }
@@ -135,107 +136,237 @@ func (r *voiceApplicationsPolicyResource) Create(ctx context.Context, req resour
 		return
 	}
 
+	var config voiceApplicationsPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsVoiceApplicationsPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.AllowAutoAttendantAfterHoursGreetingChange.IsNull() {
+			sp.AllowAutoAttendantAfterHoursGreetingChange = plan.AllowAutoAttendantAfterHoursGreetingChange.ValueBoolPointer()
+		}
+		if !config.AllowAutoAttendantAfterHoursRoutingChange.IsNull() {
+			sp.AllowAutoAttendantAfterHoursRoutingChange = plan.AllowAutoAttendantAfterHoursRoutingChange.ValueBoolPointer()
+		}
+		if !config.AllowAutoAttendantBusinessHoursChange.IsNull() {
+			sp.AllowAutoAttendantBusinessHoursChange = plan.AllowAutoAttendantBusinessHoursChange.ValueBoolPointer()
+		}
+		if !config.AllowAutoAttendantBusinessHoursGreetingChange.IsNull() {
+			sp.AllowAutoAttendantBusinessHoursGreetingChange = plan.AllowAutoAttendantBusinessHoursGreetingChange.ValueBoolPointer()
+		}
+		if !config.AllowAutoAttendantBusinessHoursRoutingChange.IsNull() {
+			sp.AllowAutoAttendantBusinessHoursRoutingChange = plan.AllowAutoAttendantBusinessHoursRoutingChange.ValueBoolPointer()
+		}
+		if !config.AllowAutoAttendantHolidayGreetingChange.IsNull() {
+			sp.AllowAutoAttendantHolidayGreetingChange = plan.AllowAutoAttendantHolidayGreetingChange.ValueBoolPointer()
+		}
+		if !config.AllowAutoAttendantHolidayRoutingChange.IsNull() {
+			sp.AllowAutoAttendantHolidayRoutingChange = plan.AllowAutoAttendantHolidayRoutingChange.ValueBoolPointer()
+		}
+		if !config.AllowAutoAttendantHolidaysChange.IsNull() {
+			sp.AllowAutoAttendantHolidaysChange = plan.AllowAutoAttendantHolidaysChange.ValueBoolPointer()
+		}
+		if !config.AllowAutoAttendantLanguageChange.IsNull() {
+			sp.AllowAutoAttendantLanguageChange = plan.AllowAutoAttendantLanguageChange.ValueBoolPointer()
+		}
+		if !config.AllowAutoAttendantTimeZoneChange.IsNull() {
+			sp.AllowAutoAttendantTimeZoneChange = plan.AllowAutoAttendantTimeZoneChange.ValueBoolPointer()
+		}
+		if !config.AllowCallQueueAgentOptChange.IsNull() {
+			sp.AllowCallQueueAgentOptChange = plan.AllowCallQueueAgentOptChange.ValueBoolPointer()
+		}
+		if !config.AllowCallQueueConferenceModeChange.IsNull() {
+			sp.AllowCallQueueConferenceModeChange = plan.AllowCallQueueConferenceModeChange.ValueBoolPointer()
+		}
+		if !config.AllowCallQueueLanguageChange.IsNull() {
+			sp.AllowCallQueueLanguageChange = plan.AllowCallQueueLanguageChange.ValueBoolPointer()
+		}
+		if !config.AllowCallQueueMembershipChange.IsNull() {
+			sp.AllowCallQueueMembershipChange = plan.AllowCallQueueMembershipChange.ValueBoolPointer()
+		}
+		if !config.AllowCallQueueMusicOnHoldChange.IsNull() {
+			sp.AllowCallQueueMusicOnHoldChange = plan.AllowCallQueueMusicOnHoldChange.ValueBoolPointer()
+		}
+		if !config.AllowCallQueueNoAgentSharedVoicemailGreetingChange.IsNull() {
+			sp.AllowCallQueueNoAgentSharedVoicemailGreetingChange = plan.AllowCallQueueNoAgentSharedVoicemailGreetingChange.ValueBoolPointer()
+		}
+		if !config.AllowCallQueueNoAgentsRoutingChange.IsNull() {
+			sp.AllowCallQueueNoAgentsRoutingChange = plan.AllowCallQueueNoAgentsRoutingChange.ValueBoolPointer()
+		}
+		if !config.AllowCallQueueOptOutChange.IsNull() {
+			sp.AllowCallQueueOptOutChange = plan.AllowCallQueueOptOutChange.ValueBoolPointer()
+		}
+		if !config.AllowCallQueueOverflowRoutingChange.IsNull() {
+			sp.AllowCallQueueOverflowRoutingChange = plan.AllowCallQueueOverflowRoutingChange.ValueBoolPointer()
+		}
+		if !config.AllowCallQueueOverflowSharedVoicemailGreetingChange.IsNull() {
+			sp.AllowCallQueueOverflowSharedVoicemailGreetingChange = plan.AllowCallQueueOverflowSharedVoicemailGreetingChange.ValueBoolPointer()
+		}
+		if !config.AllowCallQueuePresenceBasedRoutingChange.IsNull() {
+			sp.AllowCallQueuePresenceBasedRoutingChange = plan.AllowCallQueuePresenceBasedRoutingChange.ValueBoolPointer()
+		}
+		if !config.AllowCallQueueRoutingMethodChange.IsNull() {
+			sp.AllowCallQueueRoutingMethodChange = plan.AllowCallQueueRoutingMethodChange.ValueBoolPointer()
+		}
+		if !config.AllowCallQueueTimeoutRoutingChange.IsNull() {
+			sp.AllowCallQueueTimeoutRoutingChange = plan.AllowCallQueueTimeoutRoutingChange.ValueBoolPointer()
+		}
+		if !config.AllowCallQueueTimeoutSharedVoicemailGreetingChange.IsNull() {
+			sp.AllowCallQueueTimeoutSharedVoicemailGreetingChange = plan.AllowCallQueueTimeoutSharedVoicemailGreetingChange.ValueBoolPointer()
+		}
+		if !config.AllowCallQueueWelcomeGreetingChange.IsNull() {
+			sp.AllowCallQueueWelcomeGreetingChange = plan.AllowCallQueueWelcomeGreetingChange.ValueBoolPointer()
+		}
+		if !config.CallQueueAgentMonitorMode.IsNull() {
+			sp.CallQueueAgentMonitorMode = plan.CallQueueAgentMonitorMode.ValueString()
+		}
+		if !config.CallQueueAgentMonitorNotificationMode.IsNull() {
+			sp.CallQueueAgentMonitorNotificationMode = plan.CallQueueAgentMonitorNotificationMode.ValueString()
+		}
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if !config.HistoricalAgentMetricsPermission.IsNull() {
+			sp.HistoricalAgentMetricsPermission = plan.HistoricalAgentMetricsPermission.ValueString()
+		}
+		if !config.HistoricalAutoAttendantMetricsPermission.IsNull() {
+			sp.HistoricalAutoAttendantMetricsPermission = plan.HistoricalAutoAttendantMetricsPermission.ValueString()
+		}
+		if !config.HistoricalCallQueueMetricsPermission.IsNull() {
+			sp.HistoricalCallQueueMetricsPermission = plan.HistoricalCallQueueMetricsPermission.ValueString()
+		}
+		if !config.RealTimeAgentMetricsPermission.IsNull() {
+			sp.RealTimeAgentMetricsPermission = plan.RealTimeAgentMetricsPermission.ValueString()
+		}
+		if !config.RealTimeAutoAttendantMetricsPermission.IsNull() {
+			sp.RealTimeAutoAttendantMetricsPermission = plan.RealTimeAutoAttendantMetricsPermission.ValueString()
+		}
+		if !config.RealTimeCallQueueMetricsPermission.IsNull() {
+			sp.RealTimeCallQueueMetricsPermission = plan.RealTimeCallQueueMetricsPermission.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsVoiceApplicationsPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-VoiceApplicationsPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("VoiceApplicationsPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsVoiceApplicationsPolicyParams{}
-	if !plan.AllowAutoAttendantAfterHoursGreetingChange.IsUnknown() && !plan.AllowAutoAttendantAfterHoursGreetingChange.IsNull() {
+	if !config.AllowAutoAttendantAfterHoursGreetingChange.IsNull() {
 		p.AllowAutoAttendantAfterHoursGreetingChange = plan.AllowAutoAttendantAfterHoursGreetingChange.ValueBoolPointer()
 	}
-	if !plan.AllowAutoAttendantAfterHoursRoutingChange.IsUnknown() && !plan.AllowAutoAttendantAfterHoursRoutingChange.IsNull() {
+	if !config.AllowAutoAttendantAfterHoursRoutingChange.IsNull() {
 		p.AllowAutoAttendantAfterHoursRoutingChange = plan.AllowAutoAttendantAfterHoursRoutingChange.ValueBoolPointer()
 	}
-	if !plan.AllowAutoAttendantBusinessHoursChange.IsUnknown() && !plan.AllowAutoAttendantBusinessHoursChange.IsNull() {
+	if !config.AllowAutoAttendantBusinessHoursChange.IsNull() {
 		p.AllowAutoAttendantBusinessHoursChange = plan.AllowAutoAttendantBusinessHoursChange.ValueBoolPointer()
 	}
-	if !plan.AllowAutoAttendantBusinessHoursGreetingChange.IsUnknown() && !plan.AllowAutoAttendantBusinessHoursGreetingChange.IsNull() {
+	if !config.AllowAutoAttendantBusinessHoursGreetingChange.IsNull() {
 		p.AllowAutoAttendantBusinessHoursGreetingChange = plan.AllowAutoAttendantBusinessHoursGreetingChange.ValueBoolPointer()
 	}
-	if !plan.AllowAutoAttendantBusinessHoursRoutingChange.IsUnknown() && !plan.AllowAutoAttendantBusinessHoursRoutingChange.IsNull() {
+	if !config.AllowAutoAttendantBusinessHoursRoutingChange.IsNull() {
 		p.AllowAutoAttendantBusinessHoursRoutingChange = plan.AllowAutoAttendantBusinessHoursRoutingChange.ValueBoolPointer()
 	}
-	if !plan.AllowAutoAttendantHolidayGreetingChange.IsUnknown() && !plan.AllowAutoAttendantHolidayGreetingChange.IsNull() {
+	if !config.AllowAutoAttendantHolidayGreetingChange.IsNull() {
 		p.AllowAutoAttendantHolidayGreetingChange = plan.AllowAutoAttendantHolidayGreetingChange.ValueBoolPointer()
 	}
-	if !plan.AllowAutoAttendantHolidayRoutingChange.IsUnknown() && !plan.AllowAutoAttendantHolidayRoutingChange.IsNull() {
+	if !config.AllowAutoAttendantHolidayRoutingChange.IsNull() {
 		p.AllowAutoAttendantHolidayRoutingChange = plan.AllowAutoAttendantHolidayRoutingChange.ValueBoolPointer()
 	}
-	if !plan.AllowAutoAttendantHolidaysChange.IsUnknown() && !plan.AllowAutoAttendantHolidaysChange.IsNull() {
+	if !config.AllowAutoAttendantHolidaysChange.IsNull() {
 		p.AllowAutoAttendantHolidaysChange = plan.AllowAutoAttendantHolidaysChange.ValueBoolPointer()
 	}
-	if !plan.AllowAutoAttendantLanguageChange.IsUnknown() && !plan.AllowAutoAttendantLanguageChange.IsNull() {
+	if !config.AllowAutoAttendantLanguageChange.IsNull() {
 		p.AllowAutoAttendantLanguageChange = plan.AllowAutoAttendantLanguageChange.ValueBoolPointer()
 	}
-	if !plan.AllowAutoAttendantTimeZoneChange.IsUnknown() && !plan.AllowAutoAttendantTimeZoneChange.IsNull() {
+	if !config.AllowAutoAttendantTimeZoneChange.IsNull() {
 		p.AllowAutoAttendantTimeZoneChange = plan.AllowAutoAttendantTimeZoneChange.ValueBoolPointer()
 	}
-	if !plan.AllowCallQueueAgentOptChange.IsUnknown() && !plan.AllowCallQueueAgentOptChange.IsNull() {
+	if !config.AllowCallQueueAgentOptChange.IsNull() {
 		p.AllowCallQueueAgentOptChange = plan.AllowCallQueueAgentOptChange.ValueBoolPointer()
 	}
-	if !plan.AllowCallQueueConferenceModeChange.IsUnknown() && !plan.AllowCallQueueConferenceModeChange.IsNull() {
+	if !config.AllowCallQueueConferenceModeChange.IsNull() {
 		p.AllowCallQueueConferenceModeChange = plan.AllowCallQueueConferenceModeChange.ValueBoolPointer()
 	}
-	if !plan.AllowCallQueueLanguageChange.IsUnknown() && !plan.AllowCallQueueLanguageChange.IsNull() {
+	if !config.AllowCallQueueLanguageChange.IsNull() {
 		p.AllowCallQueueLanguageChange = plan.AllowCallQueueLanguageChange.ValueBoolPointer()
 	}
-	if !plan.AllowCallQueueMembershipChange.IsUnknown() && !plan.AllowCallQueueMembershipChange.IsNull() {
+	if !config.AllowCallQueueMembershipChange.IsNull() {
 		p.AllowCallQueueMembershipChange = plan.AllowCallQueueMembershipChange.ValueBoolPointer()
 	}
-	if !plan.AllowCallQueueMusicOnHoldChange.IsUnknown() && !plan.AllowCallQueueMusicOnHoldChange.IsNull() {
+	if !config.AllowCallQueueMusicOnHoldChange.IsNull() {
 		p.AllowCallQueueMusicOnHoldChange = plan.AllowCallQueueMusicOnHoldChange.ValueBoolPointer()
 	}
-	if !plan.AllowCallQueueNoAgentSharedVoicemailGreetingChange.IsUnknown() && !plan.AllowCallQueueNoAgentSharedVoicemailGreetingChange.IsNull() {
+	if !config.AllowCallQueueNoAgentSharedVoicemailGreetingChange.IsNull() {
 		p.AllowCallQueueNoAgentSharedVoicemailGreetingChange = plan.AllowCallQueueNoAgentSharedVoicemailGreetingChange.ValueBoolPointer()
 	}
-	if !plan.AllowCallQueueNoAgentsRoutingChange.IsUnknown() && !plan.AllowCallQueueNoAgentsRoutingChange.IsNull() {
+	if !config.AllowCallQueueNoAgentsRoutingChange.IsNull() {
 		p.AllowCallQueueNoAgentsRoutingChange = plan.AllowCallQueueNoAgentsRoutingChange.ValueBoolPointer()
 	}
-	if !plan.AllowCallQueueOptOutChange.IsUnknown() && !plan.AllowCallQueueOptOutChange.IsNull() {
+	if !config.AllowCallQueueOptOutChange.IsNull() {
 		p.AllowCallQueueOptOutChange = plan.AllowCallQueueOptOutChange.ValueBoolPointer()
 	}
-	if !plan.AllowCallQueueOverflowRoutingChange.IsUnknown() && !plan.AllowCallQueueOverflowRoutingChange.IsNull() {
+	if !config.AllowCallQueueOverflowRoutingChange.IsNull() {
 		p.AllowCallQueueOverflowRoutingChange = plan.AllowCallQueueOverflowRoutingChange.ValueBoolPointer()
 	}
-	if !plan.AllowCallQueueOverflowSharedVoicemailGreetingChange.IsUnknown() && !plan.AllowCallQueueOverflowSharedVoicemailGreetingChange.IsNull() {
+	if !config.AllowCallQueueOverflowSharedVoicemailGreetingChange.IsNull() {
 		p.AllowCallQueueOverflowSharedVoicemailGreetingChange = plan.AllowCallQueueOverflowSharedVoicemailGreetingChange.ValueBoolPointer()
 	}
-	if !plan.AllowCallQueuePresenceBasedRoutingChange.IsUnknown() && !plan.AllowCallQueuePresenceBasedRoutingChange.IsNull() {
+	if !config.AllowCallQueuePresenceBasedRoutingChange.IsNull() {
 		p.AllowCallQueuePresenceBasedRoutingChange = plan.AllowCallQueuePresenceBasedRoutingChange.ValueBoolPointer()
 	}
-	if !plan.AllowCallQueueRoutingMethodChange.IsUnknown() && !plan.AllowCallQueueRoutingMethodChange.IsNull() {
+	if !config.AllowCallQueueRoutingMethodChange.IsNull() {
 		p.AllowCallQueueRoutingMethodChange = plan.AllowCallQueueRoutingMethodChange.ValueBoolPointer()
 	}
-	if !plan.AllowCallQueueTimeoutRoutingChange.IsUnknown() && !plan.AllowCallQueueTimeoutRoutingChange.IsNull() {
+	if !config.AllowCallQueueTimeoutRoutingChange.IsNull() {
 		p.AllowCallQueueTimeoutRoutingChange = plan.AllowCallQueueTimeoutRoutingChange.ValueBoolPointer()
 	}
-	if !plan.AllowCallQueueTimeoutSharedVoicemailGreetingChange.IsUnknown() && !plan.AllowCallQueueTimeoutSharedVoicemailGreetingChange.IsNull() {
+	if !config.AllowCallQueueTimeoutSharedVoicemailGreetingChange.IsNull() {
 		p.AllowCallQueueTimeoutSharedVoicemailGreetingChange = plan.AllowCallQueueTimeoutSharedVoicemailGreetingChange.ValueBoolPointer()
 	}
-	if !plan.AllowCallQueueWelcomeGreetingChange.IsUnknown() && !plan.AllowCallQueueWelcomeGreetingChange.IsNull() {
+	if !config.AllowCallQueueWelcomeGreetingChange.IsNull() {
 		p.AllowCallQueueWelcomeGreetingChange = plan.AllowCallQueueWelcomeGreetingChange.ValueBoolPointer()
 	}
-	if !plan.CallQueueAgentMonitorMode.IsUnknown() && !plan.CallQueueAgentMonitorMode.IsNull() {
+	if !config.CallQueueAgentMonitorMode.IsNull() {
 		p.CallQueueAgentMonitorMode = plan.CallQueueAgentMonitorMode.ValueString()
 	}
-	if !plan.CallQueueAgentMonitorNotificationMode.IsUnknown() && !plan.CallQueueAgentMonitorNotificationMode.IsNull() {
+	if !config.CallQueueAgentMonitorNotificationMode.IsNull() {
 		p.CallQueueAgentMonitorNotificationMode = plan.CallQueueAgentMonitorNotificationMode.ValueString()
 	}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if !plan.HistoricalAgentMetricsPermission.IsUnknown() && !plan.HistoricalAgentMetricsPermission.IsNull() {
+	if !config.HistoricalAgentMetricsPermission.IsNull() {
 		p.HistoricalAgentMetricsPermission = plan.HistoricalAgentMetricsPermission.ValueString()
 	}
-	if !plan.HistoricalAutoAttendantMetricsPermission.IsUnknown() && !plan.HistoricalAutoAttendantMetricsPermission.IsNull() {
+	if !config.HistoricalAutoAttendantMetricsPermission.IsNull() {
 		p.HistoricalAutoAttendantMetricsPermission = plan.HistoricalAutoAttendantMetricsPermission.ValueString()
 	}
-	if !plan.HistoricalCallQueueMetricsPermission.IsUnknown() && !plan.HistoricalCallQueueMetricsPermission.IsNull() {
+	if !config.HistoricalCallQueueMetricsPermission.IsNull() {
 		p.HistoricalCallQueueMetricsPermission = plan.HistoricalCallQueueMetricsPermission.ValueString()
 	}
-	if !plan.RealTimeAgentMetricsPermission.IsUnknown() && !plan.RealTimeAgentMetricsPermission.IsNull() {
+	if !config.RealTimeAgentMetricsPermission.IsNull() {
 		p.RealTimeAgentMetricsPermission = plan.RealTimeAgentMetricsPermission.ValueString()
 	}
-	if !plan.RealTimeAutoAttendantMetricsPermission.IsUnknown() && !plan.RealTimeAutoAttendantMetricsPermission.IsNull() {
+	if !config.RealTimeAutoAttendantMetricsPermission.IsNull() {
 		p.RealTimeAutoAttendantMetricsPermission = plan.RealTimeAutoAttendantMetricsPermission.ValueString()
 	}
-	if !plan.RealTimeCallQueueMetricsPermission.IsUnknown() && !plan.RealTimeCallQueueMetricsPermission.IsNull() {
+	if !config.RealTimeCallQueueMetricsPermission.IsNull() {
 		p.RealTimeCallQueueMetricsPermission = plan.RealTimeCallQueueMetricsPermission.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -421,6 +552,10 @@ func (r *voiceApplicationsPolicyResource) Delete(ctx context.Context, req resour
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("VoiceApplicationsPolicy Global not deleted", "The Global VoiceApplicationsPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsVoiceApplicationsPolicy(ctx, cs.RemoveCsTeamsVoiceApplicationsPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-VoiceApplicationsPolicy failed", err.Error())
@@ -431,6 +566,140 @@ func (r *voiceApplicationsPolicyResource) Delete(ctx context.Context, req resour
 func (r *voiceApplicationsPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *voiceApplicationsPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan voiceApplicationsPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsVoiceApplicationsPolicy(ctx, cs.GetCsTeamsVoiceApplicationsPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur voiceApplicationsPolicyModel
+	readVoiceApplicationsPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AllowAutoAttendantAfterHoursGreetingChange.IsUnknown() {
+		plan.AllowAutoAttendantAfterHoursGreetingChange = cur.AllowAutoAttendantAfterHoursGreetingChange
+	}
+	if plan.AllowAutoAttendantAfterHoursRoutingChange.IsUnknown() {
+		plan.AllowAutoAttendantAfterHoursRoutingChange = cur.AllowAutoAttendantAfterHoursRoutingChange
+	}
+	if plan.AllowAutoAttendantBusinessHoursChange.IsUnknown() {
+		plan.AllowAutoAttendantBusinessHoursChange = cur.AllowAutoAttendantBusinessHoursChange
+	}
+	if plan.AllowAutoAttendantBusinessHoursGreetingChange.IsUnknown() {
+		plan.AllowAutoAttendantBusinessHoursGreetingChange = cur.AllowAutoAttendantBusinessHoursGreetingChange
+	}
+	if plan.AllowAutoAttendantBusinessHoursRoutingChange.IsUnknown() {
+		plan.AllowAutoAttendantBusinessHoursRoutingChange = cur.AllowAutoAttendantBusinessHoursRoutingChange
+	}
+	if plan.AllowAutoAttendantHolidayGreetingChange.IsUnknown() {
+		plan.AllowAutoAttendantHolidayGreetingChange = cur.AllowAutoAttendantHolidayGreetingChange
+	}
+	if plan.AllowAutoAttendantHolidayRoutingChange.IsUnknown() {
+		plan.AllowAutoAttendantHolidayRoutingChange = cur.AllowAutoAttendantHolidayRoutingChange
+	}
+	if plan.AllowAutoAttendantHolidaysChange.IsUnknown() {
+		plan.AllowAutoAttendantHolidaysChange = cur.AllowAutoAttendantHolidaysChange
+	}
+	if plan.AllowAutoAttendantLanguageChange.IsUnknown() {
+		plan.AllowAutoAttendantLanguageChange = cur.AllowAutoAttendantLanguageChange
+	}
+	if plan.AllowAutoAttendantTimeZoneChange.IsUnknown() {
+		plan.AllowAutoAttendantTimeZoneChange = cur.AllowAutoAttendantTimeZoneChange
+	}
+	if plan.AllowCallQueueAgentOptChange.IsUnknown() {
+		plan.AllowCallQueueAgentOptChange = cur.AllowCallQueueAgentOptChange
+	}
+	if plan.AllowCallQueueConferenceModeChange.IsUnknown() {
+		plan.AllowCallQueueConferenceModeChange = cur.AllowCallQueueConferenceModeChange
+	}
+	if plan.AllowCallQueueLanguageChange.IsUnknown() {
+		plan.AllowCallQueueLanguageChange = cur.AllowCallQueueLanguageChange
+	}
+	if plan.AllowCallQueueMembershipChange.IsUnknown() {
+		plan.AllowCallQueueMembershipChange = cur.AllowCallQueueMembershipChange
+	}
+	if plan.AllowCallQueueMusicOnHoldChange.IsUnknown() {
+		plan.AllowCallQueueMusicOnHoldChange = cur.AllowCallQueueMusicOnHoldChange
+	}
+	if plan.AllowCallQueueNoAgentSharedVoicemailGreetingChange.IsUnknown() {
+		plan.AllowCallQueueNoAgentSharedVoicemailGreetingChange = cur.AllowCallQueueNoAgentSharedVoicemailGreetingChange
+	}
+	if plan.AllowCallQueueNoAgentsRoutingChange.IsUnknown() {
+		plan.AllowCallQueueNoAgentsRoutingChange = cur.AllowCallQueueNoAgentsRoutingChange
+	}
+	if plan.AllowCallQueueOptOutChange.IsUnknown() {
+		plan.AllowCallQueueOptOutChange = cur.AllowCallQueueOptOutChange
+	}
+	if plan.AllowCallQueueOverflowRoutingChange.IsUnknown() {
+		plan.AllowCallQueueOverflowRoutingChange = cur.AllowCallQueueOverflowRoutingChange
+	}
+	if plan.AllowCallQueueOverflowSharedVoicemailGreetingChange.IsUnknown() {
+		plan.AllowCallQueueOverflowSharedVoicemailGreetingChange = cur.AllowCallQueueOverflowSharedVoicemailGreetingChange
+	}
+	if plan.AllowCallQueuePresenceBasedRoutingChange.IsUnknown() {
+		plan.AllowCallQueuePresenceBasedRoutingChange = cur.AllowCallQueuePresenceBasedRoutingChange
+	}
+	if plan.AllowCallQueueRoutingMethodChange.IsUnknown() {
+		plan.AllowCallQueueRoutingMethodChange = cur.AllowCallQueueRoutingMethodChange
+	}
+	if plan.AllowCallQueueTimeoutRoutingChange.IsUnknown() {
+		plan.AllowCallQueueTimeoutRoutingChange = cur.AllowCallQueueTimeoutRoutingChange
+	}
+	if plan.AllowCallQueueTimeoutSharedVoicemailGreetingChange.IsUnknown() {
+		plan.AllowCallQueueTimeoutSharedVoicemailGreetingChange = cur.AllowCallQueueTimeoutSharedVoicemailGreetingChange
+	}
+	if plan.AllowCallQueueWelcomeGreetingChange.IsUnknown() {
+		plan.AllowCallQueueWelcomeGreetingChange = cur.AllowCallQueueWelcomeGreetingChange
+	}
+	if plan.CallQueueAgentMonitorMode.IsUnknown() {
+		plan.CallQueueAgentMonitorMode = cur.CallQueueAgentMonitorMode
+	}
+	if plan.CallQueueAgentMonitorNotificationMode.IsUnknown() {
+		plan.CallQueueAgentMonitorNotificationMode = cur.CallQueueAgentMonitorNotificationMode
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.HistoricalAgentMetricsPermission.IsUnknown() {
+		plan.HistoricalAgentMetricsPermission = cur.HistoricalAgentMetricsPermission
+	}
+	if plan.HistoricalAutoAttendantMetricsPermission.IsUnknown() {
+		plan.HistoricalAutoAttendantMetricsPermission = cur.HistoricalAutoAttendantMetricsPermission
+	}
+	if plan.HistoricalCallQueueMetricsPermission.IsUnknown() {
+		plan.HistoricalCallQueueMetricsPermission = cur.HistoricalCallQueueMetricsPermission
+	}
+	if plan.RealTimeAgentMetricsPermission.IsUnknown() {
+		plan.RealTimeAgentMetricsPermission = cur.RealTimeAgentMetricsPermission
+	}
+	if plan.RealTimeAutoAttendantMetricsPermission.IsUnknown() {
+		plan.RealTimeAutoAttendantMetricsPermission = cur.RealTimeAutoAttendantMetricsPermission
+	}
+	if plan.RealTimeCallQueueMetricsPermission.IsUnknown() {
+		plan.RealTimeCallQueueMetricsPermission = cur.RealTimeCallQueueMetricsPermission
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *voiceApplicationsPolicyResource) identityOf(m voiceApplicationsPolicyModel) string {

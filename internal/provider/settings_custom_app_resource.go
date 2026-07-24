@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &settingsCustomAppResource{}
 	_ resource.ResourceWithConfigure   = &settingsCustomAppResource{}
 	_ resource.ResourceWithImportState = &settingsCustomAppResource{}
+	_ resource.ResourceWithModifyPlan  = &settingsCustomAppResource{}
 )
 
 type settingsCustomAppResource struct{ client *clients.Client }
@@ -65,8 +66,13 @@ func (r *settingsCustomAppResource) Create(ctx context.Context, req resource.Cre
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config settingsCustomAppModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTeamsSettingsCustomAppParams{}
-	if !plan.IsSideloadedAppsInteractionEnabled.IsUnknown() && !plan.IsSideloadedAppsInteractionEnabled.IsNull() {
+	if !config.IsSideloadedAppsInteractionEnabled.IsNull() {
 		sp.IsSideloadedAppsInteractionEnabled = plan.IsSideloadedAppsInteractionEnabled.ValueBoolPointer()
 	}
 	if resp.Diagnostics.HasError() {
@@ -131,6 +137,34 @@ func (r *settingsCustomAppResource) Delete(_ context.Context, _ resource.DeleteR
 func (r *settingsCustomAppResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *settingsCustomAppResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan settingsCustomAppModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsSettingsCustomApp(ctx, cs.GetCsTeamsSettingsCustomAppParams{})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur settingsCustomAppModel
+	readSettingsCustomApp(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *settingsCustomAppResource) identityOf(m settingsCustomAppModel) string {

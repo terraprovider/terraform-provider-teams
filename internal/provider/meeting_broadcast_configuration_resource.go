@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &meetingBroadcastConfigurationResource{}
 	_ resource.ResourceWithConfigure   = &meetingBroadcastConfigurationResource{}
 	_ resource.ResourceWithImportState = &meetingBroadcastConfigurationResource{}
+	_ resource.ResourceWithModifyPlan  = &meetingBroadcastConfigurationResource{}
 )
 
 type meetingBroadcastConfigurationResource struct{ client *clients.Client }
@@ -80,27 +81,32 @@ func (r *meetingBroadcastConfigurationResource) Create(ctx context.Context, req 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config meetingBroadcastConfigurationModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTeamsMeetingBroadcastConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.AllowSdnProviderForBroadcastMeeting.IsUnknown() && !plan.AllowSdnProviderForBroadcastMeeting.IsNull() {
+	if !config.AllowSdnProviderForBroadcastMeeting.IsNull() {
 		sp.AllowSdnProviderForBroadcastMeeting = plan.AllowSdnProviderForBroadcastMeeting.ValueBoolPointer()
 	}
-	if !plan.SdnApiTemplateUrl.IsUnknown() && !plan.SdnApiTemplateUrl.IsNull() {
+	if !config.SdnApiTemplateUrl.IsNull() {
 		sp.SdnApiTemplateUrl = plan.SdnApiTemplateUrl.ValueString()
 	}
-	if !plan.SdnApiToken.IsUnknown() && !plan.SdnApiToken.IsNull() {
+	if !config.SdnApiToken.IsNull() {
 		sp.SdnApiToken = plan.SdnApiToken.ValueString()
 	}
-	if !plan.SdnLicenseId.IsUnknown() && !plan.SdnLicenseId.IsNull() {
+	if !config.SdnLicenseId.IsNull() {
 		sp.SdnLicenseId = plan.SdnLicenseId.ValueString()
 	}
-	if !plan.SdnProviderName.IsUnknown() && !plan.SdnProviderName.IsNull() {
+	if !config.SdnProviderName.IsNull() {
 		sp.SdnProviderName = plan.SdnProviderName.ValueString()
 	}
-	if !plan.SdnRuntimeConfiguration.IsUnknown() && !plan.SdnRuntimeConfiguration.IsNull() {
+	if !config.SdnRuntimeConfiguration.IsNull() {
 		sp.SdnRuntimeConfiguration = plan.SdnRuntimeConfiguration.ValueString()
 	}
-	if !plan.SupportURL.IsUnknown() && !plan.SupportURL.IsNull() {
+	if !config.SupportURL.IsNull() {
 		sp.SupportURL = plan.SupportURL.ValueString()
 	}
 	if resp.Diagnostics.HasError() {
@@ -191,6 +197,59 @@ func (r *meetingBroadcastConfigurationResource) Delete(_ context.Context, _ reso
 func (r *meetingBroadcastConfigurationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *meetingBroadcastConfigurationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan meetingBroadcastConfigurationModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsMeetingBroadcastConfiguration(ctx, cs.GetCsTeamsMeetingBroadcastConfigurationParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur meetingBroadcastConfigurationModel
+	readMeetingBroadcastConfiguration(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AllowSdnProviderForBroadcastMeeting.IsUnknown() {
+		plan.AllowSdnProviderForBroadcastMeeting = cur.AllowSdnProviderForBroadcastMeeting
+	}
+	if plan.SdnApiTemplateUrl.IsUnknown() {
+		plan.SdnApiTemplateUrl = cur.SdnApiTemplateUrl
+	}
+	if plan.SdnApiToken.IsUnknown() {
+		plan.SdnApiToken = cur.SdnApiToken
+	}
+	if plan.SdnLicenseId.IsUnknown() {
+		plan.SdnLicenseId = cur.SdnLicenseId
+	}
+	if plan.SdnProviderName.IsUnknown() {
+		plan.SdnProviderName = cur.SdnProviderName
+	}
+	if plan.SdnRuntimeConfiguration.IsUnknown() {
+		plan.SdnRuntimeConfiguration = cur.SdnRuntimeConfiguration
+	}
+	if plan.SupportURL.IsUnknown() {
+		plan.SupportURL = cur.SupportURL
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *meetingBroadcastConfigurationResource) identityOf(m meetingBroadcastConfigurationModel) string {

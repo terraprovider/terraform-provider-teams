@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &tenantBlockedCallingNumbersResource{}
 	_ resource.ResourceWithConfigure   = &tenantBlockedCallingNumbersResource{}
 	_ resource.ResourceWithImportState = &tenantBlockedCallingNumbersResource{}
+	_ resource.ResourceWithModifyPlan  = &tenantBlockedCallingNumbersResource{}
 )
 
 type tenantBlockedCallingNumbersResource struct{ client *clients.Client }
@@ -74,18 +75,23 @@ func (r *tenantBlockedCallingNumbersResource) Create(ctx context.Context, req re
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config tenantBlockedCallingNumbersModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTenantBlockedCallingNumbersParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.Enabled.IsUnknown() && !plan.Enabled.IsNull() {
+	if !config.Enabled.IsNull() {
 		sp.Enabled = plan.Enabled.ValueBoolPointer()
 	}
-	if v := plan.InboundBlockedNumberPatterns.ValueString(); v != "" {
-		sp.InboundBlockedNumberPatterns = v
+	if v := config.InboundBlockedNumberPatterns.ValueString(); v != "" {
+		sp.InboundBlockedNumberPatterns = objectParam(v)
 	}
-	if v := plan.InboundExemptNumberPatterns.ValueString(); v != "" {
-		sp.InboundExemptNumberPatterns = v
+	if v := config.InboundExemptNumberPatterns.ValueString(); v != "" {
+		sp.InboundExemptNumberPatterns = objectParam(v)
 	}
-	if !plan.Name.IsUnknown() && !plan.Name.IsNull() {
+	if !config.Name.IsNull() {
 		sp.Name = plan.Name.ValueString()
 	}
 	if resp.Diagnostics.HasError() {
@@ -131,10 +137,10 @@ func (r *tenantBlockedCallingNumbersResource) Update(ctx context.Context, req re
 		sp.Enabled = plan.Enabled.ValueBoolPointer()
 	}
 	if v := plan.InboundBlockedNumberPatterns.ValueString(); v != "" {
-		sp.InboundBlockedNumberPatterns = v
+		sp.InboundBlockedNumberPatterns = objectParam(v)
 	}
 	if v := plan.InboundExemptNumberPatterns.ValueString(); v != "" {
-		sp.InboundExemptNumberPatterns = v
+		sp.InboundExemptNumberPatterns = objectParam(v)
 	}
 	if !plan.Name.Equal(state.Name) {
 		sp.Name = plan.Name.ValueString()
@@ -148,9 +154,7 @@ func (r *tenantBlockedCallingNumbersResource) Update(ctx context.Context, req re
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{
-		"InboundBlockedNumberPatterns": cfg.InboundBlockedNumberPatterns,
-		"InboundExemptNumberPatterns":  cfg.InboundExemptNumberPatterns,
-		"Name":                         cfg.Name,
+		"Name": cfg.Name,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
 	r.reconcileState(&cfg, &plan)
@@ -164,6 +168,50 @@ func (r *tenantBlockedCallingNumbersResource) Delete(_ context.Context, _ resour
 func (r *tenantBlockedCallingNumbersResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *tenantBlockedCallingNumbersResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan tenantBlockedCallingNumbersModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsTenantBlockedCallingNumbers(ctx, cs.GetCsTenantBlockedCallingNumbersParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur tenantBlockedCallingNumbersModel
+	readTenantBlockedCallingNumbers(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.Enabled.IsUnknown() {
+		plan.Enabled = cur.Enabled
+	}
+	if plan.InboundBlockedNumberPatterns.IsUnknown() {
+		plan.InboundBlockedNumberPatterns = cur.InboundBlockedNumberPatterns
+	}
+	if plan.InboundExemptNumberPatterns.IsUnknown() {
+		plan.InboundExemptNumberPatterns = cur.InboundExemptNumberPatterns
+	}
+	if plan.Name.IsUnknown() {
+		plan.Name = cur.Name
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *tenantBlockedCallingNumbersResource) identityOf(m tenantBlockedCallingNumbersModel) string {
@@ -203,8 +251,8 @@ func (r *tenantBlockedCallingNumbersResource) refresh(ctx context.Context, ident
 func readTenantBlockedCallingNumbers(ctx context.Context, obj map[string]any, m *tenantBlockedCallingNumbersModel) {
 	m.ID = types.StringValue(firstNonEmptyStr(getString(obj, "Guid"), getString(obj, "Id"), getString(obj, "Identity")))
 	m.Enabled = types.BoolValue(getBool(obj, "Enabled"))
-	m.InboundBlockedNumberPatterns = types.StringValue(getString(obj, "InboundBlockedNumberPatterns"))
-	m.InboundExemptNumberPatterns = types.StringValue(getString(obj, "InboundExemptNumberPatterns"))
+	m.InboundBlockedNumberPatterns = types.StringValue(getObjectJSON(obj, "InboundBlockedNumberPatterns"))
+	m.InboundExemptNumberPatterns = types.StringValue(getObjectJSON(obj, "InboundExemptNumberPatterns"))
 	m.Name = types.StringValue(getString(obj, "Name"))
 	_ = ctx
 }

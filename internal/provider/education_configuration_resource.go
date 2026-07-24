@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &educationConfigurationResource{}
 	_ resource.ResourceWithConfigure   = &educationConfigurationResource{}
 	_ resource.ResourceWithImportState = &educationConfigurationResource{}
+	_ resource.ResourceWithModifyPlan  = &educationConfigurationResource{}
 )
 
 type educationConfigurationResource struct{ client *clients.Client }
@@ -69,15 +70,20 @@ func (r *educationConfigurationResource) Create(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config educationConfigurationModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTeamsEducationConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.EduGenerativeAIEnhancements.IsUnknown() && !plan.EduGenerativeAIEnhancements.IsNull() {
+	if !config.EduGenerativeAIEnhancements.IsNull() {
 		sp.EduGenerativeAIEnhancements = plan.EduGenerativeAIEnhancements.ValueString()
 	}
-	if !plan.ParentGuardianPreferredContactMethod.IsUnknown() && !plan.ParentGuardianPreferredContactMethod.IsNull() {
+	if !config.ParentGuardianPreferredContactMethod.IsNull() {
 		sp.ParentGuardianPreferredContactMethod = plan.ParentGuardianPreferredContactMethod.ValueString()
 	}
-	if !plan.UpdateParentInformation.IsUnknown() && !plan.UpdateParentInformation.IsNull() {
+	if !config.UpdateParentInformation.IsNull() {
 		sp.UpdateParentInformation = plan.UpdateParentInformation.ValueString()
 	}
 	if resp.Diagnostics.HasError() {
@@ -153,6 +159,47 @@ func (r *educationConfigurationResource) Delete(_ context.Context, _ resource.De
 func (r *educationConfigurationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *educationConfigurationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan educationConfigurationModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsEducationConfiguration(ctx, cs.GetCsTeamsEducationConfigurationParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur educationConfigurationModel
+	readEducationConfiguration(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.EduGenerativeAIEnhancements.IsUnknown() {
+		plan.EduGenerativeAIEnhancements = cur.EduGenerativeAIEnhancements
+	}
+	if plan.ParentGuardianPreferredContactMethod.IsUnknown() {
+		plan.ParentGuardianPreferredContactMethod = cur.ParentGuardianPreferredContactMethod
+	}
+	if plan.UpdateParentInformation.IsUnknown() {
+		plan.UpdateParentInformation = cur.UpdateParentInformation
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *educationConfigurationResource) identityOf(m educationConfigurationModel) string {

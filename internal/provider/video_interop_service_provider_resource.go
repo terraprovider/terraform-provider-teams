@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &videoInteropServiceProviderResource{}
 	_ resource.ResourceWithConfigure   = &videoInteropServiceProviderResource{}
 	_ resource.ResourceWithImportState = &videoInteropServiceProviderResource{}
+	_ resource.ResourceWithModifyPlan  = &videoInteropServiceProviderResource{}
 )
 
 type videoInteropServiceProviderResource struct{ client *clients.Client }
@@ -77,20 +78,60 @@ func (r *videoInteropServiceProviderResource) Create(ctx context.Context, req re
 		return
 	}
 
+	var config videoInteropServiceProviderModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsVideoInteropServiceProviderParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.AadApplicationIds.IsNull() {
+			sp.AadApplicationIds = plan.AadApplicationIds.ValueString()
+		}
+		if !config.AllowAppGuestJoinsAsAuthenticated.IsNull() {
+			sp.AllowAppGuestJoinsAsAuthenticated = plan.AllowAppGuestJoinsAsAuthenticated.ValueBoolPointer()
+		}
+		if !config.InstructionUri.IsNull() {
+			sp.InstructionUri = plan.InstructionUri.ValueString()
+		}
+		if !config.TenantKey.IsNull() {
+			sp.TenantKey = plan.TenantKey.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsVideoInteropServiceProvider(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-VideoInteropServiceProvider failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("VideoInteropServiceProvider not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsVideoInteropServiceProviderParams{}
-	if !plan.AadApplicationIds.IsUnknown() && !plan.AadApplicationIds.IsNull() {
+	if !config.AadApplicationIds.IsNull() {
 		p.AadApplicationIds = plan.AadApplicationIds.ValueString()
 	}
-	if !plan.AllowAppGuestJoinsAsAuthenticated.IsUnknown() && !plan.AllowAppGuestJoinsAsAuthenticated.IsNull() {
+	if !config.AllowAppGuestJoinsAsAuthenticated.IsNull() {
 		p.AllowAppGuestJoinsAsAuthenticated = plan.AllowAppGuestJoinsAsAuthenticated.ValueBoolPointer()
 	}
-	if !plan.InstructionUri.IsUnknown() && !plan.InstructionUri.IsNull() {
+	if !config.InstructionUri.IsNull() {
 		p.InstructionUri = plan.InstructionUri.ValueString()
 	}
-	if !plan.Name.IsUnknown() && !plan.Name.IsNull() {
+	if !config.Name.IsNull() {
 		p.Name = plan.Name.ValueString()
 	}
-	if !plan.TenantKey.IsUnknown() && !plan.TenantKey.IsNull() {
+	if !config.TenantKey.IsNull() {
 		p.TenantKey = plan.TenantKey.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -180,6 +221,10 @@ func (r *videoInteropServiceProviderResource) Delete(ctx context.Context, req re
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("VideoInteropServiceProvider Global not deleted", "The Global VideoInteropServiceProvider is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsVideoInteropServiceProvider(ctx, cs.RemoveCsVideoInteropServiceProviderParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-VideoInteropServiceProvider failed", err.Error())
@@ -190,6 +235,53 @@ func (r *videoInteropServiceProviderResource) Delete(ctx context.Context, req re
 func (r *videoInteropServiceProviderResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *videoInteropServiceProviderResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan videoInteropServiceProviderModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsVideoInteropServiceProvider(ctx, cs.GetCsVideoInteropServiceProviderParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur videoInteropServiceProviderModel
+	readVideoInteropServiceProvider(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AadApplicationIds.IsUnknown() {
+		plan.AadApplicationIds = cur.AadApplicationIds
+	}
+	if plan.AllowAppGuestJoinsAsAuthenticated.IsUnknown() {
+		plan.AllowAppGuestJoinsAsAuthenticated = cur.AllowAppGuestJoinsAsAuthenticated
+	}
+	if plan.InstructionUri.IsUnknown() {
+		plan.InstructionUri = cur.InstructionUri
+	}
+	if plan.Name.IsUnknown() {
+		plan.Name = cur.Name
+	}
+	if plan.TenantKey.IsUnknown() {
+		plan.TenantKey = cur.TenantKey
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *videoInteropServiceProviderResource) identityOf(m videoInteropServiceProviderModel) string {

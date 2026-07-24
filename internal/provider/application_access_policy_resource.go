@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &applicationAccessPolicyResource{}
 	_ resource.ResourceWithConfigure   = &applicationAccessPolicyResource{}
 	_ resource.ResourceWithImportState = &applicationAccessPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &applicationAccessPolicyResource{}
 )
 
 type applicationAccessPolicyResource struct{ client *clients.Client }
@@ -70,11 +71,45 @@ func (r *applicationAccessPolicyResource) Create(ctx context.Context, req resour
 		return
 	}
 
-	p := cs.NewCsApplicationAccessPolicyParams{}
-	if v := plan.AppIds.ValueString(); v != "" {
-		p.AppIds = v
+	var config applicationAccessPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsApplicationAccessPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if v := config.AppIds.ValueString(); v != "" {
+			sp.AppIds = objectParam(v)
+		}
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsApplicationAccessPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-ApplicationAccessPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("ApplicationAccessPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
+	p := cs.NewCsApplicationAccessPolicyParams{}
+	if v := config.AppIds.ValueString(); v != "" {
+		p.AppIds = objectParam(v)
+	}
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -129,7 +164,7 @@ func (r *applicationAccessPolicyResource) Update(ctx context.Context, req resour
 	sp := cs.SetCsApplicationAccessPolicyParams{}
 	sp.Identity = id
 	if v := plan.AppIds.ValueString(); v != "" {
-		sp.AppIds = v
+		sp.AppIds = objectParam(v)
 	}
 	if !plan.Description.Equal(state.Description) {
 		sp.Description = plan.Description.ValueString()
@@ -143,7 +178,6 @@ func (r *applicationAccessPolicyResource) Update(ctx context.Context, req resour
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{
-		"AppIds":      cfg.AppIds,
 		"Description": cfg.Description,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
@@ -157,6 +191,10 @@ func (r *applicationAccessPolicyResource) Delete(ctx context.Context, req resour
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("ApplicationAccessPolicy Global not deleted", "The Global ApplicationAccessPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsApplicationAccessPolicy(ctx, cs.RemoveCsApplicationAccessPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-ApplicationAccessPolicy failed", err.Error())
@@ -167,6 +205,44 @@ func (r *applicationAccessPolicyResource) Delete(ctx context.Context, req resour
 func (r *applicationAccessPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *applicationAccessPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan applicationAccessPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsApplicationAccessPolicy(ctx, cs.GetCsApplicationAccessPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur applicationAccessPolicyModel
+	readApplicationAccessPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AppIds.IsUnknown() {
+		plan.AppIds = cur.AppIds
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *applicationAccessPolicyResource) identityOf(m applicationAccessPolicyModel) string {
@@ -205,7 +281,7 @@ func (r *applicationAccessPolicyResource) refresh(ctx context.Context, identity 
 
 func readApplicationAccessPolicy(ctx context.Context, obj map[string]any, m *applicationAccessPolicyModel) {
 	m.ID = types.StringValue(firstNonEmptyStr(getString(obj, "Guid"), getString(obj, "Id"), getString(obj, "Identity")))
-	m.AppIds = types.StringValue(getString(obj, "AppIds"))
+	m.AppIds = types.StringValue(getObjectJSON(obj, "AppIds"))
 	m.Description = types.StringValue(getString(obj, "Description"))
 	_ = ctx
 }

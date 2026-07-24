@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &educationAssignmentsAppPolicyResource{}
 	_ resource.ResourceWithConfigure   = &educationAssignmentsAppPolicyResource{}
 	_ resource.ResourceWithImportState = &educationAssignmentsAppPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &educationAssignmentsAppPolicyResource{}
 )
 
 type educationAssignmentsAppPolicyResource struct{ client *clients.Client }
@@ -75,21 +76,26 @@ func (r *educationAssignmentsAppPolicyResource) Create(ctx context.Context, req 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config educationAssignmentsAppPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTeamsEducationAssignmentsAppPolicyParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.MakeCodeEnabledType.IsUnknown() && !plan.MakeCodeEnabledType.IsNull() {
+	if !config.MakeCodeEnabledType.IsNull() {
 		sp.MakeCodeEnabledType = plan.MakeCodeEnabledType.ValueString()
 	}
-	if !plan.ParentDigestEnabledType.IsUnknown() && !plan.ParentDigestEnabledType.IsNull() {
+	if !config.ParentDigestEnabledType.IsNull() {
 		sp.ParentDigestEnabledType = plan.ParentDigestEnabledType.ValueString()
 	}
-	if !plan.TurnItInApiKey.IsUnknown() && !plan.TurnItInApiKey.IsNull() {
+	if !config.TurnItInApiKey.IsNull() {
 		sp.TurnItInApiKey = plan.TurnItInApiKey.ValueString()
 	}
-	if !plan.TurnItInApiUrl.IsUnknown() && !plan.TurnItInApiUrl.IsNull() {
+	if !config.TurnItInApiUrl.IsNull() {
 		sp.TurnItInApiUrl = plan.TurnItInApiUrl.ValueString()
 	}
-	if !plan.TurnItInEnabledType.IsUnknown() && !plan.TurnItInEnabledType.IsNull() {
+	if !config.TurnItInEnabledType.IsNull() {
 		sp.TurnItInEnabledType = plan.TurnItInEnabledType.ValueString()
 	}
 	if resp.Diagnostics.HasError() {
@@ -173,6 +179,53 @@ func (r *educationAssignmentsAppPolicyResource) Delete(_ context.Context, _ reso
 func (r *educationAssignmentsAppPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *educationAssignmentsAppPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan educationAssignmentsAppPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsEducationAssignmentsAppPolicy(ctx, cs.GetCsTeamsEducationAssignmentsAppPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur educationAssignmentsAppPolicyModel
+	readEducationAssignmentsAppPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.MakeCodeEnabledType.IsUnknown() {
+		plan.MakeCodeEnabledType = cur.MakeCodeEnabledType
+	}
+	if plan.ParentDigestEnabledType.IsUnknown() {
+		plan.ParentDigestEnabledType = cur.ParentDigestEnabledType
+	}
+	if plan.TurnItInApiKey.IsUnknown() {
+		plan.TurnItInApiKey = cur.TurnItInApiKey
+	}
+	if plan.TurnItInApiUrl.IsUnknown() {
+		plan.TurnItInApiUrl = cur.TurnItInApiUrl
+	}
+	if plan.TurnItInEnabledType.IsUnknown() {
+		plan.TurnItInEnabledType = cur.TurnItInEnabledType
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *educationAssignmentsAppPolicyResource) identityOf(m educationAssignmentsAppPolicyModel) string {

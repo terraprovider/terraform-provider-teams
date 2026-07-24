@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &tenantDialPlanResource{}
 	_ resource.ResourceWithConfigure   = &tenantDialPlanResource{}
 	_ resource.ResourceWithImportState = &tenantDialPlanResource{}
+	_ resource.ResourceWithModifyPlan  = &tenantDialPlanResource{}
 )
 
 type tenantDialPlanResource struct{ client *clients.Client }
@@ -70,14 +71,51 @@ func (r *tenantDialPlanResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
+	var config tenantDialPlanModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTenantDialPlanParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if v := config.NormalizationRules.ValueString(); v != "" {
+			sp.NormalizationRules = objectParam(v)
+		}
+		if !config.SimpleName.IsNull() {
+			sp.SimpleName = plan.SimpleName.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTenantDialPlan(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-TenantDialPlan failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("TenantDialPlan not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTenantDialPlanParams{}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if v := plan.NormalizationRules.ValueString(); v != "" {
-		p.NormalizationRules = v
+	if v := config.NormalizationRules.ValueString(); v != "" {
+		p.NormalizationRules = objectParam(v)
 	}
-	if !plan.SimpleName.IsUnknown() && !plan.SimpleName.IsNull() {
+	if !config.SimpleName.IsNull() {
 		p.SimpleName = plan.SimpleName.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -135,7 +173,7 @@ func (r *tenantDialPlanResource) Update(ctx context.Context, req resource.Update
 		sp.Description = plan.Description.ValueString()
 	}
 	if v := plan.NormalizationRules.ValueString(); v != "" {
-		sp.NormalizationRules = v
+		sp.NormalizationRules = objectParam(v)
 	}
 	if !plan.SimpleName.Equal(state.SimpleName) {
 		sp.SimpleName = plan.SimpleName.ValueString()
@@ -149,9 +187,8 @@ func (r *tenantDialPlanResource) Update(ctx context.Context, req resource.Update
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{
-		"Description":        cfg.Description,
-		"NormalizationRules": cfg.NormalizationRules,
-		"SimpleName":         cfg.SimpleName,
+		"Description": cfg.Description,
+		"SimpleName":  cfg.SimpleName,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
 	r.reconcileState(&cfg, &plan)
@@ -164,6 +201,10 @@ func (r *tenantDialPlanResource) Delete(ctx context.Context, req resource.Delete
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("TenantDialPlan Global not deleted", "The Global TenantDialPlan is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTenantDialPlan(ctx, cs.RemoveCsTenantDialPlanParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-TenantDialPlan failed", err.Error())
@@ -174,6 +215,47 @@ func (r *tenantDialPlanResource) Delete(ctx context.Context, req resource.Delete
 func (r *tenantDialPlanResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *tenantDialPlanResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan tenantDialPlanModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTenantDialPlan(ctx, cs.GetCsTenantDialPlanParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur tenantDialPlanModel
+	readTenantDialPlan(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.NormalizationRules.IsUnknown() {
+		plan.NormalizationRules = cur.NormalizationRules
+	}
+	if plan.SimpleName.IsUnknown() {
+		plan.SimpleName = cur.SimpleName
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *tenantDialPlanResource) identityOf(m tenantDialPlanModel) string {
@@ -213,7 +295,7 @@ func (r *tenantDialPlanResource) refresh(ctx context.Context, identity string, m
 func readTenantDialPlan(ctx context.Context, obj map[string]any, m *tenantDialPlanModel) {
 	m.ID = types.StringValue(firstNonEmptyStr(getString(obj, "Guid"), getString(obj, "Id"), getString(obj, "Identity")))
 	m.Description = types.StringValue(getString(obj, "Description"))
-	m.NormalizationRules = types.StringValue(getString(obj, "NormalizationRules"))
+	m.NormalizationRules = types.StringValue(getObjectJSON(obj, "NormalizationRules"))
 	m.SimpleName = types.StringValue(getString(obj, "SimpleName"))
 	_ = ctx
 }

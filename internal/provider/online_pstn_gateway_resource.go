@@ -26,6 +26,7 @@ var (
 	_ resource.Resource                = &onlinePSTNGatewayResource{}
 	_ resource.ResourceWithConfigure   = &onlinePSTNGatewayResource{}
 	_ resource.ResourceWithImportState = &onlinePSTNGatewayResource{}
+	_ resource.ResourceWithModifyPlan  = &onlinePSTNGatewayResource{}
 )
 
 type onlinePSTNGatewayResource struct{ client *clients.Client }
@@ -112,74 +113,168 @@ func (r *onlinePSTNGatewayResource) Create(ctx context.Context, req resource.Cre
 		return
 	}
 
+	var config onlinePSTNGatewayModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsOnlinePSTNGatewayParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.BypassMode.IsNull() {
+			sp.BypassMode = plan.BypassMode.ValueString()
+		}
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if !config.Enabled.IsNull() {
+			sp.Enabled = plan.Enabled.ValueBoolPointer()
+		}
+		if !config.FailoverResponseCodes.IsNull() {
+			sp.FailoverResponseCodes = plan.FailoverResponseCodes.ValueString()
+		}
+		if !config.FailoverTimeSeconds.IsNull() {
+			sp.FailoverTimeSeconds = plan.FailoverTimeSeconds.ValueInt64Pointer()
+		}
+		if !config.ForwardCallHistory.IsNull() {
+			sp.ForwardCallHistory = plan.ForwardCallHistory.ValueBoolPointer()
+		}
+		if !config.ForwardPai.IsNull() {
+			sp.ForwardPai = plan.ForwardPai.ValueBoolPointer()
+		}
+		if !config.GatewayLbrEnabledUserOverride.IsNull() {
+			sp.GatewayLbrEnabledUserOverride = plan.GatewayLbrEnabledUserOverride.ValueBoolPointer()
+		}
+		if !config.GatewaySiteId.IsNull() {
+			sp.GatewaySiteId = plan.GatewaySiteId.ValueString()
+		}
+		if !config.GatewaySiteLbrEnabled.IsNull() {
+			sp.GatewaySiteLbrEnabled = plan.GatewaySiteLbrEnabled.ValueBoolPointer()
+		}
+		if !config.IPAddressVersion.IsNull() {
+			sp.IPAddressVersion = plan.IPAddressVersion.ValueString()
+		}
+		if v := config.InboundPstnNumberTranslationRules.ValueString(); v != "" {
+			sp.InboundPstnNumberTranslationRules = objectParam(v)
+		}
+		if v := config.InboundTeamsNumberTranslationRules.ValueString(); v != "" {
+			sp.InboundTeamsNumberTranslationRules = objectParam(v)
+		}
+		if !config.MaxConcurrentSessions.IsNull() {
+			sp.MaxConcurrentSessions = plan.MaxConcurrentSessions.ValueInt64Pointer()
+		}
+		if !config.MediaBypass.IsNull() {
+			sp.MediaBypass = plan.MediaBypass.ValueBoolPointer()
+		}
+		if !config.MediaRelayRoutingLocationOverride.IsNull() {
+			sp.MediaRelayRoutingLocationOverride = plan.MediaRelayRoutingLocationOverride.ValueString()
+		}
+		if v := config.OutboundPstnNumberTranslationRules.ValueString(); v != "" {
+			sp.OutboundPstnNumberTranslationRules = objectParam(v)
+		}
+		if v := config.OutboundTeamsNumberTranslationRules.ValueString(); v != "" {
+			sp.OutboundTeamsNumberTranslationRules = objectParam(v)
+		}
+		if !config.PidfLoSupported.IsNull() {
+			sp.PidfLoSupported = plan.PidfLoSupported.ValueBoolPointer()
+		}
+		if !config.ProxySbc.IsNull() {
+			sp.ProxySbc = plan.ProxySbc.ValueString()
+		}
+		if !config.SendSipOptions.IsNull() {
+			sp.SendSipOptions = plan.SendSipOptions.ValueBoolPointer()
+		}
+		if !config.SipSignalingPort.IsNull() {
+			sp.SipSignalingPort = plan.SipSignalingPort.ValueInt64Pointer()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsOnlinePSTNGateway(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-OnlinePSTNGateway failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("OnlinePSTNGateway not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsOnlinePSTNGatewayParams{}
-	if !plan.BypassMode.IsUnknown() && !plan.BypassMode.IsNull() {
+	if !config.BypassMode.IsNull() {
 		p.BypassMode = plan.BypassMode.ValueString()
 	}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if !plan.Enabled.IsUnknown() && !plan.Enabled.IsNull() {
+	if !config.Enabled.IsNull() {
 		p.Enabled = plan.Enabled.ValueBoolPointer()
 	}
-	if !plan.FailoverResponseCodes.IsUnknown() && !plan.FailoverResponseCodes.IsNull() {
+	if !config.FailoverResponseCodes.IsNull() {
 		p.FailoverResponseCodes = plan.FailoverResponseCodes.ValueString()
 	}
-	if !plan.FailoverTimeSeconds.IsUnknown() && !plan.FailoverTimeSeconds.IsNull() {
+	if !config.FailoverTimeSeconds.IsNull() {
 		p.FailoverTimeSeconds = plan.FailoverTimeSeconds.ValueInt64Pointer()
 	}
-	if !plan.ForwardCallHistory.IsUnknown() && !plan.ForwardCallHistory.IsNull() {
+	if !config.ForwardCallHistory.IsNull() {
 		p.ForwardCallHistory = plan.ForwardCallHistory.ValueBoolPointer()
 	}
-	if !plan.ForwardPai.IsUnknown() && !plan.ForwardPai.IsNull() {
+	if !config.ForwardPai.IsNull() {
 		p.ForwardPai = plan.ForwardPai.ValueBoolPointer()
 	}
-	if !plan.Fqdn.IsUnknown() && !plan.Fqdn.IsNull() {
+	if !config.Fqdn.IsNull() {
 		p.Fqdn = plan.Fqdn.ValueString()
 	}
-	if !plan.GatewayLbrEnabledUserOverride.IsUnknown() && !plan.GatewayLbrEnabledUserOverride.IsNull() {
+	if !config.GatewayLbrEnabledUserOverride.IsNull() {
 		p.GatewayLbrEnabledUserOverride = plan.GatewayLbrEnabledUserOverride.ValueBoolPointer()
 	}
-	if !plan.GatewaySiteId.IsUnknown() && !plan.GatewaySiteId.IsNull() {
+	if !config.GatewaySiteId.IsNull() {
 		p.GatewaySiteId = plan.GatewaySiteId.ValueString()
 	}
-	if !plan.GatewaySiteLbrEnabled.IsUnknown() && !plan.GatewaySiteLbrEnabled.IsNull() {
+	if !config.GatewaySiteLbrEnabled.IsNull() {
 		p.GatewaySiteLbrEnabled = plan.GatewaySiteLbrEnabled.ValueBoolPointer()
 	}
-	if !plan.IPAddressVersion.IsUnknown() && !plan.IPAddressVersion.IsNull() {
+	if !config.IPAddressVersion.IsNull() {
 		p.IPAddressVersion = plan.IPAddressVersion.ValueString()
 	}
-	if v := plan.InboundPstnNumberTranslationRules.ValueString(); v != "" {
-		p.InboundPstnNumberTranslationRules = v
+	if v := config.InboundPstnNumberTranslationRules.ValueString(); v != "" {
+		p.InboundPstnNumberTranslationRules = objectParam(v)
 	}
-	if v := plan.InboundTeamsNumberTranslationRules.ValueString(); v != "" {
-		p.InboundTeamsNumberTranslationRules = v
+	if v := config.InboundTeamsNumberTranslationRules.ValueString(); v != "" {
+		p.InboundTeamsNumberTranslationRules = objectParam(v)
 	}
-	if !plan.MaxConcurrentSessions.IsUnknown() && !plan.MaxConcurrentSessions.IsNull() {
+	if !config.MaxConcurrentSessions.IsNull() {
 		p.MaxConcurrentSessions = plan.MaxConcurrentSessions.ValueInt64Pointer()
 	}
-	if !plan.MediaBypass.IsUnknown() && !plan.MediaBypass.IsNull() {
+	if !config.MediaBypass.IsNull() {
 		p.MediaBypass = plan.MediaBypass.ValueBoolPointer()
 	}
-	if !plan.MediaRelayRoutingLocationOverride.IsUnknown() && !plan.MediaRelayRoutingLocationOverride.IsNull() {
+	if !config.MediaRelayRoutingLocationOverride.IsNull() {
 		p.MediaRelayRoutingLocationOverride = plan.MediaRelayRoutingLocationOverride.ValueString()
 	}
-	if v := plan.OutboundPstnNumberTranslationRules.ValueString(); v != "" {
-		p.OutboundPstnNumberTranslationRules = v
+	if v := config.OutboundPstnNumberTranslationRules.ValueString(); v != "" {
+		p.OutboundPstnNumberTranslationRules = objectParam(v)
 	}
-	if v := plan.OutboundTeamsNumberTranslationRules.ValueString(); v != "" {
-		p.OutboundTeamsNumberTranslationRules = v
+	if v := config.OutboundTeamsNumberTranslationRules.ValueString(); v != "" {
+		p.OutboundTeamsNumberTranslationRules = objectParam(v)
 	}
-	if !plan.PidfLoSupported.IsUnknown() && !plan.PidfLoSupported.IsNull() {
+	if !config.PidfLoSupported.IsNull() {
 		p.PidfLoSupported = plan.PidfLoSupported.ValueBoolPointer()
 	}
-	if !plan.ProxySbc.IsUnknown() && !plan.ProxySbc.IsNull() {
+	if !config.ProxySbc.IsNull() {
 		p.ProxySbc = plan.ProxySbc.ValueString()
 	}
-	if !plan.SendSipOptions.IsUnknown() && !plan.SendSipOptions.IsNull() {
+	if !config.SendSipOptions.IsNull() {
 		p.SendSipOptions = plan.SendSipOptions.ValueBoolPointer()
 	}
-	if !plan.SipSignalingPort.IsUnknown() && !plan.SipSignalingPort.IsNull() {
+	if !config.SipSignalingPort.IsNull() {
 		p.SipSignalingPort = plan.SipSignalingPort.ValueInt64Pointer()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -267,10 +362,10 @@ func (r *onlinePSTNGatewayResource) Update(ctx context.Context, req resource.Upd
 		sp.IPAddressVersion = plan.IPAddressVersion.ValueString()
 	}
 	if v := plan.InboundPstnNumberTranslationRules.ValueString(); v != "" {
-		sp.InboundPstnNumberTranslationRules = v
+		sp.InboundPstnNumberTranslationRules = objectParam(v)
 	}
 	if v := plan.InboundTeamsNumberTranslationRules.ValueString(); v != "" {
-		sp.InboundTeamsNumberTranslationRules = v
+		sp.InboundTeamsNumberTranslationRules = objectParam(v)
 	}
 	if !plan.MaxConcurrentSessions.Equal(state.MaxConcurrentSessions) {
 		sp.MaxConcurrentSessions = plan.MaxConcurrentSessions.ValueInt64Pointer()
@@ -282,10 +377,10 @@ func (r *onlinePSTNGatewayResource) Update(ctx context.Context, req resource.Upd
 		sp.MediaRelayRoutingLocationOverride = plan.MediaRelayRoutingLocationOverride.ValueString()
 	}
 	if v := plan.OutboundPstnNumberTranslationRules.ValueString(); v != "" {
-		sp.OutboundPstnNumberTranslationRules = v
+		sp.OutboundPstnNumberTranslationRules = objectParam(v)
 	}
 	if v := plan.OutboundTeamsNumberTranslationRules.ValueString(); v != "" {
-		sp.OutboundTeamsNumberTranslationRules = v
+		sp.OutboundTeamsNumberTranslationRules = objectParam(v)
 	}
 	if !plan.PidfLoSupported.Equal(state.PidfLoSupported) {
 		sp.PidfLoSupported = plan.PidfLoSupported.ValueBoolPointer()
@@ -308,17 +403,13 @@ func (r *onlinePSTNGatewayResource) Update(ctx context.Context, req resource.Upd
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{
-		"BypassMode":                          cfg.BypassMode,
-		"Description":                         cfg.Description,
-		"FailoverResponseCodes":               cfg.FailoverResponseCodes,
-		"GatewaySiteId":                       cfg.GatewaySiteId,
-		"IPAddressVersion":                    cfg.IPAddressVersion,
-		"InboundPstnNumberTranslationRules":   cfg.InboundPstnNumberTranslationRules,
-		"InboundTeamsNumberTranslationRules":  cfg.InboundTeamsNumberTranslationRules,
-		"MediaRelayRoutingLocationOverride":   cfg.MediaRelayRoutingLocationOverride,
-		"OutboundPstnNumberTranslationRules":  cfg.OutboundPstnNumberTranslationRules,
-		"OutboundTeamsNumberTranslationRules": cfg.OutboundTeamsNumberTranslationRules,
-		"ProxySbc":                            cfg.ProxySbc,
+		"BypassMode":                        cfg.BypassMode,
+		"Description":                       cfg.Description,
+		"FailoverResponseCodes":             cfg.FailoverResponseCodes,
+		"GatewaySiteId":                     cfg.GatewaySiteId,
+		"IPAddressVersion":                  cfg.IPAddressVersion,
+		"MediaRelayRoutingLocationOverride": cfg.MediaRelayRoutingLocationOverride,
+		"ProxySbc":                          cfg.ProxySbc,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
 	r.reconcileState(&cfg, &plan)
@@ -331,6 +422,10 @@ func (r *onlinePSTNGatewayResource) Delete(ctx context.Context, req resource.Del
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("OnlinePSTNGateway Global not deleted", "The Global OnlinePSTNGateway is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsOnlinePSTNGateway(ctx, cs.RemoveCsOnlinePSTNGatewayParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-OnlinePSTNGateway failed", err.Error())
@@ -341,6 +436,107 @@ func (r *onlinePSTNGatewayResource) Delete(ctx context.Context, req resource.Del
 func (r *onlinePSTNGatewayResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *onlinePSTNGatewayResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan onlinePSTNGatewayModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsOnlinePSTNGateway(ctx, cs.GetCsOnlinePSTNGatewayParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur onlinePSTNGatewayModel
+	readOnlinePSTNGateway(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.BypassMode.IsUnknown() {
+		plan.BypassMode = cur.BypassMode
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.Enabled.IsUnknown() {
+		plan.Enabled = cur.Enabled
+	}
+	if plan.FailoverResponseCodes.IsUnknown() {
+		plan.FailoverResponseCodes = cur.FailoverResponseCodes
+	}
+	if plan.FailoverTimeSeconds.IsUnknown() {
+		plan.FailoverTimeSeconds = cur.FailoverTimeSeconds
+	}
+	if plan.ForwardCallHistory.IsUnknown() {
+		plan.ForwardCallHistory = cur.ForwardCallHistory
+	}
+	if plan.ForwardPai.IsUnknown() {
+		plan.ForwardPai = cur.ForwardPai
+	}
+	if plan.Fqdn.IsUnknown() {
+		plan.Fqdn = cur.Fqdn
+	}
+	if plan.GatewayLbrEnabledUserOverride.IsUnknown() {
+		plan.GatewayLbrEnabledUserOverride = cur.GatewayLbrEnabledUserOverride
+	}
+	if plan.GatewaySiteId.IsUnknown() {
+		plan.GatewaySiteId = cur.GatewaySiteId
+	}
+	if plan.GatewaySiteLbrEnabled.IsUnknown() {
+		plan.GatewaySiteLbrEnabled = cur.GatewaySiteLbrEnabled
+	}
+	if plan.IPAddressVersion.IsUnknown() {
+		plan.IPAddressVersion = cur.IPAddressVersion
+	}
+	if plan.InboundPstnNumberTranslationRules.IsUnknown() {
+		plan.InboundPstnNumberTranslationRules = cur.InboundPstnNumberTranslationRules
+	}
+	if plan.InboundTeamsNumberTranslationRules.IsUnknown() {
+		plan.InboundTeamsNumberTranslationRules = cur.InboundTeamsNumberTranslationRules
+	}
+	if plan.MaxConcurrentSessions.IsUnknown() {
+		plan.MaxConcurrentSessions = cur.MaxConcurrentSessions
+	}
+	if plan.MediaBypass.IsUnknown() {
+		plan.MediaBypass = cur.MediaBypass
+	}
+	if plan.MediaRelayRoutingLocationOverride.IsUnknown() {
+		plan.MediaRelayRoutingLocationOverride = cur.MediaRelayRoutingLocationOverride
+	}
+	if plan.OutboundPstnNumberTranslationRules.IsUnknown() {
+		plan.OutboundPstnNumberTranslationRules = cur.OutboundPstnNumberTranslationRules
+	}
+	if plan.OutboundTeamsNumberTranslationRules.IsUnknown() {
+		plan.OutboundTeamsNumberTranslationRules = cur.OutboundTeamsNumberTranslationRules
+	}
+	if plan.PidfLoSupported.IsUnknown() {
+		plan.PidfLoSupported = cur.PidfLoSupported
+	}
+	if plan.ProxySbc.IsUnknown() {
+		plan.ProxySbc = cur.ProxySbc
+	}
+	if plan.SendSipOptions.IsUnknown() {
+		plan.SendSipOptions = cur.SendSipOptions
+	}
+	if plan.SipSignalingPort.IsUnknown() {
+		plan.SipSignalingPort = cur.SipSignalingPort
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *onlinePSTNGatewayResource) identityOf(m onlinePSTNGatewayModel) string {
@@ -391,13 +587,13 @@ func readOnlinePSTNGateway(ctx context.Context, obj map[string]any, m *onlinePST
 	m.GatewaySiteId = types.StringValue(getString(obj, "GatewaySiteId"))
 	m.GatewaySiteLbrEnabled = types.BoolValue(getBool(obj, "GatewaySiteLbrEnabled"))
 	m.IPAddressVersion = types.StringValue(getString(obj, "IPAddressVersion"))
-	m.InboundPstnNumberTranslationRules = types.StringValue(getString(obj, "InboundPstnNumberTranslationRules"))
-	m.InboundTeamsNumberTranslationRules = types.StringValue(getString(obj, "InboundTeamsNumberTranslationRules"))
+	m.InboundPstnNumberTranslationRules = types.StringValue(getObjectJSON(obj, "InboundPstnNumberTranslationRules"))
+	m.InboundTeamsNumberTranslationRules = types.StringValue(getObjectJSON(obj, "InboundTeamsNumberTranslationRules"))
 	m.MaxConcurrentSessions = types.Int64Value(getInt(obj, "MaxConcurrentSessions"))
 	m.MediaBypass = types.BoolValue(getBool(obj, "MediaBypass"))
 	m.MediaRelayRoutingLocationOverride = types.StringValue(getString(obj, "MediaRelayRoutingLocationOverride"))
-	m.OutboundPstnNumberTranslationRules = types.StringValue(getString(obj, "OutboundPstnNumberTranslationRules"))
-	m.OutboundTeamsNumberTranslationRules = types.StringValue(getString(obj, "OutboundTeamsNumberTranslationRules"))
+	m.OutboundPstnNumberTranslationRules = types.StringValue(getObjectJSON(obj, "OutboundPstnNumberTranslationRules"))
+	m.OutboundTeamsNumberTranslationRules = types.StringValue(getObjectJSON(obj, "OutboundTeamsNumberTranslationRules"))
 	m.PidfLoSupported = types.BoolValue(getBool(obj, "PidfLoSupported"))
 	m.ProxySbc = types.StringValue(getString(obj, "ProxySbc"))
 	m.SendSipOptions = types.BoolValue(getBool(obj, "SendSipOptions"))

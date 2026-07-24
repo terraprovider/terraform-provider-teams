@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &firstPartyMeetingTemplateConfigurationResource{}
 	_ resource.ResourceWithConfigure   = &firstPartyMeetingTemplateConfigurationResource{}
 	_ resource.ResourceWithImportState = &firstPartyMeetingTemplateConfigurationResource{}
+	_ resource.ResourceWithModifyPlan  = &firstPartyMeetingTemplateConfigurationResource{}
 )
 
 type firstPartyMeetingTemplateConfigurationResource struct{ client *clients.Client }
@@ -69,13 +70,18 @@ func (r *firstPartyMeetingTemplateConfigurationResource) Create(ctx context.Cont
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config firstPartyMeetingTemplateConfigurationModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTeamsFirstPartyMeetingTemplateConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		sp.Description = plan.Description.ValueString()
 	}
-	if v := plan.TeamsMeetingTemplates.ValueString(); v != "" {
-		sp.TeamsMeetingTemplates = v
+	if v := config.TeamsMeetingTemplates.ValueString(); v != "" {
+		sp.TeamsMeetingTemplates = objectParam(v)
 	}
 	if resp.Diagnostics.HasError() {
 		return
@@ -120,7 +126,7 @@ func (r *firstPartyMeetingTemplateConfigurationResource) Update(ctx context.Cont
 		sp.Description = plan.Description.ValueString()
 	}
 	if v := plan.TeamsMeetingTemplates.ValueString(); v != "" {
-		sp.TeamsMeetingTemplates = v
+		sp.TeamsMeetingTemplates = objectParam(v)
 	}
 	if resp.Diagnostics.HasError() {
 		return
@@ -131,8 +137,7 @@ func (r *firstPartyMeetingTemplateConfigurationResource) Update(ctx context.Cont
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{
-		"Description":           cfg.Description,
-		"TeamsMeetingTemplates": cfg.TeamsMeetingTemplates,
+		"Description": cfg.Description,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
 	r.reconcileState(&cfg, &plan)
@@ -146,6 +151,44 @@ func (r *firstPartyMeetingTemplateConfigurationResource) Delete(_ context.Contex
 func (r *firstPartyMeetingTemplateConfigurationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *firstPartyMeetingTemplateConfigurationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan firstPartyMeetingTemplateConfigurationModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsFirstPartyMeetingTemplateConfiguration(ctx, cs.GetCsTeamsFirstPartyMeetingTemplateConfigurationParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur firstPartyMeetingTemplateConfigurationModel
+	readFirstPartyMeetingTemplateConfiguration(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.TeamsMeetingTemplates.IsUnknown() {
+		plan.TeamsMeetingTemplates = cur.TeamsMeetingTemplates
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *firstPartyMeetingTemplateConfigurationResource) identityOf(m firstPartyMeetingTemplateConfigurationModel) string {
@@ -185,7 +228,7 @@ func (r *firstPartyMeetingTemplateConfigurationResource) refresh(ctx context.Con
 func readFirstPartyMeetingTemplateConfiguration(ctx context.Context, obj map[string]any, m *firstPartyMeetingTemplateConfigurationModel) {
 	m.ID = types.StringValue(firstNonEmptyStr(getString(obj, "Guid"), getString(obj, "Id"), getString(obj, "Identity")))
 	m.Description = types.StringValue(getString(obj, "Description"))
-	m.TeamsMeetingTemplates = types.StringValue(getString(obj, "TeamsMeetingTemplates"))
+	m.TeamsMeetingTemplates = types.StringValue(getObjectJSON(obj, "TeamsMeetingTemplates"))
 	_ = ctx
 }
 

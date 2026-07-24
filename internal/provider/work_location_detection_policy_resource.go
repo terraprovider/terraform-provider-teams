@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &workLocationDetectionPolicyResource{}
 	_ resource.ResourceWithConfigure   = &workLocationDetectionPolicyResource{}
 	_ resource.ResourceWithImportState = &workLocationDetectionPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &workLocationDetectionPolicyResource{}
 )
 
 type workLocationDetectionPolicyResource struct{ client *clients.Client }
@@ -71,11 +72,45 @@ func (r *workLocationDetectionPolicyResource) Create(ctx context.Context, req re
 		return
 	}
 
+	var config workLocationDetectionPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsWorkLocationDetectionPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.EnableWorkLocationDetection.IsNull() {
+			sp.EnableWorkLocationDetection = plan.EnableWorkLocationDetection.ValueBoolPointer()
+		}
+		if !config.UserSettingsDefault.IsNull() {
+			sp.UserSettingsDefault = plan.UserSettingsDefault.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsWorkLocationDetectionPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-WorkLocationDetectionPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("WorkLocationDetectionPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsWorkLocationDetectionPolicyParams{}
-	if !plan.EnableWorkLocationDetection.IsUnknown() && !plan.EnableWorkLocationDetection.IsNull() {
+	if !config.EnableWorkLocationDetection.IsNull() {
 		p.EnableWorkLocationDetection = plan.EnableWorkLocationDetection.ValueBoolPointer()
 	}
-	if !plan.UserSettingsDefault.IsUnknown() && !plan.UserSettingsDefault.IsNull() {
+	if !config.UserSettingsDefault.IsNull() {
 		p.UserSettingsDefault = plan.UserSettingsDefault.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -157,6 +192,10 @@ func (r *workLocationDetectionPolicyResource) Delete(ctx context.Context, req re
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("WorkLocationDetectionPolicy Global not deleted", "The Global WorkLocationDetectionPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsWorkLocationDetectionPolicy(ctx, cs.RemoveCsTeamsWorkLocationDetectionPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-WorkLocationDetectionPolicy failed", err.Error())
@@ -167,6 +206,44 @@ func (r *workLocationDetectionPolicyResource) Delete(ctx context.Context, req re
 func (r *workLocationDetectionPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *workLocationDetectionPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan workLocationDetectionPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsWorkLocationDetectionPolicy(ctx, cs.GetCsTeamsWorkLocationDetectionPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur workLocationDetectionPolicyModel
+	readWorkLocationDetectionPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.EnableWorkLocationDetection.IsUnknown() {
+		plan.EnableWorkLocationDetection = cur.EnableWorkLocationDetection
+	}
+	if plan.UserSettingsDefault.IsUnknown() {
+		plan.UserSettingsDefault = cur.UserSettingsDefault
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *workLocationDetectionPolicyResource) identityOf(m workLocationDetectionPolicyModel) string {

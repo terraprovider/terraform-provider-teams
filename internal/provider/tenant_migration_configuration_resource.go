@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &tenantMigrationConfigurationResource{}
 	_ resource.ResourceWithConfigure   = &tenantMigrationConfigurationResource{}
 	_ resource.ResourceWithImportState = &tenantMigrationConfigurationResource{}
+	_ resource.ResourceWithModifyPlan  = &tenantMigrationConfigurationResource{}
 )
 
 type tenantMigrationConfigurationResource struct{ client *clients.Client }
@@ -68,9 +69,14 @@ func (r *tenantMigrationConfigurationResource) Create(ctx context.Context, req r
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config tenantMigrationConfigurationModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTenantMigrationConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.MeetingMigrationEnabled.IsUnknown() && !plan.MeetingMigrationEnabled.IsNull() {
+	if !config.MeetingMigrationEnabled.IsNull() {
 		sp.MeetingMigrationEnabled = plan.MeetingMigrationEnabled.ValueBoolPointer()
 	}
 	if resp.Diagnostics.HasError() {
@@ -136,6 +142,41 @@ func (r *tenantMigrationConfigurationResource) Delete(_ context.Context, _ resou
 func (r *tenantMigrationConfigurationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *tenantMigrationConfigurationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan tenantMigrationConfigurationModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsTenantMigrationConfiguration(ctx, cs.GetCsTenantMigrationConfigurationParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur tenantMigrationConfigurationModel
+	readTenantMigrationConfiguration(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.MeetingMigrationEnabled.IsUnknown() {
+		plan.MeetingMigrationEnabled = cur.MeetingMigrationEnabled
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *tenantMigrationConfigurationResource) identityOf(m tenantMigrationConfigurationModel) string {

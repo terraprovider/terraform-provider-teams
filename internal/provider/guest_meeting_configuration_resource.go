@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &guestMeetingConfigurationResource{}
 	_ resource.ResourceWithConfigure   = &guestMeetingConfigurationResource{}
 	_ resource.ResourceWithImportState = &guestMeetingConfigurationResource{}
+	_ resource.ResourceWithModifyPlan  = &guestMeetingConfigurationResource{}
 )
 
 type guestMeetingConfigurationResource struct{ client *clients.Client }
@@ -82,30 +83,35 @@ func (r *guestMeetingConfigurationResource) Create(ctx context.Context, req reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config guestMeetingConfigurationModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTeamsGuestMeetingConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.AllowExternalParticipantGiveRequestControl.IsUnknown() && !plan.AllowExternalParticipantGiveRequestControl.IsNull() {
+	if !config.AllowExternalParticipantGiveRequestControl.IsNull() {
 		sp.AllowExternalParticipantGiveRequestControl = plan.AllowExternalParticipantGiveRequestControl.ValueBoolPointer()
 	}
-	if !plan.AllowIPVideo.IsUnknown() && !plan.AllowIPVideo.IsNull() {
+	if !config.AllowIPVideo.IsNull() {
 		sp.AllowIPVideo = plan.AllowIPVideo.ValueBoolPointer()
 	}
-	if !plan.AllowMeetNow.IsUnknown() && !plan.AllowMeetNow.IsNull() {
+	if !config.AllowMeetNow.IsNull() {
 		sp.AllowMeetNow = plan.AllowMeetNow.ValueBoolPointer()
 	}
-	if !plan.AllowMultipleScreenshare.IsUnknown() && !plan.AllowMultipleScreenshare.IsNull() {
+	if !config.AllowMultipleScreenshare.IsNull() {
 		sp.AllowMultipleScreenshare = plan.AllowMultipleScreenshare.ValueBoolPointer()
 	}
-	if !plan.AllowParticipantGiveRequestControl.IsUnknown() && !plan.AllowParticipantGiveRequestControl.IsNull() {
+	if !config.AllowParticipantGiveRequestControl.IsNull() {
 		sp.AllowParticipantGiveRequestControl = plan.AllowParticipantGiveRequestControl.ValueBoolPointer()
 	}
-	if !plan.AllowTranscription.IsUnknown() && !plan.AllowTranscription.IsNull() {
+	if !config.AllowTranscription.IsNull() {
 		sp.AllowTranscription = plan.AllowTranscription.ValueBoolPointer()
 	}
-	if !plan.LiveCaptionsEnabledType.IsUnknown() && !plan.LiveCaptionsEnabledType.IsNull() {
+	if !config.LiveCaptionsEnabledType.IsNull() {
 		sp.LiveCaptionsEnabledType = plan.LiveCaptionsEnabledType.ValueString()
 	}
-	if !plan.ScreenSharingMode.IsUnknown() && !plan.ScreenSharingMode.IsNull() {
+	if !config.ScreenSharingMode.IsNull() {
 		sp.ScreenSharingMode = plan.ScreenSharingMode.ValueString()
 	}
 	if resp.Diagnostics.HasError() {
@@ -195,6 +201,62 @@ func (r *guestMeetingConfigurationResource) Delete(_ context.Context, _ resource
 func (r *guestMeetingConfigurationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *guestMeetingConfigurationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan guestMeetingConfigurationModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsGuestMeetingConfiguration(ctx, cs.GetCsTeamsGuestMeetingConfigurationParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur guestMeetingConfigurationModel
+	readGuestMeetingConfiguration(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AllowExternalParticipantGiveRequestControl.IsUnknown() {
+		plan.AllowExternalParticipantGiveRequestControl = cur.AllowExternalParticipantGiveRequestControl
+	}
+	if plan.AllowIPVideo.IsUnknown() {
+		plan.AllowIPVideo = cur.AllowIPVideo
+	}
+	if plan.AllowMeetNow.IsUnknown() {
+		plan.AllowMeetNow = cur.AllowMeetNow
+	}
+	if plan.AllowMultipleScreenshare.IsUnknown() {
+		plan.AllowMultipleScreenshare = cur.AllowMultipleScreenshare
+	}
+	if plan.AllowParticipantGiveRequestControl.IsUnknown() {
+		plan.AllowParticipantGiveRequestControl = cur.AllowParticipantGiveRequestControl
+	}
+	if plan.AllowTranscription.IsUnknown() {
+		plan.AllowTranscription = cur.AllowTranscription
+	}
+	if plan.LiveCaptionsEnabledType.IsUnknown() {
+		plan.LiveCaptionsEnabledType = cur.LiveCaptionsEnabledType
+	}
+	if plan.ScreenSharingMode.IsUnknown() {
+		plan.ScreenSharingMode = cur.ScreenSharingMode
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *guestMeetingConfigurationResource) identityOf(m guestMeetingConfigurationModel) string {

@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &upgradeConfigurationResource{}
 	_ resource.ResourceWithConfigure   = &upgradeConfigurationResource{}
 	_ resource.ResourceWithImportState = &upgradeConfigurationResource{}
+	_ resource.ResourceWithModifyPlan  = &upgradeConfigurationResource{}
 )
 
 type upgradeConfigurationResource struct{ client *clients.Client }
@@ -70,15 +71,20 @@ func (r *upgradeConfigurationResource) Create(ctx context.Context, req resource.
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config upgradeConfigurationModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTeamsUpgradeConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.BlockLegacyAuthorization.IsUnknown() && !plan.BlockLegacyAuthorization.IsNull() {
+	if !config.BlockLegacyAuthorization.IsNull() {
 		sp.BlockLegacyAuthorization = plan.BlockLegacyAuthorization.ValueBoolPointer()
 	}
-	if !plan.DownloadTeams.IsUnknown() && !plan.DownloadTeams.IsNull() {
+	if !config.DownloadTeams.IsNull() {
 		sp.DownloadTeams = plan.DownloadTeams.ValueBoolPointer()
 	}
-	if !plan.SfBMeetingJoinUx.IsUnknown() && !plan.SfBMeetingJoinUx.IsNull() {
+	if !config.SfBMeetingJoinUx.IsNull() {
 		sp.SfBMeetingJoinUx = plan.SfBMeetingJoinUx.ValueString()
 	}
 	if resp.Diagnostics.HasError() {
@@ -152,6 +158,47 @@ func (r *upgradeConfigurationResource) Delete(_ context.Context, _ resource.Dele
 func (r *upgradeConfigurationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *upgradeConfigurationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan upgradeConfigurationModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsUpgradeConfiguration(ctx, cs.GetCsTeamsUpgradeConfigurationParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur upgradeConfigurationModel
+	readUpgradeConfiguration(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.BlockLegacyAuthorization.IsUnknown() {
+		plan.BlockLegacyAuthorization = cur.BlockLegacyAuthorization
+	}
+	if plan.DownloadTeams.IsUnknown() {
+		plan.DownloadTeams = cur.DownloadTeams
+	}
+	if plan.SfBMeetingJoinUx.IsUnknown() {
+		plan.SfBMeetingJoinUx = cur.SfBMeetingJoinUx
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *upgradeConfigurationResource) identityOf(m upgradeConfigurationModel) string {

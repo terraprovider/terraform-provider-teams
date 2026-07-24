@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &guestCallingConfigurationResource{}
 	_ resource.ResourceWithConfigure   = &guestCallingConfigurationResource{}
 	_ resource.ResourceWithImportState = &guestCallingConfigurationResource{}
+	_ resource.ResourceWithModifyPlan  = &guestCallingConfigurationResource{}
 )
 
 type guestCallingConfigurationResource struct{ client *clients.Client }
@@ -68,9 +69,14 @@ func (r *guestCallingConfigurationResource) Create(ctx context.Context, req reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config guestCallingConfigurationModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTeamsGuestCallingConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.AllowPrivateCalling.IsUnknown() && !plan.AllowPrivateCalling.IsNull() {
+	if !config.AllowPrivateCalling.IsNull() {
 		sp.AllowPrivateCalling = plan.AllowPrivateCalling.ValueBoolPointer()
 	}
 	if resp.Diagnostics.HasError() {
@@ -136,6 +142,41 @@ func (r *guestCallingConfigurationResource) Delete(_ context.Context, _ resource
 func (r *guestCallingConfigurationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *guestCallingConfigurationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan guestCallingConfigurationModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsGuestCallingConfiguration(ctx, cs.GetCsTeamsGuestCallingConfigurationParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur guestCallingConfigurationModel
+	readGuestCallingConfiguration(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AllowPrivateCalling.IsUnknown() {
+		plan.AllowPrivateCalling = cur.AllowPrivateCalling
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *guestCallingConfigurationResource) identityOf(m guestCallingConfigurationModel) string {

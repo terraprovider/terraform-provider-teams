@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &bYODAndDesksPolicyResource{}
 	_ resource.ResourceWithConfigure   = &bYODAndDesksPolicyResource{}
 	_ resource.ResourceWithImportState = &bYODAndDesksPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &bYODAndDesksPolicyResource{}
 )
 
 type bYODAndDesksPolicyResource struct{ client *clients.Client }
@@ -66,8 +67,39 @@ func (r *bYODAndDesksPolicyResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 
+	var config bYODAndDesksPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsBYODAndDesksPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.DeviceDataCollection.IsNull() {
+			sp.DeviceDataCollection = plan.DeviceDataCollection.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsBYODAndDesksPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-BYODAndDesksPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("BYODAndDesksPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsBYODAndDesksPolicyParams{}
-	if !plan.DeviceDataCollection.IsUnknown() && !plan.DeviceDataCollection.IsNull() {
+	if !config.DeviceDataCollection.IsNull() {
 		p.DeviceDataCollection = plan.DeviceDataCollection.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -146,6 +178,10 @@ func (r *bYODAndDesksPolicyResource) Delete(ctx context.Context, req resource.De
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("BYODAndDesksPolicy Global not deleted", "The Global BYODAndDesksPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsBYODAndDesksPolicy(ctx, cs.RemoveCsTeamsBYODAndDesksPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-BYODAndDesksPolicy failed", err.Error())
@@ -156,6 +192,41 @@ func (r *bYODAndDesksPolicyResource) Delete(ctx context.Context, req resource.De
 func (r *bYODAndDesksPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *bYODAndDesksPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan bYODAndDesksPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsBYODAndDesksPolicy(ctx, cs.GetCsTeamsBYODAndDesksPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur bYODAndDesksPolicyModel
+	readBYODAndDesksPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.DeviceDataCollection.IsUnknown() {
+		plan.DeviceDataCollection = cur.DeviceDataCollection
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *bYODAndDesksPolicyResource) identityOf(m bYODAndDesksPolicyModel) string {

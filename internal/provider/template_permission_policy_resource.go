@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &templatePermissionPolicyResource{}
 	_ resource.ResourceWithConfigure   = &templatePermissionPolicyResource{}
 	_ resource.ResourceWithImportState = &templatePermissionPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &templatePermissionPolicyResource{}
 )
 
 type templatePermissionPolicyResource struct{ client *clients.Client }
@@ -70,12 +71,46 @@ func (r *templatePermissionPolicyResource) Create(ctx context.Context, req resou
 		return
 	}
 
+	var config templatePermissionPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsTemplatePermissionPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if v := config.HiddenTemplates.ValueString(); v != "" {
+			sp.HiddenTemplates = objectParam(v)
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsTemplatePermissionPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-TemplatePermissionPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("TemplatePermissionPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsTemplatePermissionPolicyParams{}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if v := plan.HiddenTemplates.ValueString(); v != "" {
-		p.HiddenTemplates = v
+	if v := config.HiddenTemplates.ValueString(); v != "" {
+		p.HiddenTemplates = objectParam(v)
 	}
 	p.Identity = plan.Identity.ValueString()
 	if resp.Diagnostics.HasError() {
@@ -132,7 +167,7 @@ func (r *templatePermissionPolicyResource) Update(ctx context.Context, req resou
 		sp.Description = plan.Description.ValueString()
 	}
 	if v := plan.HiddenTemplates.ValueString(); v != "" {
-		sp.HiddenTemplates = v
+		sp.HiddenTemplates = objectParam(v)
 	}
 	if resp.Diagnostics.HasError() {
 		return
@@ -143,8 +178,7 @@ func (r *templatePermissionPolicyResource) Update(ctx context.Context, req resou
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{
-		"Description":     cfg.Description,
-		"HiddenTemplates": cfg.HiddenTemplates,
+		"Description": cfg.Description,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
 	r.reconcileState(&cfg, &plan)
@@ -157,6 +191,10 @@ func (r *templatePermissionPolicyResource) Delete(ctx context.Context, req resou
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("TemplatePermissionPolicy Global not deleted", "The Global TemplatePermissionPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsTemplatePermissionPolicy(ctx, cs.RemoveCsTeamsTemplatePermissionPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-TemplatePermissionPolicy failed", err.Error())
@@ -167,6 +205,44 @@ func (r *templatePermissionPolicyResource) Delete(ctx context.Context, req resou
 func (r *templatePermissionPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *templatePermissionPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan templatePermissionPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsTemplatePermissionPolicy(ctx, cs.GetCsTeamsTemplatePermissionPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur templatePermissionPolicyModel
+	readTemplatePermissionPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.HiddenTemplates.IsUnknown() {
+		plan.HiddenTemplates = cur.HiddenTemplates
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *templatePermissionPolicyResource) identityOf(m templatePermissionPolicyModel) string {
@@ -206,7 +282,7 @@ func (r *templatePermissionPolicyResource) refresh(ctx context.Context, identity
 func readTemplatePermissionPolicy(ctx context.Context, obj map[string]any, m *templatePermissionPolicyModel) {
 	m.ID = types.StringValue(firstNonEmptyStr(getString(obj, "Guid"), getString(obj, "Id"), getString(obj, "Identity")))
 	m.Description = types.StringValue(getString(obj, "Description"))
-	m.HiddenTemplates = types.StringValue(getString(obj, "HiddenTemplates"))
+	m.HiddenTemplates = types.StringValue(getObjectJSON(obj, "HiddenTemplates"))
 	_ = ctx
 }
 

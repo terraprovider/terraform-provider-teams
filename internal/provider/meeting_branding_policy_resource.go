@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &meetingBrandingPolicyResource{}
 	_ resource.ResourceWithConfigure   = &meetingBrandingPolicyResource{}
 	_ resource.ResourceWithImportState = &meetingBrandingPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &meetingBrandingPolicyResource{}
 )
 
 type meetingBrandingPolicyResource struct{ client *clients.Client }
@@ -81,29 +82,81 @@ func (r *meetingBrandingPolicyResource) Create(ctx context.Context, req resource
 		return
 	}
 
+	var config meetingBrandingPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsMeetingBrandingPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.DefaultTheme.IsNull() {
+			sp.DefaultTheme = plan.DefaultTheme.ValueString()
+		}
+		if !config.EnableMeetingBackgroundImages.IsNull() {
+			sp.EnableMeetingBackgroundImages = plan.EnableMeetingBackgroundImages.ValueBoolPointer()
+		}
+		if !config.EnableMeetingOptionsThemeOverride.IsNull() {
+			sp.EnableMeetingOptionsThemeOverride = plan.EnableMeetingOptionsThemeOverride.ValueBoolPointer()
+		}
+		if !config.EnableNdiAssuranceSlate.IsNull() {
+			sp.EnableNdiAssuranceSlate = plan.EnableNdiAssuranceSlate.ValueBoolPointer()
+		}
+		if v := config.MeetingBackgroundImages.ValueString(); v != "" {
+			sp.MeetingBackgroundImages = objectParam(v)
+		}
+		if v := config.MeetingBrandingThemes.ValueString(); v != "" {
+			sp.MeetingBrandingThemes = objectParam(v)
+		}
+		if v := config.NdiAssuranceSlateImages.ValueString(); v != "" {
+			sp.NdiAssuranceSlateImages = objectParam(v)
+		}
+		if !config.RequireBackgroundEffect.IsNull() {
+			sp.RequireBackgroundEffect = plan.RequireBackgroundEffect.ValueBoolPointer()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsMeetingBrandingPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-MeetingBrandingPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("MeetingBrandingPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsMeetingBrandingPolicyParams{}
-	if !plan.DefaultTheme.IsUnknown() && !plan.DefaultTheme.IsNull() {
+	if !config.DefaultTheme.IsNull() {
 		p.DefaultTheme = plan.DefaultTheme.ValueString()
 	}
-	if !plan.EnableMeetingBackgroundImages.IsUnknown() && !plan.EnableMeetingBackgroundImages.IsNull() {
+	if !config.EnableMeetingBackgroundImages.IsNull() {
 		p.EnableMeetingBackgroundImages = plan.EnableMeetingBackgroundImages.ValueBoolPointer()
 	}
-	if !plan.EnableMeetingOptionsThemeOverride.IsUnknown() && !plan.EnableMeetingOptionsThemeOverride.IsNull() {
+	if !config.EnableMeetingOptionsThemeOverride.IsNull() {
 		p.EnableMeetingOptionsThemeOverride = plan.EnableMeetingOptionsThemeOverride.ValueBoolPointer()
 	}
-	if !plan.EnableNdiAssuranceSlate.IsUnknown() && !plan.EnableNdiAssuranceSlate.IsNull() {
+	if !config.EnableNdiAssuranceSlate.IsNull() {
 		p.EnableNdiAssuranceSlate = plan.EnableNdiAssuranceSlate.ValueBoolPointer()
 	}
-	if v := plan.MeetingBackgroundImages.ValueString(); v != "" {
-		p.MeetingBackgroundImages = v
+	if v := config.MeetingBackgroundImages.ValueString(); v != "" {
+		p.MeetingBackgroundImages = objectParam(v)
 	}
-	if v := plan.MeetingBrandingThemes.ValueString(); v != "" {
-		p.MeetingBrandingThemes = v
+	if v := config.MeetingBrandingThemes.ValueString(); v != "" {
+		p.MeetingBrandingThemes = objectParam(v)
 	}
-	if v := plan.NdiAssuranceSlateImages.ValueString(); v != "" {
-		p.NdiAssuranceSlateImages = v
+	if v := config.NdiAssuranceSlateImages.ValueString(); v != "" {
+		p.NdiAssuranceSlateImages = objectParam(v)
 	}
-	if !plan.RequireBackgroundEffect.IsUnknown() && !plan.RequireBackgroundEffect.IsNull() {
+	if !config.RequireBackgroundEffect.IsNull() {
 		p.RequireBackgroundEffect = plan.RequireBackgroundEffect.ValueBoolPointer()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -170,13 +223,13 @@ func (r *meetingBrandingPolicyResource) Update(ctx context.Context, req resource
 		sp.EnableNdiAssuranceSlate = plan.EnableNdiAssuranceSlate.ValueBoolPointer()
 	}
 	if v := plan.MeetingBackgroundImages.ValueString(); v != "" {
-		sp.MeetingBackgroundImages = v
+		sp.MeetingBackgroundImages = objectParam(v)
 	}
 	if v := plan.MeetingBrandingThemes.ValueString(); v != "" {
-		sp.MeetingBrandingThemes = v
+		sp.MeetingBrandingThemes = objectParam(v)
 	}
 	if v := plan.NdiAssuranceSlateImages.ValueString(); v != "" {
-		sp.NdiAssuranceSlateImages = v
+		sp.NdiAssuranceSlateImages = objectParam(v)
 	}
 	if !plan.RequireBackgroundEffect.Equal(state.RequireBackgroundEffect) {
 		sp.RequireBackgroundEffect = plan.RequireBackgroundEffect.ValueBoolPointer()
@@ -190,10 +243,7 @@ func (r *meetingBrandingPolicyResource) Update(ctx context.Context, req resource
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{
-		"DefaultTheme":            cfg.DefaultTheme,
-		"MeetingBackgroundImages": cfg.MeetingBackgroundImages,
-		"MeetingBrandingThemes":   cfg.MeetingBrandingThemes,
-		"NdiAssuranceSlateImages": cfg.NdiAssuranceSlateImages,
+		"DefaultTheme": cfg.DefaultTheme,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
 	r.reconcileState(&cfg, &plan)
@@ -206,6 +256,10 @@ func (r *meetingBrandingPolicyResource) Delete(ctx context.Context, req resource
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("MeetingBrandingPolicy Global not deleted", "The Global MeetingBrandingPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsMeetingBrandingPolicy(ctx, cs.RemoveCsTeamsMeetingBrandingPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-MeetingBrandingPolicy failed", err.Error())
@@ -216,6 +270,62 @@ func (r *meetingBrandingPolicyResource) Delete(ctx context.Context, req resource
 func (r *meetingBrandingPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *meetingBrandingPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan meetingBrandingPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsMeetingBrandingPolicy(ctx, cs.GetCsTeamsMeetingBrandingPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur meetingBrandingPolicyModel
+	readMeetingBrandingPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.DefaultTheme.IsUnknown() {
+		plan.DefaultTheme = cur.DefaultTheme
+	}
+	if plan.EnableMeetingBackgroundImages.IsUnknown() {
+		plan.EnableMeetingBackgroundImages = cur.EnableMeetingBackgroundImages
+	}
+	if plan.EnableMeetingOptionsThemeOverride.IsUnknown() {
+		plan.EnableMeetingOptionsThemeOverride = cur.EnableMeetingOptionsThemeOverride
+	}
+	if plan.EnableNdiAssuranceSlate.IsUnknown() {
+		plan.EnableNdiAssuranceSlate = cur.EnableNdiAssuranceSlate
+	}
+	if plan.MeetingBackgroundImages.IsUnknown() {
+		plan.MeetingBackgroundImages = cur.MeetingBackgroundImages
+	}
+	if plan.MeetingBrandingThemes.IsUnknown() {
+		plan.MeetingBrandingThemes = cur.MeetingBrandingThemes
+	}
+	if plan.NdiAssuranceSlateImages.IsUnknown() {
+		plan.NdiAssuranceSlateImages = cur.NdiAssuranceSlateImages
+	}
+	if plan.RequireBackgroundEffect.IsUnknown() {
+		plan.RequireBackgroundEffect = cur.RequireBackgroundEffect
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *meetingBrandingPolicyResource) identityOf(m meetingBrandingPolicyModel) string {
@@ -258,9 +368,9 @@ func readMeetingBrandingPolicy(ctx context.Context, obj map[string]any, m *meeti
 	m.EnableMeetingBackgroundImages = types.BoolValue(getBool(obj, "EnableMeetingBackgroundImages"))
 	m.EnableMeetingOptionsThemeOverride = types.BoolValue(getBool(obj, "EnableMeetingOptionsThemeOverride"))
 	m.EnableNdiAssuranceSlate = types.BoolValue(getBool(obj, "EnableNdiAssuranceSlate"))
-	m.MeetingBackgroundImages = types.StringValue(getString(obj, "MeetingBackgroundImages"))
-	m.MeetingBrandingThemes = types.StringValue(getString(obj, "MeetingBrandingThemes"))
-	m.NdiAssuranceSlateImages = types.StringValue(getString(obj, "NdiAssuranceSlateImages"))
+	m.MeetingBackgroundImages = types.StringValue(getObjectJSON(obj, "MeetingBackgroundImages"))
+	m.MeetingBrandingThemes = types.StringValue(getObjectJSON(obj, "MeetingBrandingThemes"))
+	m.NdiAssuranceSlateImages = types.StringValue(getObjectJSON(obj, "NdiAssuranceSlateImages"))
 	m.RequireBackgroundEffect = types.BoolValue(getBool(obj, "RequireBackgroundEffect"))
 	_ = ctx
 }

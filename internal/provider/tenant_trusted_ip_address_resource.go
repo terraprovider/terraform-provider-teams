@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &tenantTrustedIPAddressResource{}
 	_ resource.ResourceWithConfigure   = &tenantTrustedIPAddressResource{}
 	_ resource.ResourceWithImportState = &tenantTrustedIPAddressResource{}
+	_ resource.ResourceWithModifyPlan  = &tenantTrustedIPAddressResource{}
 )
 
 type tenantTrustedIPAddressResource struct{ client *clients.Client }
@@ -71,14 +72,48 @@ func (r *tenantTrustedIPAddressResource) Create(ctx context.Context, req resourc
 		return
 	}
 
+	var config tenantTrustedIPAddressModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTenantTrustedIPAddressParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if !config.MaskBits.IsNull() {
+			sp.MaskBits = plan.MaskBits.ValueInt64Pointer()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTenantTrustedIPAddress(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-TenantTrustedIPAddress failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("TenantTrustedIPAddress not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTenantTrustedIPAddressParams{}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if !plan.IPAddress.IsUnknown() && !plan.IPAddress.IsNull() {
+	if !config.IPAddress.IsNull() {
 		p.IPAddress = plan.IPAddress.ValueString()
 	}
-	if !plan.MaskBits.IsUnknown() && !plan.MaskBits.IsNull() {
+	if !config.MaskBits.IsNull() {
 		p.MaskBits = plan.MaskBits.ValueInt64Pointer()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -160,6 +195,10 @@ func (r *tenantTrustedIPAddressResource) Delete(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("TenantTrustedIPAddress Global not deleted", "The Global TenantTrustedIPAddress is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTenantTrustedIPAddress(ctx, cs.RemoveCsTenantTrustedIPAddressParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-TenantTrustedIPAddress failed", err.Error())
@@ -170,6 +209,47 @@ func (r *tenantTrustedIPAddressResource) Delete(ctx context.Context, req resourc
 func (r *tenantTrustedIPAddressResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *tenantTrustedIPAddressResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan tenantTrustedIPAddressModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTenantTrustedIPAddress(ctx, cs.GetCsTenantTrustedIPAddressParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur tenantTrustedIPAddressModel
+	readTenantTrustedIPAddress(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.IPAddress.IsUnknown() {
+		plan.IPAddress = cur.IPAddress
+	}
+	if plan.MaskBits.IsUnknown() {
+		plan.MaskBits = cur.MaskBits
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *tenantTrustedIPAddressResource) identityOf(m tenantTrustedIPAddressModel) string {

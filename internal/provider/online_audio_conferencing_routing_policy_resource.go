@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &onlineAudioConferencingRoutingPolicyResource{}
 	_ resource.ResourceWithConfigure   = &onlineAudioConferencingRoutingPolicyResource{}
 	_ resource.ResourceWithImportState = &onlineAudioConferencingRoutingPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &onlineAudioConferencingRoutingPolicyResource{}
 )
 
 type onlineAudioConferencingRoutingPolicyResource struct{ client *clients.Client }
@@ -72,14 +73,51 @@ func (r *onlineAudioConferencingRoutingPolicyResource) Create(ctx context.Contex
 		return
 	}
 
+	var config onlineAudioConferencingRoutingPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsOnlineAudioConferencingRoutingPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if v := config.OnlinePstnUsages.ValueString(); v != "" {
+			sp.OnlinePstnUsages = objectParam(v)
+		}
+		if !config.RouteType.IsNull() {
+			sp.RouteType = plan.RouteType.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsOnlineAudioConferencingRoutingPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-OnlineAudioConferencingRoutingPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("OnlineAudioConferencingRoutingPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsOnlineAudioConferencingRoutingPolicyParams{}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if v := plan.OnlinePstnUsages.ValueString(); v != "" {
-		p.OnlinePstnUsages = v
+	if v := config.OnlinePstnUsages.ValueString(); v != "" {
+		p.OnlinePstnUsages = objectParam(v)
 	}
-	if !plan.RouteType.IsUnknown() && !plan.RouteType.IsNull() {
+	if !config.RouteType.IsNull() {
 		p.RouteType = plan.RouteType.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -137,7 +175,7 @@ func (r *onlineAudioConferencingRoutingPolicyResource) Update(ctx context.Contex
 		sp.Description = plan.Description.ValueString()
 	}
 	if v := plan.OnlinePstnUsages.ValueString(); v != "" {
-		sp.OnlinePstnUsages = v
+		sp.OnlinePstnUsages = objectParam(v)
 	}
 	if !plan.RouteType.Equal(state.RouteType) {
 		sp.RouteType = plan.RouteType.ValueString()
@@ -151,9 +189,8 @@ func (r *onlineAudioConferencingRoutingPolicyResource) Update(ctx context.Contex
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{
-		"Description":      cfg.Description,
-		"OnlinePstnUsages": cfg.OnlinePstnUsages,
-		"RouteType":        cfg.RouteType,
+		"Description": cfg.Description,
+		"RouteType":   cfg.RouteType,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
 	r.reconcileState(&cfg, &plan)
@@ -166,6 +203,10 @@ func (r *onlineAudioConferencingRoutingPolicyResource) Delete(ctx context.Contex
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("OnlineAudioConferencingRoutingPolicy Global not deleted", "The Global OnlineAudioConferencingRoutingPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsOnlineAudioConferencingRoutingPolicy(ctx, cs.RemoveCsOnlineAudioConferencingRoutingPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-OnlineAudioConferencingRoutingPolicy failed", err.Error())
@@ -176,6 +217,47 @@ func (r *onlineAudioConferencingRoutingPolicyResource) Delete(ctx context.Contex
 func (r *onlineAudioConferencingRoutingPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *onlineAudioConferencingRoutingPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan onlineAudioConferencingRoutingPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsOnlineAudioConferencingRoutingPolicy(ctx, cs.GetCsOnlineAudioConferencingRoutingPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur onlineAudioConferencingRoutingPolicyModel
+	readOnlineAudioConferencingRoutingPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.OnlinePstnUsages.IsUnknown() {
+		plan.OnlinePstnUsages = cur.OnlinePstnUsages
+	}
+	if plan.RouteType.IsUnknown() {
+		plan.RouteType = cur.RouteType
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *onlineAudioConferencingRoutingPolicyResource) identityOf(m onlineAudioConferencingRoutingPolicyModel) string {
@@ -215,7 +297,7 @@ func (r *onlineAudioConferencingRoutingPolicyResource) refresh(ctx context.Conte
 func readOnlineAudioConferencingRoutingPolicy(ctx context.Context, obj map[string]any, m *onlineAudioConferencingRoutingPolicyModel) {
 	m.ID = types.StringValue(firstNonEmptyStr(getString(obj, "Guid"), getString(obj, "Id"), getString(obj, "Identity")))
 	m.Description = types.StringValue(getString(obj, "Description"))
-	m.OnlinePstnUsages = types.StringValue(getString(obj, "OnlinePstnUsages"))
+	m.OnlinePstnUsages = types.StringValue(getObjectJSON(obj, "OnlinePstnUsages"))
 	m.RouteType = types.StringValue(getString(obj, "RouteType"))
 	_ = ctx
 }

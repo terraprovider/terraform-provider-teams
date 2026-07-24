@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &inboundBlockedNumberPatternResource{}
 	_ resource.ResourceWithConfigure   = &inboundBlockedNumberPatternResource{}
 	_ resource.ResourceWithImportState = &inboundBlockedNumberPatternResource{}
+	_ resource.ResourceWithModifyPlan  = &inboundBlockedNumberPatternResource{}
 )
 
 type inboundBlockedNumberPatternResource struct{ client *clients.Client }
@@ -77,21 +78,61 @@ func (r *inboundBlockedNumberPatternResource) Create(ctx context.Context, req re
 		return
 	}
 
+	var config inboundBlockedNumberPatternModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsInboundBlockedNumberPatternParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if !config.Enabled.IsNull() {
+			sp.Enabled = plan.Enabled.ValueBoolPointer()
+		}
+		if !config.Pattern.IsNull() {
+			sp.Pattern = plan.Pattern.ValueString()
+		}
+		if v := config.ResourceAccount.ValueString(); v != "" {
+			sp.ResourceAccount = objectParam(v)
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsInboundBlockedNumberPattern(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-InboundBlockedNumberPattern failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("InboundBlockedNumberPattern not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsInboundBlockedNumberPatternParams{}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if !plan.Enabled.IsUnknown() && !plan.Enabled.IsNull() {
+	if !config.Enabled.IsNull() {
 		p.Enabled = plan.Enabled.ValueBoolPointer()
 	}
-	if !plan.Name.IsUnknown() && !plan.Name.IsNull() {
+	if !config.Name.IsNull() {
 		p.Name = plan.Name.ValueString()
 	}
-	if !plan.Pattern.IsUnknown() && !plan.Pattern.IsNull() {
+	if !config.Pattern.IsNull() {
 		p.Pattern = plan.Pattern.ValueString()
 	}
-	if v := plan.ResourceAccount.ValueString(); v != "" {
-		p.ResourceAccount = v
+	if v := config.ResourceAccount.ValueString(); v != "" {
+		p.ResourceAccount = objectParam(v)
 	}
 	p.Identity = plan.Identity.ValueString()
 	if resp.Diagnostics.HasError() {
@@ -154,7 +195,7 @@ func (r *inboundBlockedNumberPatternResource) Update(ctx context.Context, req re
 		sp.Pattern = plan.Pattern.ValueString()
 	}
 	if v := plan.ResourceAccount.ValueString(); v != "" {
-		sp.ResourceAccount = v
+		sp.ResourceAccount = objectParam(v)
 	}
 	if resp.Diagnostics.HasError() {
 		return
@@ -165,9 +206,8 @@ func (r *inboundBlockedNumberPatternResource) Update(ctx context.Context, req re
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{
-		"Description":     cfg.Description,
-		"Pattern":         cfg.Pattern,
-		"ResourceAccount": cfg.ResourceAccount,
+		"Description": cfg.Description,
+		"Pattern":     cfg.Pattern,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
 	r.reconcileState(&cfg, &plan)
@@ -180,6 +220,10 @@ func (r *inboundBlockedNumberPatternResource) Delete(ctx context.Context, req re
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("InboundBlockedNumberPattern Global not deleted", "The Global InboundBlockedNumberPattern is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsInboundBlockedNumberPattern(ctx, cs.RemoveCsInboundBlockedNumberPatternParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-InboundBlockedNumberPattern failed", err.Error())
@@ -190,6 +234,53 @@ func (r *inboundBlockedNumberPatternResource) Delete(ctx context.Context, req re
 func (r *inboundBlockedNumberPatternResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *inboundBlockedNumberPatternResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan inboundBlockedNumberPatternModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsInboundBlockedNumberPattern(ctx, cs.GetCsInboundBlockedNumberPatternParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur inboundBlockedNumberPatternModel
+	readInboundBlockedNumberPattern(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.Enabled.IsUnknown() {
+		plan.Enabled = cur.Enabled
+	}
+	if plan.Name.IsUnknown() {
+		plan.Name = cur.Name
+	}
+	if plan.Pattern.IsUnknown() {
+		plan.Pattern = cur.Pattern
+	}
+	if plan.ResourceAccount.IsUnknown() {
+		plan.ResourceAccount = cur.ResourceAccount
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *inboundBlockedNumberPatternResource) identityOf(m inboundBlockedNumberPatternModel) string {
@@ -232,7 +323,7 @@ func readInboundBlockedNumberPattern(ctx context.Context, obj map[string]any, m 
 	m.Enabled = types.BoolValue(getBool(obj, "Enabled"))
 	m.Name = types.StringValue(getString(obj, "Name"))
 	m.Pattern = types.StringValue(getString(obj, "Pattern"))
-	m.ResourceAccount = types.StringValue(getString(obj, "ResourceAccount"))
+	m.ResourceAccount = types.StringValue(getObjectJSON(obj, "ResourceAccount"))
 	_ = ctx
 }
 

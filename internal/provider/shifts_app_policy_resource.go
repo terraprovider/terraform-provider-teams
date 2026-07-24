@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &shiftsAppPolicyResource{}
 	_ resource.ResourceWithConfigure   = &shiftsAppPolicyResource{}
 	_ resource.ResourceWithImportState = &shiftsAppPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &shiftsAppPolicyResource{}
 )
 
 type shiftsAppPolicyResource struct{ client *clients.Client }
@@ -66,9 +67,14 @@ func (r *shiftsAppPolicyResource) Create(ctx context.Context, req resource.Creat
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config shiftsAppPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTeamsShiftsAppPolicyParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.AllowTimeClockLocationDetection.IsUnknown() && !plan.AllowTimeClockLocationDetection.IsNull() {
+	if !config.AllowTimeClockLocationDetection.IsNull() {
 		sp.AllowTimeClockLocationDetection = plan.AllowTimeClockLocationDetection.ValueBoolPointer()
 	}
 	if resp.Diagnostics.HasError() {
@@ -134,6 +140,41 @@ func (r *shiftsAppPolicyResource) Delete(_ context.Context, _ resource.DeleteReq
 func (r *shiftsAppPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *shiftsAppPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan shiftsAppPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsShiftsAppPolicy(ctx, cs.GetCsTeamsShiftsAppPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur shiftsAppPolicyModel
+	readShiftsAppPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AllowTimeClockLocationDetection.IsUnknown() {
+		plan.AllowTimeClockLocationDetection = cur.AllowTimeClockLocationDetection
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *shiftsAppPolicyResource) identityOf(m shiftsAppPolicyModel) string {

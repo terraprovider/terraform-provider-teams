@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &mediaConnectivityPolicyResource{}
 	_ resource.ResourceWithConfigure   = &mediaConnectivityPolicyResource{}
 	_ resource.ResourceWithImportState = &mediaConnectivityPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &mediaConnectivityPolicyResource{}
 )
 
 type mediaConnectivityPolicyResource struct{ client *clients.Client }
@@ -68,8 +69,39 @@ func (r *mediaConnectivityPolicyResource) Create(ctx context.Context, req resour
 		return
 	}
 
+	var config mediaConnectivityPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsMediaConnectivityPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.DirectConnection.IsNull() {
+			sp.DirectConnection = plan.DirectConnection.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsMediaConnectivityPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-MediaConnectivityPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("MediaConnectivityPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsMediaConnectivityPolicyParams{}
-	if !plan.DirectConnection.IsUnknown() && !plan.DirectConnection.IsNull() {
+	if !config.DirectConnection.IsNull() {
 		p.DirectConnection = plan.DirectConnection.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -148,6 +180,10 @@ func (r *mediaConnectivityPolicyResource) Delete(ctx context.Context, req resour
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("MediaConnectivityPolicy Global not deleted", "The Global MediaConnectivityPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsMediaConnectivityPolicy(ctx, cs.RemoveCsTeamsMediaConnectivityPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-MediaConnectivityPolicy failed", err.Error())
@@ -158,6 +194,41 @@ func (r *mediaConnectivityPolicyResource) Delete(ctx context.Context, req resour
 func (r *mediaConnectivityPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *mediaConnectivityPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan mediaConnectivityPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsMediaConnectivityPolicy(ctx, cs.GetCsTeamsMediaConnectivityPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur mediaConnectivityPolicyModel
+	readMediaConnectivityPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.DirectConnection.IsUnknown() {
+		plan.DirectConnection = cur.DirectConnection
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *mediaConnectivityPolicyResource) identityOf(m mediaConnectivityPolicyModel) string {

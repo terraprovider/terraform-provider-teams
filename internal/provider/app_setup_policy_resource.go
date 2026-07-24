@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &appSetupPolicyResource{}
 	_ resource.ResourceWithConfigure   = &appSetupPolicyResource{}
 	_ resource.ResourceWithImportState = &appSetupPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &appSetupPolicyResource{}
 )
 
 type appSetupPolicyResource struct{ client *clients.Client }
@@ -83,33 +84,88 @@ func (r *appSetupPolicyResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
-	p := cs.NewCsTeamsAppSetupPolicyParams{}
-	if v := plan.AdditionalCustomizationApps.ValueString(); v != "" {
-		p.AdditionalCustomizationApps = v
+	var config appSetupPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
-	if !plan.AllowSideLoading.IsUnknown() && !plan.AllowSideLoading.IsNull() {
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsAppSetupPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if v := config.AdditionalCustomizationApps.ValueString(); v != "" {
+			sp.AdditionalCustomizationApps = objectParam(v)
+		}
+		if !config.AllowSideLoading.IsNull() {
+			sp.AllowSideLoading = plan.AllowSideLoading.ValueBoolPointer()
+		}
+		if !config.AllowUserPinning.IsNull() {
+			sp.AllowUserPinning = plan.AllowUserPinning.ValueBoolPointer()
+		}
+		if v := config.AppPresetList.ValueString(); v != "" {
+			sp.AppPresetList = objectParam(v)
+		}
+		if v := config.AppPresetMeetingList.ValueString(); v != "" {
+			sp.AppPresetMeetingList = objectParam(v)
+		}
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if v := config.PinnedAppBarApps.ValueString(); v != "" {
+			sp.PinnedAppBarApps = objectParam(v)
+		}
+		if v := config.PinnedCallingBarApps.ValueString(); v != "" {
+			sp.PinnedCallingBarApps = objectParam(v)
+		}
+		if v := config.PinnedMessageBarApps.ValueString(); v != "" {
+			sp.PinnedMessageBarApps = objectParam(v)
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsAppSetupPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-AppSetupPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("AppSetupPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
+	p := cs.NewCsTeamsAppSetupPolicyParams{}
+	if v := config.AdditionalCustomizationApps.ValueString(); v != "" {
+		p.AdditionalCustomizationApps = objectParam(v)
+	}
+	if !config.AllowSideLoading.IsNull() {
 		p.AllowSideLoading = plan.AllowSideLoading.ValueBoolPointer()
 	}
-	if !plan.AllowUserPinning.IsUnknown() && !plan.AllowUserPinning.IsNull() {
+	if !config.AllowUserPinning.IsNull() {
 		p.AllowUserPinning = plan.AllowUserPinning.ValueBoolPointer()
 	}
-	if v := plan.AppPresetList.ValueString(); v != "" {
-		p.AppPresetList = v
+	if v := config.AppPresetList.ValueString(); v != "" {
+		p.AppPresetList = objectParam(v)
 	}
-	if v := plan.AppPresetMeetingList.ValueString(); v != "" {
-		p.AppPresetMeetingList = v
+	if v := config.AppPresetMeetingList.ValueString(); v != "" {
+		p.AppPresetMeetingList = objectParam(v)
 	}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if v := plan.PinnedAppBarApps.ValueString(); v != "" {
-		p.PinnedAppBarApps = v
+	if v := config.PinnedAppBarApps.ValueString(); v != "" {
+		p.PinnedAppBarApps = objectParam(v)
 	}
-	if v := plan.PinnedCallingBarApps.ValueString(); v != "" {
-		p.PinnedCallingBarApps = v
+	if v := config.PinnedCallingBarApps.ValueString(); v != "" {
+		p.PinnedCallingBarApps = objectParam(v)
 	}
-	if v := plan.PinnedMessageBarApps.ValueString(); v != "" {
-		p.PinnedMessageBarApps = v
+	if v := config.PinnedMessageBarApps.ValueString(); v != "" {
+		p.PinnedMessageBarApps = objectParam(v)
 	}
 	p.Identity = plan.Identity.ValueString()
 	if resp.Diagnostics.HasError() {
@@ -163,7 +219,7 @@ func (r *appSetupPolicyResource) Update(ctx context.Context, req resource.Update
 	sp := cs.SetCsTeamsAppSetupPolicyParams{}
 	sp.Identity = id
 	if v := plan.AdditionalCustomizationApps.ValueString(); v != "" {
-		sp.AdditionalCustomizationApps = v
+		sp.AdditionalCustomizationApps = objectParam(v)
 	}
 	if !plan.AllowSideLoading.Equal(state.AllowSideLoading) {
 		sp.AllowSideLoading = plan.AllowSideLoading.ValueBoolPointer()
@@ -172,22 +228,22 @@ func (r *appSetupPolicyResource) Update(ctx context.Context, req resource.Update
 		sp.AllowUserPinning = plan.AllowUserPinning.ValueBoolPointer()
 	}
 	if v := plan.AppPresetList.ValueString(); v != "" {
-		sp.AppPresetList = v
+		sp.AppPresetList = objectParam(v)
 	}
 	if v := plan.AppPresetMeetingList.ValueString(); v != "" {
-		sp.AppPresetMeetingList = v
+		sp.AppPresetMeetingList = objectParam(v)
 	}
 	if !plan.Description.Equal(state.Description) {
 		sp.Description = plan.Description.ValueString()
 	}
 	if v := plan.PinnedAppBarApps.ValueString(); v != "" {
-		sp.PinnedAppBarApps = v
+		sp.PinnedAppBarApps = objectParam(v)
 	}
 	if v := plan.PinnedCallingBarApps.ValueString(); v != "" {
-		sp.PinnedCallingBarApps = v
+		sp.PinnedCallingBarApps = objectParam(v)
 	}
 	if v := plan.PinnedMessageBarApps.ValueString(); v != "" {
-		sp.PinnedMessageBarApps = v
+		sp.PinnedMessageBarApps = objectParam(v)
 	}
 	if resp.Diagnostics.HasError() {
 		return
@@ -198,13 +254,7 @@ func (r *appSetupPolicyResource) Update(ctx context.Context, req resource.Update
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{
-		"AdditionalCustomizationApps": cfg.AdditionalCustomizationApps,
-		"AppPresetList":               cfg.AppPresetList,
-		"AppPresetMeetingList":        cfg.AppPresetMeetingList,
-		"Description":                 cfg.Description,
-		"PinnedAppBarApps":            cfg.PinnedAppBarApps,
-		"PinnedCallingBarApps":        cfg.PinnedCallingBarApps,
-		"PinnedMessageBarApps":        cfg.PinnedMessageBarApps,
+		"Description": cfg.Description,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
 	r.reconcileState(&cfg, &plan)
@@ -217,6 +267,10 @@ func (r *appSetupPolicyResource) Delete(ctx context.Context, req resource.Delete
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("AppSetupPolicy Global not deleted", "The Global AppSetupPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsAppSetupPolicy(ctx, cs.RemoveCsTeamsAppSetupPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-AppSetupPolicy failed", err.Error())
@@ -227,6 +281,65 @@ func (r *appSetupPolicyResource) Delete(ctx context.Context, req resource.Delete
 func (r *appSetupPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *appSetupPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan appSetupPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsAppSetupPolicy(ctx, cs.GetCsTeamsAppSetupPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur appSetupPolicyModel
+	readAppSetupPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AdditionalCustomizationApps.IsUnknown() {
+		plan.AdditionalCustomizationApps = cur.AdditionalCustomizationApps
+	}
+	if plan.AllowSideLoading.IsUnknown() {
+		plan.AllowSideLoading = cur.AllowSideLoading
+	}
+	if plan.AllowUserPinning.IsUnknown() {
+		plan.AllowUserPinning = cur.AllowUserPinning
+	}
+	if plan.AppPresetList.IsUnknown() {
+		plan.AppPresetList = cur.AppPresetList
+	}
+	if plan.AppPresetMeetingList.IsUnknown() {
+		plan.AppPresetMeetingList = cur.AppPresetMeetingList
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.PinnedAppBarApps.IsUnknown() {
+		plan.PinnedAppBarApps = cur.PinnedAppBarApps
+	}
+	if plan.PinnedCallingBarApps.IsUnknown() {
+		plan.PinnedCallingBarApps = cur.PinnedCallingBarApps
+	}
+	if plan.PinnedMessageBarApps.IsUnknown() {
+		plan.PinnedMessageBarApps = cur.PinnedMessageBarApps
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *appSetupPolicyResource) identityOf(m appSetupPolicyModel) string {
@@ -265,15 +378,15 @@ func (r *appSetupPolicyResource) refresh(ctx context.Context, identity string, m
 
 func readAppSetupPolicy(ctx context.Context, obj map[string]any, m *appSetupPolicyModel) {
 	m.ID = types.StringValue(firstNonEmptyStr(getString(obj, "Guid"), getString(obj, "Id"), getString(obj, "Identity")))
-	m.AdditionalCustomizationApps = types.StringValue(getString(obj, "AdditionalCustomizationApps"))
+	m.AdditionalCustomizationApps = types.StringValue(getObjectJSON(obj, "AdditionalCustomizationApps"))
 	m.AllowSideLoading = types.BoolValue(getBool(obj, "AllowSideLoading"))
 	m.AllowUserPinning = types.BoolValue(getBool(obj, "AllowUserPinning"))
-	m.AppPresetList = types.StringValue(getString(obj, "AppPresetList"))
-	m.AppPresetMeetingList = types.StringValue(getString(obj, "AppPresetMeetingList"))
+	m.AppPresetList = types.StringValue(getObjectJSON(obj, "AppPresetList"))
+	m.AppPresetMeetingList = types.StringValue(getObjectJSON(obj, "AppPresetMeetingList"))
 	m.Description = types.StringValue(getString(obj, "Description"))
-	m.PinnedAppBarApps = types.StringValue(getString(obj, "PinnedAppBarApps"))
-	m.PinnedCallingBarApps = types.StringValue(getString(obj, "PinnedCallingBarApps"))
-	m.PinnedMessageBarApps = types.StringValue(getString(obj, "PinnedMessageBarApps"))
+	m.PinnedAppBarApps = types.StringValue(getObjectJSON(obj, "PinnedAppBarApps"))
+	m.PinnedCallingBarApps = types.StringValue(getObjectJSON(obj, "PinnedCallingBarApps"))
+	m.PinnedMessageBarApps = types.StringValue(getObjectJSON(obj, "PinnedMessageBarApps"))
 	_ = ctx
 }
 

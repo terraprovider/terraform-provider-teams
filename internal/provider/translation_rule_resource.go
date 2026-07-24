@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &translationRuleResource{}
 	_ resource.ResourceWithConfigure   = &translationRuleResource{}
 	_ resource.ResourceWithImportState = &translationRuleResource{}
+	_ resource.ResourceWithModifyPlan  = &translationRuleResource{}
 )
 
 type translationRuleResource struct{ client *clients.Client }
@@ -72,17 +73,54 @@ func (r *translationRuleResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
+	var config translationRuleModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsTranslationRuleParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if !config.Pattern.IsNull() {
+			sp.Pattern = plan.Pattern.ValueString()
+		}
+		if !config.Translation.IsNull() {
+			sp.Translation = plan.Translation.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsTranslationRule(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-TranslationRule failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("TranslationRule not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsTranslationRuleParams{}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if !plan.Name.IsUnknown() && !plan.Name.IsNull() {
+	if !config.Name.IsNull() {
 		p.Name = plan.Name.ValueString()
 	}
-	if !plan.Pattern.IsUnknown() && !plan.Pattern.IsNull() {
+	if !config.Pattern.IsNull() {
 		p.Pattern = plan.Pattern.ValueString()
 	}
-	if !plan.Translation.IsUnknown() && !plan.Translation.IsNull() {
+	if !config.Translation.IsNull() {
 		p.Translation = plan.Translation.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -169,6 +207,10 @@ func (r *translationRuleResource) Delete(ctx context.Context, req resource.Delet
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("TranslationRule Global not deleted", "The Global TranslationRule is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsTranslationRule(ctx, cs.RemoveCsTeamsTranslationRuleParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-TranslationRule failed", err.Error())
@@ -179,6 +221,50 @@ func (r *translationRuleResource) Delete(ctx context.Context, req resource.Delet
 func (r *translationRuleResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *translationRuleResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan translationRuleModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsTranslationRule(ctx, cs.GetCsTeamsTranslationRuleParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur translationRuleModel
+	readTranslationRule(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.Name.IsUnknown() {
+		plan.Name = cur.Name
+	}
+	if plan.Pattern.IsUnknown() {
+		plan.Pattern = cur.Pattern
+	}
+	if plan.Translation.IsUnknown() {
+		plan.Translation = cur.Translation
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *translationRuleResource) identityOf(m translationRuleModel) string {

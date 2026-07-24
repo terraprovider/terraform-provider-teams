@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &cortanaPolicyResource{}
 	_ resource.ResourceWithConfigure   = &cortanaPolicyResource{}
 	_ resource.ResourceWithImportState = &cortanaPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &cortanaPolicyResource{}
 )
 
 type cortanaPolicyResource struct{ client *clients.Client }
@@ -75,20 +76,63 @@ func (r *cortanaPolicyResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
+	var config cortanaPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsCortanaPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.AllowCortanaAmbientListening.IsNull() {
+			sp.AllowCortanaAmbientListening = plan.AllowCortanaAmbientListening.ValueBoolPointer()
+		}
+		if !config.AllowCortanaInContextSuggestions.IsNull() {
+			sp.AllowCortanaInContextSuggestions = plan.AllowCortanaInContextSuggestions.ValueBoolPointer()
+		}
+		if !config.AllowCortanaVoiceInvocation.IsNull() {
+			sp.AllowCortanaVoiceInvocation = plan.AllowCortanaVoiceInvocation.ValueBoolPointer()
+		}
+		if !config.CortanaVoiceInvocationMode.IsNull() {
+			sp.CortanaVoiceInvocationMode = plan.CortanaVoiceInvocationMode.ValueString()
+		}
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsCortanaPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-CortanaPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("CortanaPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsCortanaPolicyParams{}
-	if !plan.AllowCortanaAmbientListening.IsUnknown() && !plan.AllowCortanaAmbientListening.IsNull() {
+	if !config.AllowCortanaAmbientListening.IsNull() {
 		p.AllowCortanaAmbientListening = plan.AllowCortanaAmbientListening.ValueBoolPointer()
 	}
-	if !plan.AllowCortanaInContextSuggestions.IsUnknown() && !plan.AllowCortanaInContextSuggestions.IsNull() {
+	if !config.AllowCortanaInContextSuggestions.IsNull() {
 		p.AllowCortanaInContextSuggestions = plan.AllowCortanaInContextSuggestions.ValueBoolPointer()
 	}
-	if !plan.AllowCortanaVoiceInvocation.IsUnknown() && !plan.AllowCortanaVoiceInvocation.IsNull() {
+	if !config.AllowCortanaVoiceInvocation.IsNull() {
 		p.AllowCortanaVoiceInvocation = plan.AllowCortanaVoiceInvocation.ValueBoolPointer()
 	}
-	if !plan.CortanaVoiceInvocationMode.IsUnknown() && !plan.CortanaVoiceInvocationMode.IsNull() {
+	if !config.CortanaVoiceInvocationMode.IsNull() {
 		p.CortanaVoiceInvocationMode = plan.CortanaVoiceInvocationMode.ValueString()
 	}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -180,6 +224,10 @@ func (r *cortanaPolicyResource) Delete(ctx context.Context, req resource.DeleteR
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("CortanaPolicy Global not deleted", "The Global CortanaPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsCortanaPolicy(ctx, cs.RemoveCsTeamsCortanaPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-CortanaPolicy failed", err.Error())
@@ -190,6 +238,53 @@ func (r *cortanaPolicyResource) Delete(ctx context.Context, req resource.DeleteR
 func (r *cortanaPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *cortanaPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan cortanaPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsCortanaPolicy(ctx, cs.GetCsTeamsCortanaPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur cortanaPolicyModel
+	readCortanaPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AllowCortanaAmbientListening.IsUnknown() {
+		plan.AllowCortanaAmbientListening = cur.AllowCortanaAmbientListening
+	}
+	if plan.AllowCortanaInContextSuggestions.IsUnknown() {
+		plan.AllowCortanaInContextSuggestions = cur.AllowCortanaInContextSuggestions
+	}
+	if plan.AllowCortanaVoiceInvocation.IsUnknown() {
+		plan.AllowCortanaVoiceInvocation = cur.AllowCortanaVoiceInvocation
+	}
+	if plan.CortanaVoiceInvocationMode.IsUnknown() {
+		plan.CortanaVoiceInvocationMode = cur.CortanaVoiceInvocationMode
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *cortanaPolicyResource) identityOf(m cortanaPolicyModel) string {

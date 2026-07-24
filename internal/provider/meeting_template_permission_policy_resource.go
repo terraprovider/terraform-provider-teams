@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &meetingTemplatePermissionPolicyResource{}
 	_ resource.ResourceWithConfigure   = &meetingTemplatePermissionPolicyResource{}
 	_ resource.ResourceWithImportState = &meetingTemplatePermissionPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &meetingTemplatePermissionPolicyResource{}
 )
 
 type meetingTemplatePermissionPolicyResource struct{ client *clients.Client }
@@ -72,15 +73,52 @@ func (r *meetingTemplatePermissionPolicyResource) Create(ctx context.Context, re
 		return
 	}
 
+	var config meetingTemplatePermissionPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsMeetingTemplatePermissionPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.DefaultMeetingTemplateId.IsNull() {
+			sp.DefaultMeetingTemplateId = plan.DefaultMeetingTemplateId.ValueString()
+		}
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if v := config.HiddenMeetingTemplates.ValueString(); v != "" {
+			sp.HiddenMeetingTemplates = objectParam(v)
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsMeetingTemplatePermissionPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-MeetingTemplatePermissionPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("MeetingTemplatePermissionPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsMeetingTemplatePermissionPolicyParams{}
-	if !plan.DefaultMeetingTemplateId.IsUnknown() && !plan.DefaultMeetingTemplateId.IsNull() {
+	if !config.DefaultMeetingTemplateId.IsNull() {
 		p.DefaultMeetingTemplateId = plan.DefaultMeetingTemplateId.ValueString()
 	}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if v := plan.HiddenMeetingTemplates.ValueString(); v != "" {
-		p.HiddenMeetingTemplates = v
+	if v := config.HiddenMeetingTemplates.ValueString(); v != "" {
+		p.HiddenMeetingTemplates = objectParam(v)
 	}
 	p.Identity = plan.Identity.ValueString()
 	if resp.Diagnostics.HasError() {
@@ -140,7 +178,7 @@ func (r *meetingTemplatePermissionPolicyResource) Update(ctx context.Context, re
 		sp.Description = plan.Description.ValueString()
 	}
 	if v := plan.HiddenMeetingTemplates.ValueString(); v != "" {
-		sp.HiddenMeetingTemplates = v
+		sp.HiddenMeetingTemplates = objectParam(v)
 	}
 	if resp.Diagnostics.HasError() {
 		return
@@ -153,7 +191,6 @@ func (r *meetingTemplatePermissionPolicyResource) Update(ctx context.Context, re
 	reflected := reconcile.ReflectsFields(map[string]types.String{
 		"DefaultMeetingTemplateId": cfg.DefaultMeetingTemplateId,
 		"Description":              cfg.Description,
-		"HiddenMeetingTemplates":   cfg.HiddenMeetingTemplates,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
 	r.reconcileState(&cfg, &plan)
@@ -166,6 +203,10 @@ func (r *meetingTemplatePermissionPolicyResource) Delete(ctx context.Context, re
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("MeetingTemplatePermissionPolicy Global not deleted", "The Global MeetingTemplatePermissionPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsMeetingTemplatePermissionPolicy(ctx, cs.RemoveCsTeamsMeetingTemplatePermissionPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-MeetingTemplatePermissionPolicy failed", err.Error())
@@ -176,6 +217,47 @@ func (r *meetingTemplatePermissionPolicyResource) Delete(ctx context.Context, re
 func (r *meetingTemplatePermissionPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *meetingTemplatePermissionPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan meetingTemplatePermissionPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsMeetingTemplatePermissionPolicy(ctx, cs.GetCsTeamsMeetingTemplatePermissionPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur meetingTemplatePermissionPolicyModel
+	readMeetingTemplatePermissionPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.DefaultMeetingTemplateId.IsUnknown() {
+		plan.DefaultMeetingTemplateId = cur.DefaultMeetingTemplateId
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.HiddenMeetingTemplates.IsUnknown() {
+		plan.HiddenMeetingTemplates = cur.HiddenMeetingTemplates
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *meetingTemplatePermissionPolicyResource) identityOf(m meetingTemplatePermissionPolicyModel) string {
@@ -216,7 +298,7 @@ func readMeetingTemplatePermissionPolicy(ctx context.Context, obj map[string]any
 	m.ID = types.StringValue(firstNonEmptyStr(getString(obj, "Guid"), getString(obj, "Id"), getString(obj, "Identity")))
 	m.DefaultMeetingTemplateId = types.StringValue(getString(obj, "DefaultMeetingTemplateId"))
 	m.Description = types.StringValue(getString(obj, "Description"))
-	m.HiddenMeetingTemplates = types.StringValue(getString(obj, "HiddenMeetingTemplates"))
+	m.HiddenMeetingTemplates = types.StringValue(getObjectJSON(obj, "HiddenMeetingTemplates"))
 	_ = ctx
 }
 

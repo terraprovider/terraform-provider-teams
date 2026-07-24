@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &multiTenantOrganizationConfigurationResource{}
 	_ resource.ResourceWithConfigure   = &multiTenantOrganizationConfigurationResource{}
 	_ resource.ResourceWithImportState = &multiTenantOrganizationConfigurationResource{}
+	_ resource.ResourceWithModifyPlan  = &multiTenantOrganizationConfigurationResource{}
 )
 
 type multiTenantOrganizationConfigurationResource struct{ client *clients.Client }
@@ -67,9 +68,14 @@ func (r *multiTenantOrganizationConfigurationResource) Create(ctx context.Contex
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config multiTenantOrganizationConfigurationModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTeamsMultiTenantOrganizationConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.CopilotFromHomeTenant.IsUnknown() && !plan.CopilotFromHomeTenant.IsNull() {
+	if !config.CopilotFromHomeTenant.IsNull() {
 		sp.CopilotFromHomeTenant = plan.CopilotFromHomeTenant.ValueString()
 	}
 	if resp.Diagnostics.HasError() {
@@ -137,6 +143,41 @@ func (r *multiTenantOrganizationConfigurationResource) Delete(_ context.Context,
 func (r *multiTenantOrganizationConfigurationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *multiTenantOrganizationConfigurationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan multiTenantOrganizationConfigurationModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsMultiTenantOrganizationConfiguration(ctx, cs.GetCsTeamsMultiTenantOrganizationConfigurationParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur multiTenantOrganizationConfigurationModel
+	readMultiTenantOrganizationConfiguration(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.CopilotFromHomeTenant.IsUnknown() {
+		plan.CopilotFromHomeTenant = cur.CopilotFromHomeTenant
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *multiTenantOrganizationConfigurationResource) identityOf(m multiTenantOrganizationConfigurationModel) string {

@@ -26,6 +26,7 @@ var (
 	_ resource.Resource                = &callingPolicyResource{}
 	_ resource.ResourceWithConfigure   = &callingPolicyResource{}
 	_ resource.ResourceWithImportState = &callingPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &callingPolicyResource{}
 )
 
 type callingPolicyResource struct{ client *clients.Client }
@@ -144,122 +145,267 @@ func (r *callingPolicyResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
+	var config callingPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsCallingPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.AIInterpreter.IsNull() {
+			sp.AIInterpreter = plan.AIInterpreter.ValueString()
+		}
+		if !config.AllowCallForwardingToPhone.IsNull() {
+			sp.AllowCallForwardingToPhone = plan.AllowCallForwardingToPhone.ValueBoolPointer()
+		}
+		if !config.AllowCallForwardingToUser.IsNull() {
+			sp.AllowCallForwardingToUser = plan.AllowCallForwardingToUser.ValueBoolPointer()
+		}
+		if !config.AllowCallGroups.IsNull() {
+			sp.AllowCallGroups = plan.AllowCallGroups.ValueBoolPointer()
+		}
+		if !config.AllowCallRedirect.IsNull() {
+			sp.AllowCallRedirect = plan.AllowCallRedirect.ValueString()
+		}
+		if !config.AllowCloudRecordingForCalls.IsNull() {
+			sp.AllowCloudRecordingForCalls = plan.AllowCloudRecordingForCalls.ValueBoolPointer()
+		}
+		if !config.AllowDelegation.IsNull() {
+			sp.AllowDelegation = plan.AllowDelegation.ValueBoolPointer()
+		}
+		if !config.AllowMeetingKnowledgeGeneration.IsNull() {
+			sp.AllowMeetingKnowledgeGeneration = plan.AllowMeetingKnowledgeGeneration.ValueBoolPointer()
+		}
+		if !config.AllowPrivateCalling.IsNull() {
+			sp.AllowPrivateCalling = plan.AllowPrivateCalling.ValueBoolPointer()
+		}
+		if !config.AllowSIPDevicesCalling.IsNull() {
+			sp.AllowSIPDevicesCalling = plan.AllowSIPDevicesCalling.ValueBoolPointer()
+		}
+		if !config.AllowTranscriptionForCalling.IsNull() {
+			sp.AllowTranscriptionForCalling = plan.AllowTranscriptionForCalling.ValueBoolPointer()
+		}
+		if !config.AllowVoicemail.IsNull() {
+			sp.AllowVoicemail = plan.AllowVoicemail.ValueString()
+		}
+		if !config.AllowWebPSTNCalling.IsNull() {
+			sp.AllowWebPSTNCalling = plan.AllowWebPSTNCalling.ValueBoolPointer()
+		}
+		if !config.AutoAnswerEnabledType.IsNull() {
+			sp.AutoAnswerEnabledType = plan.AutoAnswerEnabledType.ValueString()
+		}
+		if !config.BusyOnBusyEnabledType.IsNull() {
+			sp.BusyOnBusyEnabledType = plan.BusyOnBusyEnabledType.ValueString()
+		}
+		if !config.CallRecordingExpirationDays.IsNull() {
+			sp.CallRecordingExpirationDays = plan.CallRecordingExpirationDays.ValueInt64Pointer()
+		}
+		if !config.CallingSpendUserLimit.IsNull() {
+			sp.CallingSpendUserLimit = plan.CallingSpendUserLimit.ValueInt64Pointer()
+		}
+		if !config.Copilot.IsNull() {
+			sp.Copilot = plan.Copilot.ValueString()
+		}
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if !config.EnableRecordingAndTranscriptionCustomMessage.IsNull() {
+			sp.EnableRecordingAndTranscriptionCustomMessage = plan.EnableRecordingAndTranscriptionCustomMessage.ValueBoolPointer()
+		}
+		if !config.EnableSpendLimits.IsNull() {
+			sp.EnableSpendLimits = plan.EnableSpendLimits.ValueBoolPointer()
+		}
+		if !config.EnableWebPstnMediaBypass.IsNull() {
+			sp.EnableWebPstnMediaBypass = plan.EnableWebPstnMediaBypass.ValueBoolPointer()
+		}
+		if !config.ExplicitRecordingConsent.IsNull() {
+			sp.ExplicitRecordingConsent = plan.ExplicitRecordingConsent.ValueString()
+		}
+		if !config.InboundFederatedCallRoutingTreatment.IsNull() {
+			sp.InboundFederatedCallRoutingTreatment = plan.InboundFederatedCallRoutingTreatment.ValueString()
+		}
+		if !config.InboundPstnCallRoutingTreatment.IsNull() {
+			sp.InboundPstnCallRoutingTreatment = plan.InboundPstnCallRoutingTreatment.ValueString()
+		}
+		if !config.LiveCaptionsEnabledTypeForCalling.IsNull() {
+			sp.LiveCaptionsEnabledTypeForCalling = plan.LiveCaptionsEnabledTypeForCalling.ValueString()
+		}
+		if !config.MusicOnHoldEnabledType.IsNull() {
+			sp.MusicOnHoldEnabledType = plan.MusicOnHoldEnabledType.ValueString()
+		}
+		if !config.PopoutAppPathForIncomingPstnCalls.IsNull() {
+			sp.PopoutAppPathForIncomingPstnCalls = plan.PopoutAppPathForIncomingPstnCalls.ValueString()
+		}
+		if !config.PopoutForIncomingPstnCalls.IsNull() {
+			sp.PopoutForIncomingPstnCalls = plan.PopoutForIncomingPstnCalls.ValueString()
+		}
+		if !config.PreventComplianceRecording.IsNull() {
+			sp.PreventComplianceRecording = plan.PreventComplianceRecording.ValueString()
+		}
+		if !config.PreventTollBypass.IsNull() {
+			sp.PreventTollBypass = plan.PreventTollBypass.ValueBoolPointer()
+		}
+		if !config.RealTimeText.IsNull() {
+			sp.RealTimeText = plan.RealTimeText.ValueString()
+		}
+		if !config.RecordingAndTranscriptionAudioNotification.IsNull() {
+			sp.RecordingAndTranscriptionAudioNotification = plan.RecordingAndTranscriptionAudioNotification.ValueString()
+		}
+		if !config.RecordingAndTranscriptionCustomMessageIdentifier.IsNull() {
+			sp.RecordingAndTranscriptionCustomMessageIdentifier = plan.RecordingAndTranscriptionCustomMessageIdentifier.ValueString()
+		}
+		if !config.ReportCall.IsNull() {
+			sp.ReportCall = plan.ReportCall.ValueString()
+		}
+		if !config.ShowTeamsCallsInCallLog.IsNull() {
+			sp.ShowTeamsCallsInCallLog = plan.ShowTeamsCallsInCallLog.ValueBoolPointer()
+		}
+		if !config.SpamFilteringEnabledType.IsNull() {
+			sp.SpamFilteringEnabledType = plan.SpamFilteringEnabledType.ValueString()
+		}
+		if !config.VoicePhishingDetection.IsNull() {
+			sp.VoicePhishingDetection = plan.VoicePhishingDetection.ValueString()
+		}
+		if !config.VoiceSimulationInInterpreter.IsNull() {
+			sp.VoiceSimulationInInterpreter = plan.VoiceSimulationInInterpreter.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsCallingPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-CallingPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("CallingPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsCallingPolicyParams{}
-	if !plan.AIInterpreter.IsUnknown() && !plan.AIInterpreter.IsNull() {
+	if !config.AIInterpreter.IsNull() {
 		p.AIInterpreter = plan.AIInterpreter.ValueString()
 	}
-	if !plan.AllowCallForwardingToPhone.IsUnknown() && !plan.AllowCallForwardingToPhone.IsNull() {
+	if !config.AllowCallForwardingToPhone.IsNull() {
 		p.AllowCallForwardingToPhone = plan.AllowCallForwardingToPhone.ValueBoolPointer()
 	}
-	if !plan.AllowCallForwardingToUser.IsUnknown() && !plan.AllowCallForwardingToUser.IsNull() {
+	if !config.AllowCallForwardingToUser.IsNull() {
 		p.AllowCallForwardingToUser = plan.AllowCallForwardingToUser.ValueBoolPointer()
 	}
-	if !plan.AllowCallGroups.IsUnknown() && !plan.AllowCallGroups.IsNull() {
+	if !config.AllowCallGroups.IsNull() {
 		p.AllowCallGroups = plan.AllowCallGroups.ValueBoolPointer()
 	}
-	if !plan.AllowCallRedirect.IsUnknown() && !plan.AllowCallRedirect.IsNull() {
+	if !config.AllowCallRedirect.IsNull() {
 		p.AllowCallRedirect = plan.AllowCallRedirect.ValueString()
 	}
-	if !plan.AllowCloudRecordingForCalls.IsUnknown() && !plan.AllowCloudRecordingForCalls.IsNull() {
+	if !config.AllowCloudRecordingForCalls.IsNull() {
 		p.AllowCloudRecordingForCalls = plan.AllowCloudRecordingForCalls.ValueBoolPointer()
 	}
-	if !plan.AllowDelegation.IsUnknown() && !plan.AllowDelegation.IsNull() {
+	if !config.AllowDelegation.IsNull() {
 		p.AllowDelegation = plan.AllowDelegation.ValueBoolPointer()
 	}
-	if !plan.AllowMeetingKnowledgeGeneration.IsUnknown() && !plan.AllowMeetingKnowledgeGeneration.IsNull() {
+	if !config.AllowMeetingKnowledgeGeneration.IsNull() {
 		p.AllowMeetingKnowledgeGeneration = plan.AllowMeetingKnowledgeGeneration.ValueBoolPointer()
 	}
-	if !plan.AllowPrivateCalling.IsUnknown() && !plan.AllowPrivateCalling.IsNull() {
+	if !config.AllowPrivateCalling.IsNull() {
 		p.AllowPrivateCalling = plan.AllowPrivateCalling.ValueBoolPointer()
 	}
-	if !plan.AllowSIPDevicesCalling.IsUnknown() && !plan.AllowSIPDevicesCalling.IsNull() {
+	if !config.AllowSIPDevicesCalling.IsNull() {
 		p.AllowSIPDevicesCalling = plan.AllowSIPDevicesCalling.ValueBoolPointer()
 	}
-	if !plan.AllowTranscriptionForCalling.IsUnknown() && !plan.AllowTranscriptionForCalling.IsNull() {
+	if !config.AllowTranscriptionForCalling.IsNull() {
 		p.AllowTranscriptionForCalling = plan.AllowTranscriptionForCalling.ValueBoolPointer()
 	}
-	if !plan.AllowVoicemail.IsUnknown() && !plan.AllowVoicemail.IsNull() {
+	if !config.AllowVoicemail.IsNull() {
 		p.AllowVoicemail = plan.AllowVoicemail.ValueString()
 	}
-	if !plan.AllowWebPSTNCalling.IsUnknown() && !plan.AllowWebPSTNCalling.IsNull() {
+	if !config.AllowWebPSTNCalling.IsNull() {
 		p.AllowWebPSTNCalling = plan.AllowWebPSTNCalling.ValueBoolPointer()
 	}
-	if !plan.AutoAnswerEnabledType.IsUnknown() && !plan.AutoAnswerEnabledType.IsNull() {
+	if !config.AutoAnswerEnabledType.IsNull() {
 		p.AutoAnswerEnabledType = plan.AutoAnswerEnabledType.ValueString()
 	}
-	if !plan.BusyOnBusyEnabledType.IsUnknown() && !plan.BusyOnBusyEnabledType.IsNull() {
+	if !config.BusyOnBusyEnabledType.IsNull() {
 		p.BusyOnBusyEnabledType = plan.BusyOnBusyEnabledType.ValueString()
 	}
-	if !plan.CallRecordingExpirationDays.IsUnknown() && !plan.CallRecordingExpirationDays.IsNull() {
+	if !config.CallRecordingExpirationDays.IsNull() {
 		p.CallRecordingExpirationDays = plan.CallRecordingExpirationDays.ValueInt64Pointer()
 	}
-	if !plan.CallingSpendUserLimit.IsUnknown() && !plan.CallingSpendUserLimit.IsNull() {
+	if !config.CallingSpendUserLimit.IsNull() {
 		p.CallingSpendUserLimit = plan.CallingSpendUserLimit.ValueInt64Pointer()
 	}
-	if !plan.Copilot.IsUnknown() && !plan.Copilot.IsNull() {
+	if !config.Copilot.IsNull() {
 		p.Copilot = plan.Copilot.ValueString()
 	}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if !plan.EnableRecordingAndTranscriptionCustomMessage.IsUnknown() && !plan.EnableRecordingAndTranscriptionCustomMessage.IsNull() {
+	if !config.EnableRecordingAndTranscriptionCustomMessage.IsNull() {
 		p.EnableRecordingAndTranscriptionCustomMessage = plan.EnableRecordingAndTranscriptionCustomMessage.ValueBoolPointer()
 	}
-	if !plan.EnableSpendLimits.IsUnknown() && !plan.EnableSpendLimits.IsNull() {
+	if !config.EnableSpendLimits.IsNull() {
 		p.EnableSpendLimits = plan.EnableSpendLimits.ValueBoolPointer()
 	}
-	if !plan.EnableWebPstnMediaBypass.IsUnknown() && !plan.EnableWebPstnMediaBypass.IsNull() {
+	if !config.EnableWebPstnMediaBypass.IsNull() {
 		p.EnableWebPstnMediaBypass = plan.EnableWebPstnMediaBypass.ValueBoolPointer()
 	}
-	if !plan.ExplicitRecordingConsent.IsUnknown() && !plan.ExplicitRecordingConsent.IsNull() {
+	if !config.ExplicitRecordingConsent.IsNull() {
 		p.ExplicitRecordingConsent = plan.ExplicitRecordingConsent.ValueString()
 	}
-	if !plan.InboundFederatedCallRoutingTreatment.IsUnknown() && !plan.InboundFederatedCallRoutingTreatment.IsNull() {
+	if !config.InboundFederatedCallRoutingTreatment.IsNull() {
 		p.InboundFederatedCallRoutingTreatment = plan.InboundFederatedCallRoutingTreatment.ValueString()
 	}
-	if !plan.InboundPstnCallRoutingTreatment.IsUnknown() && !plan.InboundPstnCallRoutingTreatment.IsNull() {
+	if !config.InboundPstnCallRoutingTreatment.IsNull() {
 		p.InboundPstnCallRoutingTreatment = plan.InboundPstnCallRoutingTreatment.ValueString()
 	}
-	if !plan.LiveCaptionsEnabledTypeForCalling.IsUnknown() && !plan.LiveCaptionsEnabledTypeForCalling.IsNull() {
+	if !config.LiveCaptionsEnabledTypeForCalling.IsNull() {
 		p.LiveCaptionsEnabledTypeForCalling = plan.LiveCaptionsEnabledTypeForCalling.ValueString()
 	}
-	if !plan.MusicOnHoldEnabledType.IsUnknown() && !plan.MusicOnHoldEnabledType.IsNull() {
+	if !config.MusicOnHoldEnabledType.IsNull() {
 		p.MusicOnHoldEnabledType = plan.MusicOnHoldEnabledType.ValueString()
 	}
-	if !plan.PopoutAppPathForIncomingPstnCalls.IsUnknown() && !plan.PopoutAppPathForIncomingPstnCalls.IsNull() {
+	if !config.PopoutAppPathForIncomingPstnCalls.IsNull() {
 		p.PopoutAppPathForIncomingPstnCalls = plan.PopoutAppPathForIncomingPstnCalls.ValueString()
 	}
-	if !plan.PopoutForIncomingPstnCalls.IsUnknown() && !plan.PopoutForIncomingPstnCalls.IsNull() {
+	if !config.PopoutForIncomingPstnCalls.IsNull() {
 		p.PopoutForIncomingPstnCalls = plan.PopoutForIncomingPstnCalls.ValueString()
 	}
-	if !plan.PreventComplianceRecording.IsUnknown() && !plan.PreventComplianceRecording.IsNull() {
+	if !config.PreventComplianceRecording.IsNull() {
 		p.PreventComplianceRecording = plan.PreventComplianceRecording.ValueString()
 	}
-	if !plan.PreventTollBypass.IsUnknown() && !plan.PreventTollBypass.IsNull() {
+	if !config.PreventTollBypass.IsNull() {
 		p.PreventTollBypass = plan.PreventTollBypass.ValueBoolPointer()
 	}
-	if !plan.RealTimeText.IsUnknown() && !plan.RealTimeText.IsNull() {
+	if !config.RealTimeText.IsNull() {
 		p.RealTimeText = plan.RealTimeText.ValueString()
 	}
-	if !plan.RecordingAndTranscriptionAudioNotification.IsUnknown() && !plan.RecordingAndTranscriptionAudioNotification.IsNull() {
+	if !config.RecordingAndTranscriptionAudioNotification.IsNull() {
 		p.RecordingAndTranscriptionAudioNotification = plan.RecordingAndTranscriptionAudioNotification.ValueString()
 	}
-	if !plan.RecordingAndTranscriptionCustomMessageIdentifier.IsUnknown() && !plan.RecordingAndTranscriptionCustomMessageIdentifier.IsNull() {
+	if !config.RecordingAndTranscriptionCustomMessageIdentifier.IsNull() {
 		p.RecordingAndTranscriptionCustomMessageIdentifier = plan.RecordingAndTranscriptionCustomMessageIdentifier.ValueString()
 	}
-	if !plan.ReportCall.IsUnknown() && !plan.ReportCall.IsNull() {
+	if !config.ReportCall.IsNull() {
 		p.ReportCall = plan.ReportCall.ValueString()
 	}
-	if !plan.ShowTeamsCallsInCallLog.IsUnknown() && !plan.ShowTeamsCallsInCallLog.IsNull() {
+	if !config.ShowTeamsCallsInCallLog.IsNull() {
 		p.ShowTeamsCallsInCallLog = plan.ShowTeamsCallsInCallLog.ValueBoolPointer()
 	}
-	if !plan.SpamFilteringEnabledType.IsUnknown() && !plan.SpamFilteringEnabledType.IsNull() {
+	if !config.SpamFilteringEnabledType.IsNull() {
 		p.SpamFilteringEnabledType = plan.SpamFilteringEnabledType.ValueString()
 	}
-	if !plan.VoicePhishingDetection.IsUnknown() && !plan.VoicePhishingDetection.IsNull() {
+	if !config.VoicePhishingDetection.IsNull() {
 		p.VoicePhishingDetection = plan.VoicePhishingDetection.ValueString()
 	}
-	if !plan.VoiceSimulationInInterpreter.IsUnknown() && !plan.VoiceSimulationInInterpreter.IsNull() {
+	if !config.VoiceSimulationInInterpreter.IsNull() {
 		p.VoiceSimulationInInterpreter = plan.VoiceSimulationInInterpreter.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -473,6 +619,10 @@ func (r *callingPolicyResource) Delete(ctx context.Context, req resource.DeleteR
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("CallingPolicy Global not deleted", "The Global CallingPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsCallingPolicy(ctx, cs.RemoveCsTeamsCallingPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-CallingPolicy failed", err.Error())
@@ -483,6 +633,155 @@ func (r *callingPolicyResource) Delete(ctx context.Context, req resource.DeleteR
 func (r *callingPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *callingPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan callingPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsCallingPolicy(ctx, cs.GetCsTeamsCallingPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur callingPolicyModel
+	readCallingPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AIInterpreter.IsUnknown() {
+		plan.AIInterpreter = cur.AIInterpreter
+	}
+	if plan.AllowCallForwardingToPhone.IsUnknown() {
+		plan.AllowCallForwardingToPhone = cur.AllowCallForwardingToPhone
+	}
+	if plan.AllowCallForwardingToUser.IsUnknown() {
+		plan.AllowCallForwardingToUser = cur.AllowCallForwardingToUser
+	}
+	if plan.AllowCallGroups.IsUnknown() {
+		plan.AllowCallGroups = cur.AllowCallGroups
+	}
+	if plan.AllowCallRedirect.IsUnknown() {
+		plan.AllowCallRedirect = cur.AllowCallRedirect
+	}
+	if plan.AllowCloudRecordingForCalls.IsUnknown() {
+		plan.AllowCloudRecordingForCalls = cur.AllowCloudRecordingForCalls
+	}
+	if plan.AllowDelegation.IsUnknown() {
+		plan.AllowDelegation = cur.AllowDelegation
+	}
+	if plan.AllowMeetingKnowledgeGeneration.IsUnknown() {
+		plan.AllowMeetingKnowledgeGeneration = cur.AllowMeetingKnowledgeGeneration
+	}
+	if plan.AllowPrivateCalling.IsUnknown() {
+		plan.AllowPrivateCalling = cur.AllowPrivateCalling
+	}
+	if plan.AllowSIPDevicesCalling.IsUnknown() {
+		plan.AllowSIPDevicesCalling = cur.AllowSIPDevicesCalling
+	}
+	if plan.AllowTranscriptionForCalling.IsUnknown() {
+		plan.AllowTranscriptionForCalling = cur.AllowTranscriptionForCalling
+	}
+	if plan.AllowVoicemail.IsUnknown() {
+		plan.AllowVoicemail = cur.AllowVoicemail
+	}
+	if plan.AllowWebPSTNCalling.IsUnknown() {
+		plan.AllowWebPSTNCalling = cur.AllowWebPSTNCalling
+	}
+	if plan.AutoAnswerEnabledType.IsUnknown() {
+		plan.AutoAnswerEnabledType = cur.AutoAnswerEnabledType
+	}
+	if plan.BusyOnBusyEnabledType.IsUnknown() {
+		plan.BusyOnBusyEnabledType = cur.BusyOnBusyEnabledType
+	}
+	if plan.CallRecordingExpirationDays.IsUnknown() {
+		plan.CallRecordingExpirationDays = cur.CallRecordingExpirationDays
+	}
+	if plan.CallingSpendUserLimit.IsUnknown() {
+		plan.CallingSpendUserLimit = cur.CallingSpendUserLimit
+	}
+	if plan.Copilot.IsUnknown() {
+		plan.Copilot = cur.Copilot
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.EnableRecordingAndTranscriptionCustomMessage.IsUnknown() {
+		plan.EnableRecordingAndTranscriptionCustomMessage = cur.EnableRecordingAndTranscriptionCustomMessage
+	}
+	if plan.EnableSpendLimits.IsUnknown() {
+		plan.EnableSpendLimits = cur.EnableSpendLimits
+	}
+	if plan.EnableWebPstnMediaBypass.IsUnknown() {
+		plan.EnableWebPstnMediaBypass = cur.EnableWebPstnMediaBypass
+	}
+	if plan.ExplicitRecordingConsent.IsUnknown() {
+		plan.ExplicitRecordingConsent = cur.ExplicitRecordingConsent
+	}
+	if plan.InboundFederatedCallRoutingTreatment.IsUnknown() {
+		plan.InboundFederatedCallRoutingTreatment = cur.InboundFederatedCallRoutingTreatment
+	}
+	if plan.InboundPstnCallRoutingTreatment.IsUnknown() {
+		plan.InboundPstnCallRoutingTreatment = cur.InboundPstnCallRoutingTreatment
+	}
+	if plan.LiveCaptionsEnabledTypeForCalling.IsUnknown() {
+		plan.LiveCaptionsEnabledTypeForCalling = cur.LiveCaptionsEnabledTypeForCalling
+	}
+	if plan.MusicOnHoldEnabledType.IsUnknown() {
+		plan.MusicOnHoldEnabledType = cur.MusicOnHoldEnabledType
+	}
+	if plan.PopoutAppPathForIncomingPstnCalls.IsUnknown() {
+		plan.PopoutAppPathForIncomingPstnCalls = cur.PopoutAppPathForIncomingPstnCalls
+	}
+	if plan.PopoutForIncomingPstnCalls.IsUnknown() {
+		plan.PopoutForIncomingPstnCalls = cur.PopoutForIncomingPstnCalls
+	}
+	if plan.PreventComplianceRecording.IsUnknown() {
+		plan.PreventComplianceRecording = cur.PreventComplianceRecording
+	}
+	if plan.PreventTollBypass.IsUnknown() {
+		plan.PreventTollBypass = cur.PreventTollBypass
+	}
+	if plan.RealTimeText.IsUnknown() {
+		plan.RealTimeText = cur.RealTimeText
+	}
+	if plan.RecordingAndTranscriptionAudioNotification.IsUnknown() {
+		plan.RecordingAndTranscriptionAudioNotification = cur.RecordingAndTranscriptionAudioNotification
+	}
+	if plan.RecordingAndTranscriptionCustomMessageIdentifier.IsUnknown() {
+		plan.RecordingAndTranscriptionCustomMessageIdentifier = cur.RecordingAndTranscriptionCustomMessageIdentifier
+	}
+	if plan.ReportCall.IsUnknown() {
+		plan.ReportCall = cur.ReportCall
+	}
+	if plan.ShowTeamsCallsInCallLog.IsUnknown() {
+		plan.ShowTeamsCallsInCallLog = cur.ShowTeamsCallsInCallLog
+	}
+	if plan.SpamFilteringEnabledType.IsUnknown() {
+		plan.SpamFilteringEnabledType = cur.SpamFilteringEnabledType
+	}
+	if plan.VoicePhishingDetection.IsUnknown() {
+		plan.VoicePhishingDetection = cur.VoicePhishingDetection
+	}
+	if plan.VoiceSimulationInInterpreter.IsUnknown() {
+		plan.VoiceSimulationInInterpreter = cur.VoiceSimulationInInterpreter
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *callingPolicyResource) identityOf(m callingPolicyModel) string {

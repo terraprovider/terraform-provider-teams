@@ -26,6 +26,7 @@ var (
 	_ resource.Resource                = &iPPhonePolicyResource{}
 	_ resource.ResourceWithConfigure   = &iPPhonePolicyResource{}
 	_ resource.ResourceWithImportState = &iPPhonePolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &iPPhonePolicyResource{}
 )
 
 type iPPhonePolicyResource struct{ client *clients.Client }
@@ -80,26 +81,75 @@ func (r *iPPhonePolicyResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
+	var config iPPhonePolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsIPPhonePolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.AllowBetterTogether.IsNull() {
+			sp.AllowBetterTogether = plan.AllowBetterTogether.ValueString()
+		}
+		if !config.AllowHomeScreen.IsNull() {
+			sp.AllowHomeScreen = plan.AllowHomeScreen.ValueString()
+		}
+		if !config.AllowHotDesking.IsNull() {
+			sp.AllowHotDesking = plan.AllowHotDesking.ValueBoolPointer()
+		}
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if !config.HotDeskingIdleTimeoutInMinutes.IsNull() {
+			sp.HotDeskingIdleTimeoutInMinutes = plan.HotDeskingIdleTimeoutInMinutes.ValueInt64Pointer()
+		}
+		if !config.SearchOnCommonAreaPhoneMode.IsNull() {
+			sp.SearchOnCommonAreaPhoneMode = plan.SearchOnCommonAreaPhoneMode.ValueString()
+		}
+		if !config.SignInMode.IsNull() {
+			sp.SignInMode = plan.SignInMode.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsIPPhonePolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-IPPhonePolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("IPPhonePolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsIPPhonePolicyParams{}
-	if !plan.AllowBetterTogether.IsUnknown() && !plan.AllowBetterTogether.IsNull() {
+	if !config.AllowBetterTogether.IsNull() {
 		p.AllowBetterTogether = plan.AllowBetterTogether.ValueString()
 	}
-	if !plan.AllowHomeScreen.IsUnknown() && !plan.AllowHomeScreen.IsNull() {
+	if !config.AllowHomeScreen.IsNull() {
 		p.AllowHomeScreen = plan.AllowHomeScreen.ValueString()
 	}
-	if !plan.AllowHotDesking.IsUnknown() && !plan.AllowHotDesking.IsNull() {
+	if !config.AllowHotDesking.IsNull() {
 		p.AllowHotDesking = plan.AllowHotDesking.ValueBoolPointer()
 	}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if !plan.HotDeskingIdleTimeoutInMinutes.IsUnknown() && !plan.HotDeskingIdleTimeoutInMinutes.IsNull() {
+	if !config.HotDeskingIdleTimeoutInMinutes.IsNull() {
 		p.HotDeskingIdleTimeoutInMinutes = plan.HotDeskingIdleTimeoutInMinutes.ValueInt64Pointer()
 	}
-	if !plan.SearchOnCommonAreaPhoneMode.IsUnknown() && !plan.SearchOnCommonAreaPhoneMode.IsNull() {
+	if !config.SearchOnCommonAreaPhoneMode.IsNull() {
 		p.SearchOnCommonAreaPhoneMode = plan.SearchOnCommonAreaPhoneMode.ValueString()
 	}
-	if !plan.SignInMode.IsUnknown() && !plan.SignInMode.IsNull() {
+	if !config.SignInMode.IsNull() {
 		p.SignInMode = plan.SignInMode.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -200,6 +250,10 @@ func (r *iPPhonePolicyResource) Delete(ctx context.Context, req resource.DeleteR
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("IPPhonePolicy Global not deleted", "The Global IPPhonePolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsIPPhonePolicy(ctx, cs.RemoveCsTeamsIPPhonePolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-IPPhonePolicy failed", err.Error())
@@ -210,6 +264,59 @@ func (r *iPPhonePolicyResource) Delete(ctx context.Context, req resource.DeleteR
 func (r *iPPhonePolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *iPPhonePolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan iPPhonePolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsIPPhonePolicy(ctx, cs.GetCsTeamsIPPhonePolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur iPPhonePolicyModel
+	readIPPhonePolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AllowBetterTogether.IsUnknown() {
+		plan.AllowBetterTogether = cur.AllowBetterTogether
+	}
+	if plan.AllowHomeScreen.IsUnknown() {
+		plan.AllowHomeScreen = cur.AllowHomeScreen
+	}
+	if plan.AllowHotDesking.IsUnknown() {
+		plan.AllowHotDesking = cur.AllowHotDesking
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.HotDeskingIdleTimeoutInMinutes.IsUnknown() {
+		plan.HotDeskingIdleTimeoutInMinutes = cur.HotDeskingIdleTimeoutInMinutes
+	}
+	if plan.SearchOnCommonAreaPhoneMode.IsUnknown() {
+		plan.SearchOnCommonAreaPhoneMode = cur.SearchOnCommonAreaPhoneMode
+	}
+	if plan.SignInMode.IsUnknown() {
+		plan.SignInMode = cur.SignInMode
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *iPPhonePolicyResource) identityOf(m iPPhonePolicyModel) string {

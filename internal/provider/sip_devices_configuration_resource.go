@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &sipDevicesConfigurationResource{}
 	_ resource.ResourceWithConfigure   = &sipDevicesConfigurationResource{}
 	_ resource.ResourceWithImportState = &sipDevicesConfigurationResource{}
+	_ resource.ResourceWithModifyPlan  = &sipDevicesConfigurationResource{}
 )
 
 type sipDevicesConfigurationResource struct{ client *clients.Client }
@@ -67,9 +68,14 @@ func (r *sipDevicesConfigurationResource) Create(ctx context.Context, req resour
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config sipDevicesConfigurationModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTeamsSipDevicesConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.BulkSignIn.IsUnknown() && !plan.BulkSignIn.IsNull() {
+	if !config.BulkSignIn.IsNull() {
 		sp.BulkSignIn = plan.BulkSignIn.ValueString()
 	}
 	if resp.Diagnostics.HasError() {
@@ -137,6 +143,41 @@ func (r *sipDevicesConfigurationResource) Delete(_ context.Context, _ resource.D
 func (r *sipDevicesConfigurationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *sipDevicesConfigurationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan sipDevicesConfigurationModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsSipDevicesConfiguration(ctx, cs.GetCsTeamsSipDevicesConfigurationParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur sipDevicesConfigurationModel
+	readSipDevicesConfiguration(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.BulkSignIn.IsUnknown() {
+		plan.BulkSignIn = cur.BulkSignIn
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *sipDevicesConfigurationResource) identityOf(m sipDevicesConfigurationModel) string {

@@ -24,6 +24,7 @@ var (
 	_ resource.Resource                = &aIPolicyResource{}
 	_ resource.ResourceWithConfigure   = &aIPolicyResource{}
 	_ resource.ResourceWithImportState = &aIPolicyResource{}
+	_ resource.ResourceWithModifyPlan  = &aIPolicyResource{}
 )
 
 type aIPolicyResource struct{ client *clients.Client }
@@ -74,20 +75,63 @@ func (r *aIPolicyResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
+	var config aIPolicyModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Identity.ValueString() == "Global" {
+		sp := cs.SetCsTeamsAIPolicyParams{}
+		sp.Identity = plan.Identity.ValueString()
+		if !config.Description.IsNull() {
+			sp.Description = plan.Description.ValueString()
+		}
+		if !config.EnrollFace.IsNull() {
+			sp.EnrollFace = plan.EnrollFace.ValueString()
+		}
+		if !config.EnrollVoice.IsNull() {
+			sp.EnrollVoice = plan.EnrollVoice.ValueString()
+		}
+		if !config.PassiveVoiceEnrollment.IsNull() {
+			sp.PassiveVoiceEnrollment = plan.PassiveVoiceEnrollment.ValueString()
+		}
+		if !config.SpeakerAttributionForBYOD.IsNull() {
+			sp.SpeakerAttributionForBYOD = plan.SpeakerAttributionForBYOD.ValueString()
+		}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if _, err := r.client.CS.SetCsTeamsAIPolicy(ctx, sp); err != nil {
+			resp.Diagnostics.AddError("Set-AIPolicy failed", err.Error())
+			return
+		}
+		cfg := plan
+		ident := plan.Identity.ValueString()
+		if !r.refresh(ctx, ident, &plan, &resp.Diagnostics, nil) {
+			if !resp.Diagnostics.HasError() {
+				resp.Diagnostics.AddError("AIPolicy not found", "identity Global does not exist and cannot be created")
+			}
+			return
+		}
+		r.reconcileState(&cfg, &plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
 	p := cs.NewCsTeamsAIPolicyParams{}
-	if !plan.Description.IsUnknown() && !plan.Description.IsNull() {
+	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
-	if !plan.EnrollFace.IsUnknown() && !plan.EnrollFace.IsNull() {
+	if !config.EnrollFace.IsNull() {
 		p.EnrollFace = plan.EnrollFace.ValueString()
 	}
-	if !plan.EnrollVoice.IsUnknown() && !plan.EnrollVoice.IsNull() {
+	if !config.EnrollVoice.IsNull() {
 		p.EnrollVoice = plan.EnrollVoice.ValueString()
 	}
-	if !plan.PassiveVoiceEnrollment.IsUnknown() && !plan.PassiveVoiceEnrollment.IsNull() {
+	if !config.PassiveVoiceEnrollment.IsNull() {
 		p.PassiveVoiceEnrollment = plan.PassiveVoiceEnrollment.ValueString()
 	}
-	if !plan.SpeakerAttributionForBYOD.IsUnknown() && !plan.SpeakerAttributionForBYOD.IsNull() {
+	if !config.SpeakerAttributionForBYOD.IsNull() {
 		p.SpeakerAttributionForBYOD = plan.SpeakerAttributionForBYOD.ValueString()
 	}
 	p.Identity = plan.Identity.ValueString()
@@ -182,6 +226,10 @@ func (r *aIPolicyResource) Delete(ctx context.Context, req resource.DeleteReques
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if r.identityOf(state) == "Global" {
+		resp.Diagnostics.AddWarning("AIPolicy Global not deleted", "The Global AIPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
+		return
+	}
 	if _, err := r.client.CS.RemoveCsTeamsAIPolicy(ctx, cs.RemoveCsTeamsAIPolicyParams{Identity: r.identityOf(state)}); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-AIPolicy failed", err.Error())
@@ -192,6 +240,53 @@ func (r *aIPolicyResource) Delete(ctx context.Context, req resource.DeleteReques
 func (r *aIPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *aIPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan aIPolicyModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity != "Global" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsAIPolicy(ctx, cs.GetCsTeamsAIPolicyParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur aIPolicyModel
+	readAIPolicy(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = cur.Description
+	}
+	if plan.EnrollFace.IsUnknown() {
+		plan.EnrollFace = cur.EnrollFace
+	}
+	if plan.EnrollVoice.IsUnknown() {
+		plan.EnrollVoice = cur.EnrollVoice
+	}
+	if plan.PassiveVoiceEnrollment.IsUnknown() {
+		plan.PassiveVoiceEnrollment = cur.PassiveVoiceEnrollment
+	}
+	if plan.SpeakerAttributionForBYOD.IsUnknown() {
+		plan.SpeakerAttributionForBYOD = cur.SpeakerAttributionForBYOD
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *aIPolicyResource) identityOf(m aIPolicyModel) string {

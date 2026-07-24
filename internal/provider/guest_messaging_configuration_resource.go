@@ -25,6 +25,7 @@ var (
 	_ resource.Resource                = &guestMessagingConfigurationResource{}
 	_ resource.ResourceWithConfigure   = &guestMessagingConfigurationResource{}
 	_ resource.ResourceWithImportState = &guestMessagingConfigurationResource{}
+	_ resource.ResourceWithModifyPlan  = &guestMessagingConfigurationResource{}
 )
 
 type guestMessagingConfigurationResource struct{ client *clients.Client }
@@ -84,33 +85,38 @@ func (r *guestMessagingConfigurationResource) Create(ctx context.Context, req re
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config guestMessagingConfigurationModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	sp := cs.SetCsTeamsGuestMessagingConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
-	if !plan.AllowGiphy.IsUnknown() && !plan.AllowGiphy.IsNull() {
+	if !config.AllowGiphy.IsNull() {
 		sp.AllowGiphy = plan.AllowGiphy.ValueBoolPointer()
 	}
-	if !plan.AllowImmersiveReader.IsUnknown() && !plan.AllowImmersiveReader.IsNull() {
+	if !config.AllowImmersiveReader.IsNull() {
 		sp.AllowImmersiveReader = plan.AllowImmersiveReader.ValueBoolPointer()
 	}
-	if !plan.AllowMemes.IsUnknown() && !plan.AllowMemes.IsNull() {
+	if !config.AllowMemes.IsNull() {
 		sp.AllowMemes = plan.AllowMemes.ValueBoolPointer()
 	}
-	if !plan.AllowStickers.IsUnknown() && !plan.AllowStickers.IsNull() {
+	if !config.AllowStickers.IsNull() {
 		sp.AllowStickers = plan.AllowStickers.ValueBoolPointer()
 	}
-	if !plan.AllowUserChat.IsUnknown() && !plan.AllowUserChat.IsNull() {
+	if !config.AllowUserChat.IsNull() {
 		sp.AllowUserChat = plan.AllowUserChat.ValueBoolPointer()
 	}
-	if !plan.AllowUserDeleteChat.IsUnknown() && !plan.AllowUserDeleteChat.IsNull() {
+	if !config.AllowUserDeleteChat.IsNull() {
 		sp.AllowUserDeleteChat = plan.AllowUserDeleteChat.ValueBoolPointer()
 	}
-	if !plan.AllowUserDeleteMessage.IsUnknown() && !plan.AllowUserDeleteMessage.IsNull() {
+	if !config.AllowUserDeleteMessage.IsNull() {
 		sp.AllowUserDeleteMessage = plan.AllowUserDeleteMessage.ValueBoolPointer()
 	}
-	if !plan.AllowUserEditMessage.IsUnknown() && !plan.AllowUserEditMessage.IsNull() {
+	if !config.AllowUserEditMessage.IsNull() {
 		sp.AllowUserEditMessage = plan.AllowUserEditMessage.ValueBoolPointer()
 	}
-	if !plan.GiphyRatingType.IsUnknown() && !plan.GiphyRatingType.IsNull() {
+	if !config.GiphyRatingType.IsNull() {
 		sp.GiphyRatingType = plan.GiphyRatingType.ValueString()
 	}
 	if resp.Diagnostics.HasError() {
@@ -202,6 +208,65 @@ func (r *guestMessagingConfigurationResource) Delete(_ context.Context, _ resour
 func (r *guestMessagingConfigurationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("identity"), req.ID)...)
+}
+
+func (r *guestMessagingConfigurationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() || r.client == nil {
+		return
+	}
+	var plan guestMessagingConfigurationModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	identity := plan.Identity.ValueString()
+	if identity == "" {
+		return
+	}
+	res, err := r.client.CS.GetCsTeamsGuestMessagingConfiguration(ctx, cs.GetCsTeamsGuestMessagingConfigurationParams{Identity: identity})
+	if err != nil {
+		return
+	}
+	obj := firstObject(res.Value)
+	if obj == nil {
+		return
+	}
+	var cur guestMessagingConfigurationModel
+	readGuestMessagingConfiguration(ctx, obj, &cur)
+	if plan.ID.IsUnknown() {
+		plan.ID = cur.ID
+	}
+	if plan.Identity.IsUnknown() {
+		plan.Identity = cur.Identity
+	}
+	if plan.AllowGiphy.IsUnknown() {
+		plan.AllowGiphy = cur.AllowGiphy
+	}
+	if plan.AllowImmersiveReader.IsUnknown() {
+		plan.AllowImmersiveReader = cur.AllowImmersiveReader
+	}
+	if plan.AllowMemes.IsUnknown() {
+		plan.AllowMemes = cur.AllowMemes
+	}
+	if plan.AllowStickers.IsUnknown() {
+		plan.AllowStickers = cur.AllowStickers
+	}
+	if plan.AllowUserChat.IsUnknown() {
+		plan.AllowUserChat = cur.AllowUserChat
+	}
+	if plan.AllowUserDeleteChat.IsUnknown() {
+		plan.AllowUserDeleteChat = cur.AllowUserDeleteChat
+	}
+	if plan.AllowUserDeleteMessage.IsUnknown() {
+		plan.AllowUserDeleteMessage = cur.AllowUserDeleteMessage
+	}
+	if plan.AllowUserEditMessage.IsUnknown() {
+		plan.AllowUserEditMessage = cur.AllowUserEditMessage
+	}
+	if plan.GiphyRatingType.IsUnknown() {
+		plan.GiphyRatingType = cur.GiphyRatingType
+	}
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *guestMessagingConfigurationResource) identityOf(m guestMessagingConfigurationModel) string {
