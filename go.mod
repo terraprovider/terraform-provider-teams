@@ -7,8 +7,8 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.31.0
 	github.com/hashicorp/terraform-plugin-testing v1.16.0
 	github.com/terraprovider/go-msadmin v0.2.0
-	github.com/terraprovider/go-teams v0.2.3
-	github.com/terraprovider/tf-msadmin v0.5.0
+	github.com/terraprovider/go-teams v0.3.1
+	github.com/terraprovider/tf-msadmin v0.6.1
 )
 
 require (

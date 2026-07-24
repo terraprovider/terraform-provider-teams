@@ -1,6 +1,6 @@
 module tools
 
-go 1.25.8
+go 1.26
 
 require github.com/hashicorp/terraform-plugin-docs v0.25.0
 
@@ -38,7 +38,6 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/posener/complete v1.2.3 // indirect
-	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/yuin/goldmark v1.8.2 // indirect

@@ -65,7 +65,7 @@ func main() {
 		// are gated instead on the live read-probe allowlist (readOnlyProbe) — the set
 		// of Get-Cs* cmdlets whose GetCs<Noun> binding exists and was confirmed to
 		// return 200 against a real tenant.
-		if !getOnly && !validated[spec.PolicyName(noun)] {
+		if !getOnly && !validated[spec.PolicyName(noun)] && configProbe[noun] != 200 {
 			continue
 		}
 		switch {
@@ -201,12 +201,24 @@ func buildConfigResource(noun string, verbs map[string]spec.Cmdlet) (genframewor
 			continue
 		}
 		field := exportName(name)
+		// A write-only setting has an unreliable (replica-inconsistent) read-back, so
+		// it is generated as Required + WriteOnly: the operator declares the value, it
+		// is written authoritatively, and a refresh never reads it back (which would
+		// otherwise flap the plan). All other settings stay Optional+Computed.
+		wo := writeOnlyParams[noun][name]
 		attrs = append(attrs, genframework.Attribute{
-			TFName:       tfName(field),
-			Field:        field,
-			APIName:      field,
+			TFName: tfName(field),
+			Field:  field,
+			// APIName is the read-back JSON key: the raw cmdlet parameter name, which
+			// equals the response key on both transports. For /Skype.Policy configs the
+			// param name is already PascalCase (== exportName), but autorest configs use
+			// camelCase (e.g. isSideloadedAppsInteractionEnabled) — exportName would
+			// wrongly capitalise it and the read-back would never match.
+			APIName:      name,
 			Type:         at,
-			Computed:     true,
+			Required:     wo,
+			Computed:     !wo,
+			WriteOnly:    wo,
 			Sensitive:    sensitive(name),
 			Description:  describe(name, p),
 			InCreate:     true,
@@ -267,6 +279,31 @@ func buildReadOnly(noun string, verbs map[string]spec.Cmdlet) genframework.Resou
 		Plural: true,
 		Read:   genframework.Op{Method: goName(getc.Cmdlet), Params: goName(getc.Cmdlet) + "Params", IdentityField: readID},
 	}
+}
+
+// configProbe is the live-validated allowlist of Get+Set config singletons that do
+// NOT live under /Skype.Policy (so they are absent from spec.ValidatedPolicies) but
+// are exposed as managed config resources. Keyed by full noun; the value is the live
+// HTTP status of the read probe against a real tenant (200 = exposed). These use a
+// different transport (e.g. Teams.MiddletierService autorest GET/PUT), which the
+// go-teams cs bindings route transparently.
+//
+//	CsTeamsSettingsCustomApp: GET/PUT /Teams.MiddletierService/tenantWideAppsSettingsGlobal;
+//	  the Set is a read-modify-write override (see go-teams cs/customapp.go).
+var configProbe = map[string]int{
+	"CsTeamsSettingsCustomApp": 200,
+}
+
+// writeOnlyParams marks config settings whose read-back is unreliable: the API
+// accepts the write but returns replica-inconsistent values on read, so no read is
+// authoritative. These are generated as Required + WriteOnly — the operator declares
+// the value, it is written, and a refresh never reads it back (which would flap the
+// plan; see genframework Attribute.WriteOnly). Keyed by noun -> raw parameter name.
+//
+//	CsTeamsSettingsCustomApp.isSideloadedAppsInteractionEnabled: GET load-balances
+//	  across backend replicas that converge slowly, so the value flaps between reads.
+var writeOnlyParams = map[string]map[string]bool{
+	"CsTeamsSettingsCustomApp": {"isSideloadedAppsInteractionEnabled": true},
 }
 
 // readOnlyProbe is the live read-probe result for the Get-only nouns that have a
@@ -397,6 +434,11 @@ var skipParams = map[string]bool{
 	"Force": true, "Confirm": true, "WhatIf": true, "Verbose": true, "Debug": true,
 	"ProgressAction": true, "ErrorAction": true, "WarningAction": true,
 	"InformationAction": true, "MsftInternalProcessingMode": true, "AsJob": true,
+	// autorest plumbing — infrastructure params on the generated (autorest) cmdlets,
+	// never a user-facing setting. They surface once a non-/Skype.Policy config is
+	// exposed (see configProbe); dropping them keeps the schema to real settings.
+	"HttpPipelinePrepend": true, "HttpPipelineAppend": true, "Break": true,
+	"Proxy": true, "ProxyCredential": true, "ProxyUseDefaultCredentials": true,
 }
 
 func skipParam(name string) bool { return skipParams[name] }
