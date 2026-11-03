@@ -85,7 +85,7 @@ func (p *teamsProvider) Configure(ctx context.Context, req provider.ConfigureReq
 }
 
 func (p *teamsProvider) Resources(_ context.Context) []func() resource.Resource {
-	return generatedResources()
+	return append(generatedResources(), NewGroupPolicyAssignmentResource)
 }
 
 func (p *teamsProvider) DataSources(_ context.Context) []func() datasource.DataSource {

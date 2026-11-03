@@ -2,18 +2,19 @@
 
 A Terraform / OpenTofu provider for **Microsoft Teams admin configuration** —
 the `-Cs*` policy and settings surface behind the MicrosoftTeams PowerShell
-module. Resources are **generated** from the [`go-teams`](https://github.com/terraprovider/go-teams)
+module. Most resources are **generated** from the [`go-teams`](https://github.com/terraprovider/go-teams)
 cmdlet catalog via the shared
 [`tf-msadmin/genframework`](https://github.com/terraprovider/tf-msadmin) engine, so the
-surface tracks the module.
+surface tracks the module. Group policy assignment is a hand-written generic
+resource because one Terraform resource manages assignments across policy types.
 
 > Not affiliated with or endorsed by Microsoft. It calls the same documented Teams
 > admin API the PowerShell module does.
 
 ## Status
 
-- **82 resources** generated (57 policy CRUD + 25 config/settings), each with a
-  matching read-only data source. Builds clean.
+- **82 generated resources** (57 policy CRUD + 25 config/settings), each with a
+  matching read-only data source, plus a generic group policy assignment resource.
 - Authentication is aligned with the `hashicorp/azuread` and `azurerm` providers
   (same attributes, `ARM_*` / `AZURE_*` env fallbacks, every OIDC / workload-identity
   flavour) via `tf-msadmin/authschema`.
