@@ -9,6 +9,21 @@
 #   just bump <module>@<version>         # bump a dep in both modules, tidy both
 #   just gen                             # regenerate resources + docs
 
+# Run every Go command with the toolchain go.mod pins, the one CI uses. Go only
+# switches *up* to the go.mod toolchain, so a newer local Go would otherwise
+# build cmd/gen-tf and run gofmt itself. Go releases format differently (go1.27
+# aligns long map keys differently from go1.26), and CI's gofmt then rejects the
+# generated code.
+export GOTOOLCHAIN := `sed -n 's/^toolchain //p' go.mod`
+
+# Let aqua find this repo's pinned tools from any directory. tfplugindocs runs
+# `terraform init` in a temp dir outside the repo, where the aqua shim would not
+# find aqua/aqua.yml. An AQUA_GLOBAL_CONFIG that is already set is kept after it.
+export AQUA_GLOBAL_CONFIG := (justfile_directory() / "aqua" / "aqua.yml") + if env("AQUA_GLOBAL_CONFIG", "") != "" { ":" + env("AQUA_GLOBAL_CONFIG") } else { "" }
+
+# gofmt of the pinned toolchain (a bare `gofmt` on PATH is the local Go's).
+gofmt := '"$(go env GOROOT)/bin/gofmt"'
+
 # List available recipes.
 default:
     @just --list
@@ -33,11 +48,11 @@ lint:
 
 # Format all Go sources in place.
 fmt:
-    gofmt -w .
+    {{ gofmt }} -w .
 
 # Fail if any Go source is not gofmt-clean.
 fmt-check:
-    @test -z "$(gofmt -l .)" || { echo 'not gofmt-clean (run: just fmt):'; gofmt -l .; exit 1; }
+    @test -z "$({{ gofmt }} -l .)" || { echo 'not gofmt-clean (run: just fmt):'; {{ gofmt }} -l .; exit 1; }
 
 # Non-mutating quality gate: build, fmt-check, vet, lint, unit tests.
 check: build fmt-check vet lint test
@@ -52,7 +67,7 @@ acc:
 generate:
     go run ./cmd/gen-tf
 
-# Regenerate docs (tfplugindocs) from the schema + examples; needs terraform on PATH.
+# Regenerate docs (tfplugindocs) from the schema + examples; needs terraform (aqua-pinned: just install-tools).
 docs:
     cd tools && go generate ./...
 
