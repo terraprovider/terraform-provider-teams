@@ -80,12 +80,14 @@ func (r *virtualAppointmentsPolicyResource) Create(ctx context.Context, req reso
 		sp := cs.SetCsTeamsVirtualAppointmentsPolicyParams{}
 		sp.Identity = plan.Identity.ValueString()
 		if !config.EnableSmsNotifications.IsNull() {
-			sp.EnableSmsNotifications = plan.EnableSmsNotifications.ValueBoolPointer()
+			if !plan.EnableSmsNotifications.IsUnknown() {
+				sp.EnableSmsNotifications = plan.EnableSmsNotifications.ValueBoolPointer()
+			}
 		}
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsVirtualAppointmentsPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsVirtualAppointmentsPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-VirtualAppointmentsPolicy failed", err.Error())
 			return
 		}
@@ -103,13 +105,15 @@ func (r *virtualAppointmentsPolicyResource) Create(ctx context.Context, req reso
 	}
 	p := cs.NewCsTeamsVirtualAppointmentsPolicyParams{}
 	if !config.EnableSmsNotifications.IsNull() {
-		p.EnableSmsNotifications = plan.EnableSmsNotifications.ValueBoolPointer()
+		if !plan.EnableSmsNotifications.IsUnknown() {
+			p.EnableSmsNotifications = plan.EnableSmsNotifications.ValueBoolPointer()
+		}
 	}
 	p.Identity = plan.Identity.ValueString()
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsVirtualAppointmentsPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsVirtualAppointmentsPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-VirtualAppointmentsPolicy failed", err.Error())
 		return
@@ -157,18 +161,29 @@ func (r *virtualAppointmentsPolicyResource) Update(ctx context.Context, req reso
 	sp := cs.SetCsTeamsVirtualAppointmentsPolicyParams{}
 	sp.Identity = id
 	if !plan.EnableSmsNotifications.Equal(state.EnableSmsNotifications) {
-		sp.EnableSmsNotifications = plan.EnableSmsNotifications.ValueBoolPointer()
+		if !plan.EnableSmsNotifications.IsUnknown() {
+			sp.EnableSmsNotifications = plan.EnableSmsNotifications.ValueBoolPointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsVirtualAppointmentsPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsVirtualAppointmentsPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-VirtualAppointmentsPolicy failed", err.Error())
 		return
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{}, getString)
+	if !cfg.EnableSmsNotifications.IsUnknown() && !cfg.EnableSmsNotifications.IsNull() && !cfg.EnableSmsNotifications.Equal(state.EnableSmsNotifications) {
+		prev, want := reflected, cfg.EnableSmsNotifications.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableSmsNotifications"] == nil || getBool(obj, "EnableSmsNotifications") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

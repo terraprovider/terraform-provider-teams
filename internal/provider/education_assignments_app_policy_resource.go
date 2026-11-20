@@ -101,7 +101,7 @@ func (r *educationAssignmentsAppPolicyResource) Create(ctx context.Context, req 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsEducationAssignmentsAppPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsEducationAssignmentsAppPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-EducationAssignmentsAppPolicy failed", err.Error())
 		return
 	}
@@ -155,7 +155,7 @@ func (r *educationAssignmentsAppPolicyResource) Update(ctx context.Context, req 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsEducationAssignmentsAppPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsEducationAssignmentsAppPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-EducationAssignmentsAppPolicy failed", err.Error())
 		return
 	}
@@ -168,6 +168,9 @@ func (r *educationAssignmentsAppPolicyResource) Update(ctx context.Context, req 
 		"TurnItInEnabledType":     cfg.TurnItInEnabledType,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

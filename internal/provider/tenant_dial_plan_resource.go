@@ -92,7 +92,7 @@ func (r *tenantDialPlanResource) Create(ctx context.Context, req resource.Create
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTenantDialPlan(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantDialPlan, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-TenantDialPlan failed", err.Error())
 			return
 		}
@@ -122,7 +122,7 @@ func (r *tenantDialPlanResource) Create(ctx context.Context, req resource.Create
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTenantDialPlan(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTenantDialPlan, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-TenantDialPlan failed", err.Error())
 		return
@@ -172,8 +172,10 @@ func (r *tenantDialPlanResource) Update(ctx context.Context, req resource.Update
 	if !plan.Description.Equal(state.Description) {
 		sp.Description = plan.Description.ValueString()
 	}
-	if v := plan.NormalizationRules.ValueString(); v != "" {
-		sp.NormalizationRules = objectParam(v)
+	if !plan.NormalizationRules.Equal(state.NormalizationRules) {
+		if v := plan.NormalizationRules.ValueString(); v != "" {
+			sp.NormalizationRules = objectParam(v)
+		}
 	}
 	if !plan.SimpleName.Equal(state.SimpleName) {
 		sp.SimpleName = plan.SimpleName.ValueString()
@@ -181,7 +183,7 @@ func (r *tenantDialPlanResource) Update(ctx context.Context, req resource.Update
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTenantDialPlan(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantDialPlan, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-TenantDialPlan failed", err.Error())
 		return
 	}
@@ -191,6 +193,9 @@ func (r *tenantDialPlanResource) Update(ctx context.Context, req resource.Update
 		"SimpleName":  cfg.SimpleName,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

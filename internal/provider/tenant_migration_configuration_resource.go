@@ -77,12 +77,14 @@ func (r *tenantMigrationConfigurationResource) Create(ctx context.Context, req r
 	sp := cs.SetCsTenantMigrationConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
 	if !config.MeetingMigrationEnabled.IsNull() {
-		sp.MeetingMigrationEnabled = plan.MeetingMigrationEnabled.ValueBoolPointer()
+		if !plan.MeetingMigrationEnabled.IsUnknown() {
+			sp.MeetingMigrationEnabled = plan.MeetingMigrationEnabled.ValueBoolPointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTenantMigrationConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantMigrationConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-TenantMigrationConfiguration failed", err.Error())
 		return
 	}
@@ -119,18 +121,29 @@ func (r *tenantMigrationConfigurationResource) Update(ctx context.Context, req r
 	sp := cs.SetCsTenantMigrationConfigurationParams{}
 	sp.Identity = id
 	if !plan.MeetingMigrationEnabled.Equal(state.MeetingMigrationEnabled) {
-		sp.MeetingMigrationEnabled = plan.MeetingMigrationEnabled.ValueBoolPointer()
+		if !plan.MeetingMigrationEnabled.IsUnknown() {
+			sp.MeetingMigrationEnabled = plan.MeetingMigrationEnabled.ValueBoolPointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTenantMigrationConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantMigrationConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-TenantMigrationConfiguration failed", err.Error())
 		return
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{}, getString)
+	if !cfg.MeetingMigrationEnabled.IsUnknown() && !cfg.MeetingMigrationEnabled.IsNull() && !cfg.MeetingMigrationEnabled.Equal(state.MeetingMigrationEnabled) {
+		prev, want := reflected, cfg.MeetingMigrationEnabled.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["MeetingMigrationEnabled"] == nil || getBool(obj, "MeetingMigrationEnabled") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

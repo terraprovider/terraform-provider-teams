@@ -84,7 +84,7 @@ func (r *mediaConnectivityPolicyResource) Create(ctx context.Context, req resour
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsMediaConnectivityPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMediaConnectivityPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-MediaConnectivityPolicy failed", err.Error())
 			return
 		}
@@ -108,7 +108,7 @@ func (r *mediaConnectivityPolicyResource) Create(ctx context.Context, req resour
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsMediaConnectivityPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsMediaConnectivityPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-MediaConnectivityPolicy failed", err.Error())
 		return
@@ -161,7 +161,7 @@ func (r *mediaConnectivityPolicyResource) Update(ctx context.Context, req resour
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsMediaConnectivityPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMediaConnectivityPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-MediaConnectivityPolicy failed", err.Error())
 		return
 	}
@@ -170,6 +170,9 @@ func (r *mediaConnectivityPolicyResource) Update(ctx context.Context, req resour
 		"DirectConnection": cfg.DirectConnection,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

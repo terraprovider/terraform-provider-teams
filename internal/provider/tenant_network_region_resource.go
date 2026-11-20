@@ -94,7 +94,7 @@ func (r *tenantNetworkRegionResource) Create(ctx context.Context, req resource.C
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTenantNetworkRegion(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantNetworkRegion, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-TenantNetworkRegion failed", err.Error())
 			return
 		}
@@ -127,7 +127,7 @@ func (r *tenantNetworkRegionResource) Create(ctx context.Context, req resource.C
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTenantNetworkRegion(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTenantNetworkRegion, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-TenantNetworkRegion failed", err.Error())
 		return
@@ -186,7 +186,7 @@ func (r *tenantNetworkRegionResource) Update(ctx context.Context, req resource.U
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTenantNetworkRegion(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantNetworkRegion, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-TenantNetworkRegion failed", err.Error())
 		return
 	}
@@ -197,6 +197,9 @@ func (r *tenantNetworkRegionResource) Update(ctx context.Context, req resource.U
 		"NetworkRegionID": cfg.NetworkRegionID,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

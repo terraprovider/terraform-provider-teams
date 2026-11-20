@@ -102,7 +102,9 @@ func (r *complianceRecordingPolicyResource) Create(ctx context.Context, req reso
 			sp.CustomBanner = plan.CustomBanner.ValueString()
 		}
 		if !config.CustomPromptsEnabled.IsNull() {
-			sp.CustomPromptsEnabled = plan.CustomPromptsEnabled.ValueBoolPointer()
+			if !plan.CustomPromptsEnabled.IsUnknown() {
+				sp.CustomPromptsEnabled = plan.CustomPromptsEnabled.ValueBoolPointer()
+			}
 		}
 		if !config.CustomPromptsPackageId.IsNull() {
 			sp.CustomPromptsPackageId = plan.CustomPromptsPackageId.ValueString()
@@ -111,21 +113,29 @@ func (r *complianceRecordingPolicyResource) Create(ctx context.Context, req reso
 			sp.Description = plan.Description.ValueString()
 		}
 		if !config.DisableComplianceRecordingAudioNotificationForCalls.IsNull() {
-			sp.DisableComplianceRecordingAudioNotificationForCalls = plan.DisableComplianceRecordingAudioNotificationForCalls.ValueBoolPointer()
+			if !plan.DisableComplianceRecordingAudioNotificationForCalls.IsUnknown() {
+				sp.DisableComplianceRecordingAudioNotificationForCalls = plan.DisableComplianceRecordingAudioNotificationForCalls.ValueBoolPointer()
+			}
 		}
 		if !config.Enabled.IsNull() {
-			sp.Enabled = plan.Enabled.ValueBoolPointer()
+			if !plan.Enabled.IsUnknown() {
+				sp.Enabled = plan.Enabled.ValueBoolPointer()
+			}
 		}
 		if !config.RecordReroutedCalls.IsNull() {
-			sp.RecordReroutedCalls = plan.RecordReroutedCalls.ValueBoolPointer()
+			if !plan.RecordReroutedCalls.IsUnknown() {
+				sp.RecordReroutedCalls = plan.RecordReroutedCalls.ValueBoolPointer()
+			}
 		}
 		if !config.WarnUserOnRemoval.IsNull() {
-			sp.WarnUserOnRemoval = plan.WarnUserOnRemoval.ValueBoolPointer()
+			if !plan.WarnUserOnRemoval.IsUnknown() {
+				sp.WarnUserOnRemoval = plan.WarnUserOnRemoval.ValueBoolPointer()
+			}
 		}
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsComplianceRecordingPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsComplianceRecordingPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-ComplianceRecordingPolicy failed", err.Error())
 			return
 		}
@@ -149,7 +159,9 @@ func (r *complianceRecordingPolicyResource) Create(ctx context.Context, req reso
 		p.CustomBanner = plan.CustomBanner.ValueString()
 	}
 	if !config.CustomPromptsEnabled.IsNull() {
-		p.CustomPromptsEnabled = plan.CustomPromptsEnabled.ValueBoolPointer()
+		if !plan.CustomPromptsEnabled.IsUnknown() {
+			p.CustomPromptsEnabled = plan.CustomPromptsEnabled.ValueBoolPointer()
+		}
 	}
 	if !config.CustomPromptsPackageId.IsNull() {
 		p.CustomPromptsPackageId = plan.CustomPromptsPackageId.ValueString()
@@ -158,22 +170,30 @@ func (r *complianceRecordingPolicyResource) Create(ctx context.Context, req reso
 		p.Description = plan.Description.ValueString()
 	}
 	if !config.DisableComplianceRecordingAudioNotificationForCalls.IsNull() {
-		p.DisableComplianceRecordingAudioNotificationForCalls = plan.DisableComplianceRecordingAudioNotificationForCalls.ValueBoolPointer()
+		if !plan.DisableComplianceRecordingAudioNotificationForCalls.IsUnknown() {
+			p.DisableComplianceRecordingAudioNotificationForCalls = plan.DisableComplianceRecordingAudioNotificationForCalls.ValueBoolPointer()
+		}
 	}
 	if !config.Enabled.IsNull() {
-		p.Enabled = plan.Enabled.ValueBoolPointer()
+		if !plan.Enabled.IsUnknown() {
+			p.Enabled = plan.Enabled.ValueBoolPointer()
+		}
 	}
 	if !config.RecordReroutedCalls.IsNull() {
-		p.RecordReroutedCalls = plan.RecordReroutedCalls.ValueBoolPointer()
+		if !plan.RecordReroutedCalls.IsUnknown() {
+			p.RecordReroutedCalls = plan.RecordReroutedCalls.ValueBoolPointer()
+		}
 	}
 	if !config.WarnUserOnRemoval.IsNull() {
-		p.WarnUserOnRemoval = plan.WarnUserOnRemoval.ValueBoolPointer()
+		if !plan.WarnUserOnRemoval.IsUnknown() {
+			p.WarnUserOnRemoval = plan.WarnUserOnRemoval.ValueBoolPointer()
+		}
 	}
 	p.Identity = plan.Identity.ValueString()
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsComplianceRecordingPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsComplianceRecordingPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-ComplianceRecordingPolicy failed", err.Error())
 		return
@@ -220,14 +240,18 @@ func (r *complianceRecordingPolicyResource) Update(ctx context.Context, req reso
 	id := r.identityOf(state)
 	sp := cs.SetCsTeamsComplianceRecordingPolicyParams{}
 	sp.Identity = id
-	if v := plan.ComplianceRecordingApplications.ValueString(); v != "" {
-		sp.ComplianceRecordingApplications = objectParam(v)
+	if !plan.ComplianceRecordingApplications.Equal(state.ComplianceRecordingApplications) {
+		if v := plan.ComplianceRecordingApplications.ValueString(); v != "" {
+			sp.ComplianceRecordingApplications = objectParam(v)
+		}
 	}
 	if !plan.CustomBanner.Equal(state.CustomBanner) {
 		sp.CustomBanner = plan.CustomBanner.ValueString()
 	}
 	if !plan.CustomPromptsEnabled.Equal(state.CustomPromptsEnabled) {
-		sp.CustomPromptsEnabled = plan.CustomPromptsEnabled.ValueBoolPointer()
+		if !plan.CustomPromptsEnabled.IsUnknown() {
+			sp.CustomPromptsEnabled = plan.CustomPromptsEnabled.ValueBoolPointer()
+		}
 	}
 	if !plan.CustomPromptsPackageId.Equal(state.CustomPromptsPackageId) {
 		sp.CustomPromptsPackageId = plan.CustomPromptsPackageId.ValueString()
@@ -236,21 +260,29 @@ func (r *complianceRecordingPolicyResource) Update(ctx context.Context, req reso
 		sp.Description = plan.Description.ValueString()
 	}
 	if !plan.DisableComplianceRecordingAudioNotificationForCalls.Equal(state.DisableComplianceRecordingAudioNotificationForCalls) {
-		sp.DisableComplianceRecordingAudioNotificationForCalls = plan.DisableComplianceRecordingAudioNotificationForCalls.ValueBoolPointer()
+		if !plan.DisableComplianceRecordingAudioNotificationForCalls.IsUnknown() {
+			sp.DisableComplianceRecordingAudioNotificationForCalls = plan.DisableComplianceRecordingAudioNotificationForCalls.ValueBoolPointer()
+		}
 	}
 	if !plan.Enabled.Equal(state.Enabled) {
-		sp.Enabled = plan.Enabled.ValueBoolPointer()
+		if !plan.Enabled.IsUnknown() {
+			sp.Enabled = plan.Enabled.ValueBoolPointer()
+		}
 	}
 	if !plan.RecordReroutedCalls.Equal(state.RecordReroutedCalls) {
-		sp.RecordReroutedCalls = plan.RecordReroutedCalls.ValueBoolPointer()
+		if !plan.RecordReroutedCalls.IsUnknown() {
+			sp.RecordReroutedCalls = plan.RecordReroutedCalls.ValueBoolPointer()
+		}
 	}
 	if !plan.WarnUserOnRemoval.Equal(state.WarnUserOnRemoval) {
-		sp.WarnUserOnRemoval = plan.WarnUserOnRemoval.ValueBoolPointer()
+		if !plan.WarnUserOnRemoval.IsUnknown() {
+			sp.WarnUserOnRemoval = plan.WarnUserOnRemoval.ValueBoolPointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsComplianceRecordingPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsComplianceRecordingPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-ComplianceRecordingPolicy failed", err.Error())
 		return
 	}
@@ -260,7 +292,40 @@ func (r *complianceRecordingPolicyResource) Update(ctx context.Context, req reso
 		"CustomPromptsPackageId": cfg.CustomPromptsPackageId,
 		"Description":            cfg.Description,
 	}, getString)
+	if !cfg.CustomPromptsEnabled.IsUnknown() && !cfg.CustomPromptsEnabled.IsNull() && !cfg.CustomPromptsEnabled.Equal(state.CustomPromptsEnabled) {
+		prev, want := reflected, cfg.CustomPromptsEnabled.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["CustomPromptsEnabled"] == nil || getBool(obj, "CustomPromptsEnabled") == want)
+		}
+	}
+	if !cfg.DisableComplianceRecordingAudioNotificationForCalls.IsUnknown() && !cfg.DisableComplianceRecordingAudioNotificationForCalls.IsNull() && !cfg.DisableComplianceRecordingAudioNotificationForCalls.Equal(state.DisableComplianceRecordingAudioNotificationForCalls) {
+		prev, want := reflected, cfg.DisableComplianceRecordingAudioNotificationForCalls.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["DisableComplianceRecordingAudioNotificationForCalls"] == nil || getBool(obj, "DisableComplianceRecordingAudioNotificationForCalls") == want)
+		}
+	}
+	if !cfg.Enabled.IsUnknown() && !cfg.Enabled.IsNull() && !cfg.Enabled.Equal(state.Enabled) {
+		prev, want := reflected, cfg.Enabled.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["Enabled"] == nil || getBool(obj, "Enabled") == want)
+		}
+	}
+	if !cfg.RecordReroutedCalls.IsUnknown() && !cfg.RecordReroutedCalls.IsNull() && !cfg.RecordReroutedCalls.Equal(state.RecordReroutedCalls) {
+		prev, want := reflected, cfg.RecordReroutedCalls.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["RecordReroutedCalls"] == nil || getBool(obj, "RecordReroutedCalls") == want)
+		}
+	}
+	if !cfg.WarnUserOnRemoval.IsUnknown() && !cfg.WarnUserOnRemoval.IsNull() && !cfg.WarnUserOnRemoval.Equal(state.WarnUserOnRemoval) {
+		prev, want := reflected, cfg.WarnUserOnRemoval.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["WarnUserOnRemoval"] == nil || getBool(obj, "WarnUserOnRemoval") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

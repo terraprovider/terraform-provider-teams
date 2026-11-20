@@ -89,7 +89,7 @@ func (r *applicationAccessPolicyResource) Create(ctx context.Context, req resour
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsApplicationAccessPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsApplicationAccessPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-ApplicationAccessPolicy failed", err.Error())
 			return
 		}
@@ -116,7 +116,7 @@ func (r *applicationAccessPolicyResource) Create(ctx context.Context, req resour
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsApplicationAccessPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsApplicationAccessPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-ApplicationAccessPolicy failed", err.Error())
 		return
@@ -163,8 +163,10 @@ func (r *applicationAccessPolicyResource) Update(ctx context.Context, req resour
 	id := r.identityOf(state)
 	sp := cs.SetCsApplicationAccessPolicyParams{}
 	sp.Identity = id
-	if v := plan.AppIds.ValueString(); v != "" {
-		sp.AppIds = objectParam(v)
+	if !plan.AppIds.Equal(state.AppIds) {
+		if v := plan.AppIds.ValueString(); v != "" {
+			sp.AppIds = objectParam(v)
+		}
 	}
 	if !plan.Description.Equal(state.Description) {
 		sp.Description = plan.Description.ValueString()
@@ -172,7 +174,7 @@ func (r *applicationAccessPolicyResource) Update(ctx context.Context, req resour
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsApplicationAccessPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsApplicationAccessPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-ApplicationAccessPolicy failed", err.Error())
 		return
 	}
@@ -181,6 +183,9 @@ func (r *applicationAccessPolicyResource) Update(ctx context.Context, req resour
 		"Description": cfg.Description,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

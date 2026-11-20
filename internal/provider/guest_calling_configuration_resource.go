@@ -77,12 +77,14 @@ func (r *guestCallingConfigurationResource) Create(ctx context.Context, req reso
 	sp := cs.SetCsTeamsGuestCallingConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
 	if !config.AllowPrivateCalling.IsNull() {
-		sp.AllowPrivateCalling = plan.AllowPrivateCalling.ValueBoolPointer()
+		if !plan.AllowPrivateCalling.IsUnknown() {
+			sp.AllowPrivateCalling = plan.AllowPrivateCalling.ValueBoolPointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsGuestCallingConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsGuestCallingConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-GuestCallingConfiguration failed", err.Error())
 		return
 	}
@@ -119,18 +121,29 @@ func (r *guestCallingConfigurationResource) Update(ctx context.Context, req reso
 	sp := cs.SetCsTeamsGuestCallingConfigurationParams{}
 	sp.Identity = id
 	if !plan.AllowPrivateCalling.Equal(state.AllowPrivateCalling) {
-		sp.AllowPrivateCalling = plan.AllowPrivateCalling.ValueBoolPointer()
+		if !plan.AllowPrivateCalling.IsUnknown() {
+			sp.AllowPrivateCalling = plan.AllowPrivateCalling.ValueBoolPointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsGuestCallingConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsGuestCallingConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-GuestCallingConfiguration failed", err.Error())
 		return
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{}, getString)
+	if !cfg.AllowPrivateCalling.IsUnknown() && !cfg.AllowPrivateCalling.IsNull() && !cfg.AllowPrivateCalling.Equal(state.AllowPrivateCalling) {
+		prev, want := reflected, cfg.AllowPrivateCalling.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowPrivateCalling"] == nil || getBool(obj, "AllowPrivateCalling") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

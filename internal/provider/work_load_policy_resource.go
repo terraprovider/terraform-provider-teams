@@ -90,22 +90,34 @@ func (r *workLoadPolicyResource) Create(ctx context.Context, req resource.Create
 		sp := cs.SetCsTeamsWorkLoadPolicyParams{}
 		sp.Identity = plan.Identity.ValueString()
 		if !config.AllowCalling.IsNull() {
-			sp.AllowCalling = plan.AllowCalling.ValueBoolPointer()
+			if !plan.AllowCalling.IsUnknown() {
+				sp.AllowCalling = plan.AllowCalling.ValueBoolPointer()
+			}
 		}
 		if !config.AllowCallingPinned.IsNull() {
-			sp.AllowCallingPinned = plan.AllowCallingPinned.ValueBoolPointer()
+			if !plan.AllowCallingPinned.IsUnknown() {
+				sp.AllowCallingPinned = plan.AllowCallingPinned.ValueBoolPointer()
+			}
 		}
 		if !config.AllowMeeting.IsNull() {
-			sp.AllowMeeting = plan.AllowMeeting.ValueBoolPointer()
+			if !plan.AllowMeeting.IsUnknown() {
+				sp.AllowMeeting = plan.AllowMeeting.ValueBoolPointer()
+			}
 		}
 		if !config.AllowMeetingPinned.IsNull() {
-			sp.AllowMeetingPinned = plan.AllowMeetingPinned.ValueBoolPointer()
+			if !plan.AllowMeetingPinned.IsUnknown() {
+				sp.AllowMeetingPinned = plan.AllowMeetingPinned.ValueBoolPointer()
+			}
 		}
 		if !config.AllowMessaging.IsNull() {
-			sp.AllowMessaging = plan.AllowMessaging.ValueBoolPointer()
+			if !plan.AllowMessaging.IsUnknown() {
+				sp.AllowMessaging = plan.AllowMessaging.ValueBoolPointer()
+			}
 		}
 		if !config.AllowMessagingPinned.IsNull() {
-			sp.AllowMessagingPinned = plan.AllowMessagingPinned.ValueBoolPointer()
+			if !plan.AllowMessagingPinned.IsUnknown() {
+				sp.AllowMessagingPinned = plan.AllowMessagingPinned.ValueBoolPointer()
+			}
 		}
 		if !config.Description.IsNull() {
 			sp.Description = plan.Description.ValueString()
@@ -113,7 +125,7 @@ func (r *workLoadPolicyResource) Create(ctx context.Context, req resource.Create
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsWorkLoadPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsWorkLoadPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-WorkLoadPolicy failed", err.Error())
 			return
 		}
@@ -131,22 +143,34 @@ func (r *workLoadPolicyResource) Create(ctx context.Context, req resource.Create
 	}
 	p := cs.NewCsTeamsWorkLoadPolicyParams{}
 	if !config.AllowCalling.IsNull() {
-		p.AllowCalling = plan.AllowCalling.ValueBoolPointer()
+		if !plan.AllowCalling.IsUnknown() {
+			p.AllowCalling = plan.AllowCalling.ValueBoolPointer()
+		}
 	}
 	if !config.AllowCallingPinned.IsNull() {
-		p.AllowCallingPinned = plan.AllowCallingPinned.ValueBoolPointer()
+		if !plan.AllowCallingPinned.IsUnknown() {
+			p.AllowCallingPinned = plan.AllowCallingPinned.ValueBoolPointer()
+		}
 	}
 	if !config.AllowMeeting.IsNull() {
-		p.AllowMeeting = plan.AllowMeeting.ValueBoolPointer()
+		if !plan.AllowMeeting.IsUnknown() {
+			p.AllowMeeting = plan.AllowMeeting.ValueBoolPointer()
+		}
 	}
 	if !config.AllowMeetingPinned.IsNull() {
-		p.AllowMeetingPinned = plan.AllowMeetingPinned.ValueBoolPointer()
+		if !plan.AllowMeetingPinned.IsUnknown() {
+			p.AllowMeetingPinned = plan.AllowMeetingPinned.ValueBoolPointer()
+		}
 	}
 	if !config.AllowMessaging.IsNull() {
-		p.AllowMessaging = plan.AllowMessaging.ValueBoolPointer()
+		if !plan.AllowMessaging.IsUnknown() {
+			p.AllowMessaging = plan.AllowMessaging.ValueBoolPointer()
+		}
 	}
 	if !config.AllowMessagingPinned.IsNull() {
-		p.AllowMessagingPinned = plan.AllowMessagingPinned.ValueBoolPointer()
+		if !plan.AllowMessagingPinned.IsUnknown() {
+			p.AllowMessagingPinned = plan.AllowMessagingPinned.ValueBoolPointer()
+		}
 	}
 	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
@@ -155,7 +179,7 @@ func (r *workLoadPolicyResource) Create(ctx context.Context, req resource.Create
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsWorkLoadPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsWorkLoadPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-WorkLoadPolicy failed", err.Error())
 		return
@@ -203,22 +227,34 @@ func (r *workLoadPolicyResource) Update(ctx context.Context, req resource.Update
 	sp := cs.SetCsTeamsWorkLoadPolicyParams{}
 	sp.Identity = id
 	if !plan.AllowCalling.Equal(state.AllowCalling) {
-		sp.AllowCalling = plan.AllowCalling.ValueBoolPointer()
+		if !plan.AllowCalling.IsUnknown() {
+			sp.AllowCalling = plan.AllowCalling.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowCallingPinned.Equal(state.AllowCallingPinned) {
-		sp.AllowCallingPinned = plan.AllowCallingPinned.ValueBoolPointer()
+		if !plan.AllowCallingPinned.IsUnknown() {
+			sp.AllowCallingPinned = plan.AllowCallingPinned.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowMeeting.Equal(state.AllowMeeting) {
-		sp.AllowMeeting = plan.AllowMeeting.ValueBoolPointer()
+		if !plan.AllowMeeting.IsUnknown() {
+			sp.AllowMeeting = plan.AllowMeeting.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowMeetingPinned.Equal(state.AllowMeetingPinned) {
-		sp.AllowMeetingPinned = plan.AllowMeetingPinned.ValueBoolPointer()
+		if !plan.AllowMeetingPinned.IsUnknown() {
+			sp.AllowMeetingPinned = plan.AllowMeetingPinned.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowMessaging.Equal(state.AllowMessaging) {
-		sp.AllowMessaging = plan.AllowMessaging.ValueBoolPointer()
+		if !plan.AllowMessaging.IsUnknown() {
+			sp.AllowMessaging = plan.AllowMessaging.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowMessagingPinned.Equal(state.AllowMessagingPinned) {
-		sp.AllowMessagingPinned = plan.AllowMessagingPinned.ValueBoolPointer()
+		if !plan.AllowMessagingPinned.IsUnknown() {
+			sp.AllowMessagingPinned = plan.AllowMessagingPinned.ValueBoolPointer()
+		}
 	}
 	if !plan.Description.Equal(state.Description) {
 		sp.Description = plan.Description.ValueString()
@@ -226,7 +262,7 @@ func (r *workLoadPolicyResource) Update(ctx context.Context, req resource.Update
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsWorkLoadPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsWorkLoadPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-WorkLoadPolicy failed", err.Error())
 		return
 	}
@@ -234,7 +270,46 @@ func (r *workLoadPolicyResource) Update(ctx context.Context, req resource.Update
 	reflected := reconcile.ReflectsFields(map[string]types.String{
 		"Description": cfg.Description,
 	}, getString)
+	if !cfg.AllowCalling.IsUnknown() && !cfg.AllowCalling.IsNull() && !cfg.AllowCalling.Equal(state.AllowCalling) {
+		prev, want := reflected, cfg.AllowCalling.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowCalling"] == nil || getBool(obj, "AllowCalling") == want)
+		}
+	}
+	if !cfg.AllowCallingPinned.IsUnknown() && !cfg.AllowCallingPinned.IsNull() && !cfg.AllowCallingPinned.Equal(state.AllowCallingPinned) {
+		prev, want := reflected, cfg.AllowCallingPinned.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowCallingPinned"] == nil || getBool(obj, "AllowCallingPinned") == want)
+		}
+	}
+	if !cfg.AllowMeeting.IsUnknown() && !cfg.AllowMeeting.IsNull() && !cfg.AllowMeeting.Equal(state.AllowMeeting) {
+		prev, want := reflected, cfg.AllowMeeting.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowMeeting"] == nil || getBool(obj, "AllowMeeting") == want)
+		}
+	}
+	if !cfg.AllowMeetingPinned.IsUnknown() && !cfg.AllowMeetingPinned.IsNull() && !cfg.AllowMeetingPinned.Equal(state.AllowMeetingPinned) {
+		prev, want := reflected, cfg.AllowMeetingPinned.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowMeetingPinned"] == nil || getBool(obj, "AllowMeetingPinned") == want)
+		}
+	}
+	if !cfg.AllowMessaging.IsUnknown() && !cfg.AllowMessaging.IsNull() && !cfg.AllowMessaging.Equal(state.AllowMessaging) {
+		prev, want := reflected, cfg.AllowMessaging.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowMessaging"] == nil || getBool(obj, "AllowMessaging") == want)
+		}
+	}
+	if !cfg.AllowMessagingPinned.IsUnknown() && !cfg.AllowMessagingPinned.IsNull() && !cfg.AllowMessagingPinned.Equal(state.AllowMessagingPinned) {
+		prev, want := reflected, cfg.AllowMessagingPinned.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowMessagingPinned"] == nil || getBool(obj, "AllowMessagingPinned") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

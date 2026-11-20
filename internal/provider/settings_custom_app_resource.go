@@ -47,7 +47,7 @@ func (r *settingsCustomAppResource) Schema(_ context.Context, _ resource.SchemaR
 		Description: "Manages the SettingsCustomApp configuration via Set-CsTeamsSettingsCustomApp.",
 		Attributes: map[string]schema.Attribute{
 			"id":                                     schema.StringAttribute{Computed: true, Description: "Object identifier (GUID).", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"identity":                               schema.StringAttribute{Computed: true, Description: "Identity used to target the object in cmdlets."},
+			"identity":                               schema.StringAttribute{Computed: true, Description: "Identity used to target the object in cmdlets.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"is_sideloaded_apps_interaction_enabled": schema.BoolAttribute{Required: true, Description: "Maps to the -isSideloadedAppsInteractionEnabled parameter."},
 		},
 	}
@@ -73,12 +73,14 @@ func (r *settingsCustomAppResource) Create(ctx context.Context, req resource.Cre
 	}
 	sp := cs.SetCsTeamsSettingsCustomAppParams{}
 	if !config.IsSideloadedAppsInteractionEnabled.IsNull() {
-		sp.IsSideloadedAppsInteractionEnabled = plan.IsSideloadedAppsInteractionEnabled.ValueBoolPointer()
+		if !plan.IsSideloadedAppsInteractionEnabled.IsUnknown() {
+			sp.IsSideloadedAppsInteractionEnabled = plan.IsSideloadedAppsInteractionEnabled.ValueBoolPointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsSettingsCustomApp(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsSettingsCustomApp, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-SettingsCustomApp failed", err.Error())
 		return
 	}
@@ -114,18 +116,29 @@ func (r *settingsCustomAppResource) Update(ctx context.Context, req resource.Upd
 	id := r.identityOf(state)
 	sp := cs.SetCsTeamsSettingsCustomAppParams{}
 	if !plan.IsSideloadedAppsInteractionEnabled.Equal(state.IsSideloadedAppsInteractionEnabled) {
-		sp.IsSideloadedAppsInteractionEnabled = plan.IsSideloadedAppsInteractionEnabled.ValueBoolPointer()
+		if !plan.IsSideloadedAppsInteractionEnabled.IsUnknown() {
+			sp.IsSideloadedAppsInteractionEnabled = plan.IsSideloadedAppsInteractionEnabled.ValueBoolPointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsSettingsCustomApp(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsSettingsCustomApp, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-SettingsCustomApp failed", err.Error())
 		return
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{}, getString)
+	if !cfg.IsSideloadedAppsInteractionEnabled.IsUnknown() && !cfg.IsSideloadedAppsInteractionEnabled.IsNull() && !cfg.IsSideloadedAppsInteractionEnabled.Equal(state.IsSideloadedAppsInteractionEnabled) {
+		prev, want := reflected, cfg.IsSideloadedAppsInteractionEnabled.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["isSideloadedAppsInteractionEnabled"] == nil || getBool(obj, "isSideloadedAppsInteractionEnabled") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

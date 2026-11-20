@@ -87,24 +87,32 @@ func (r *callParkPolicyResource) Create(ctx context.Context, req resource.Create
 		sp := cs.SetCsTeamsCallParkPolicyParams{}
 		sp.Identity = plan.Identity.ValueString()
 		if !config.AllowCallPark.IsNull() {
-			sp.AllowCallPark = plan.AllowCallPark.ValueBoolPointer()
+			if !plan.AllowCallPark.IsUnknown() {
+				sp.AllowCallPark = plan.AllowCallPark.ValueBoolPointer()
+			}
 		}
 		if !config.Description.IsNull() {
 			sp.Description = plan.Description.ValueString()
 		}
 		if !config.ParkTimeoutSeconds.IsNull() {
-			sp.ParkTimeoutSeconds = plan.ParkTimeoutSeconds.ValueInt64Pointer()
+			if !plan.ParkTimeoutSeconds.IsUnknown() {
+				sp.ParkTimeoutSeconds = plan.ParkTimeoutSeconds.ValueInt64Pointer()
+			}
 		}
 		if !config.PickupRangeEnd.IsNull() {
-			sp.PickupRangeEnd = plan.PickupRangeEnd.ValueInt64Pointer()
+			if !plan.PickupRangeEnd.IsUnknown() {
+				sp.PickupRangeEnd = plan.PickupRangeEnd.ValueInt64Pointer()
+			}
 		}
 		if !config.PickupRangeStart.IsNull() {
-			sp.PickupRangeStart = plan.PickupRangeStart.ValueInt64Pointer()
+			if !plan.PickupRangeStart.IsUnknown() {
+				sp.PickupRangeStart = plan.PickupRangeStart.ValueInt64Pointer()
+			}
 		}
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsCallParkPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsCallParkPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-CallParkPolicy failed", err.Error())
 			return
 		}
@@ -122,25 +130,33 @@ func (r *callParkPolicyResource) Create(ctx context.Context, req resource.Create
 	}
 	p := cs.NewCsTeamsCallParkPolicyParams{}
 	if !config.AllowCallPark.IsNull() {
-		p.AllowCallPark = plan.AllowCallPark.ValueBoolPointer()
+		if !plan.AllowCallPark.IsUnknown() {
+			p.AllowCallPark = plan.AllowCallPark.ValueBoolPointer()
+		}
 	}
 	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
 	if !config.ParkTimeoutSeconds.IsNull() {
-		p.ParkTimeoutSeconds = plan.ParkTimeoutSeconds.ValueInt64Pointer()
+		if !plan.ParkTimeoutSeconds.IsUnknown() {
+			p.ParkTimeoutSeconds = plan.ParkTimeoutSeconds.ValueInt64Pointer()
+		}
 	}
 	if !config.PickupRangeEnd.IsNull() {
-		p.PickupRangeEnd = plan.PickupRangeEnd.ValueInt64Pointer()
+		if !plan.PickupRangeEnd.IsUnknown() {
+			p.PickupRangeEnd = plan.PickupRangeEnd.ValueInt64Pointer()
+		}
 	}
 	if !config.PickupRangeStart.IsNull() {
-		p.PickupRangeStart = plan.PickupRangeStart.ValueInt64Pointer()
+		if !plan.PickupRangeStart.IsUnknown() {
+			p.PickupRangeStart = plan.PickupRangeStart.ValueInt64Pointer()
+		}
 	}
 	p.Identity = plan.Identity.ValueString()
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsCallParkPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsCallParkPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-CallParkPolicy failed", err.Error())
 		return
@@ -188,24 +204,32 @@ func (r *callParkPolicyResource) Update(ctx context.Context, req resource.Update
 	sp := cs.SetCsTeamsCallParkPolicyParams{}
 	sp.Identity = id
 	if !plan.AllowCallPark.Equal(state.AllowCallPark) {
-		sp.AllowCallPark = plan.AllowCallPark.ValueBoolPointer()
+		if !plan.AllowCallPark.IsUnknown() {
+			sp.AllowCallPark = plan.AllowCallPark.ValueBoolPointer()
+		}
 	}
 	if !plan.Description.Equal(state.Description) {
 		sp.Description = plan.Description.ValueString()
 	}
 	if !plan.ParkTimeoutSeconds.Equal(state.ParkTimeoutSeconds) {
-		sp.ParkTimeoutSeconds = plan.ParkTimeoutSeconds.ValueInt64Pointer()
+		if !plan.ParkTimeoutSeconds.IsUnknown() {
+			sp.ParkTimeoutSeconds = plan.ParkTimeoutSeconds.ValueInt64Pointer()
+		}
 	}
 	if !plan.PickupRangeEnd.Equal(state.PickupRangeEnd) {
-		sp.PickupRangeEnd = plan.PickupRangeEnd.ValueInt64Pointer()
+		if !plan.PickupRangeEnd.IsUnknown() {
+			sp.PickupRangeEnd = plan.PickupRangeEnd.ValueInt64Pointer()
+		}
 	}
 	if !plan.PickupRangeStart.Equal(state.PickupRangeStart) {
-		sp.PickupRangeStart = plan.PickupRangeStart.ValueInt64Pointer()
+		if !plan.PickupRangeStart.IsUnknown() {
+			sp.PickupRangeStart = plan.PickupRangeStart.ValueInt64Pointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsCallParkPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsCallParkPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-CallParkPolicy failed", err.Error())
 		return
 	}
@@ -213,7 +237,34 @@ func (r *callParkPolicyResource) Update(ctx context.Context, req resource.Update
 	reflected := reconcile.ReflectsFields(map[string]types.String{
 		"Description": cfg.Description,
 	}, getString)
+	if !cfg.AllowCallPark.IsUnknown() && !cfg.AllowCallPark.IsNull() && !cfg.AllowCallPark.Equal(state.AllowCallPark) {
+		prev, want := reflected, cfg.AllowCallPark.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowCallPark"] == nil || getBool(obj, "AllowCallPark") == want)
+		}
+	}
+	if !cfg.ParkTimeoutSeconds.IsUnknown() && !cfg.ParkTimeoutSeconds.IsNull() && !cfg.ParkTimeoutSeconds.Equal(state.ParkTimeoutSeconds) {
+		prev, want := reflected, cfg.ParkTimeoutSeconds.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["ParkTimeoutSeconds"] == nil || getInt(obj, "ParkTimeoutSeconds") == want)
+		}
+	}
+	if !cfg.PickupRangeEnd.IsUnknown() && !cfg.PickupRangeEnd.IsNull() && !cfg.PickupRangeEnd.Equal(state.PickupRangeEnd) {
+		prev, want := reflected, cfg.PickupRangeEnd.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["PickupRangeEnd"] == nil || getInt(obj, "PickupRangeEnd") == want)
+		}
+	}
+	if !cfg.PickupRangeStart.IsUnknown() && !cfg.PickupRangeStart.IsNull() && !cfg.PickupRangeStart.Equal(state.PickupRangeStart) {
+		prev, want := reflected, cfg.PickupRangeStart.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["PickupRangeStart"] == nil || getInt(obj, "PickupRangeStart") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

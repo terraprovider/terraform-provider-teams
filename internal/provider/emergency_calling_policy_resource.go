@@ -112,7 +112,7 @@ func (r *emergencyCallingPolicyResource) Create(ctx context.Context, req resourc
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsEmergencyCallingPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsEmergencyCallingPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-EmergencyCallingPolicy failed", err.Error())
 			return
 		}
@@ -154,7 +154,7 @@ func (r *emergencyCallingPolicyResource) Create(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsEmergencyCallingPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsEmergencyCallingPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-EmergencyCallingPolicy failed", err.Error())
 		return
@@ -207,11 +207,15 @@ func (r *emergencyCallingPolicyResource) Update(ctx context.Context, req resourc
 	if !plan.EnhancedEmergencyServiceDisclaimer.Equal(state.EnhancedEmergencyServiceDisclaimer) {
 		sp.EnhancedEmergencyServiceDisclaimer = plan.EnhancedEmergencyServiceDisclaimer.ValueString()
 	}
-	if v := plan.ExtendedNotifications.ValueString(); v != "" {
-		sp.ExtendedNotifications = objectParam(v)
+	if !plan.ExtendedNotifications.Equal(state.ExtendedNotifications) {
+		if v := plan.ExtendedNotifications.ValueString(); v != "" {
+			sp.ExtendedNotifications = objectParam(v)
+		}
 	}
-	if v := plan.ExternalLocationLookupMode.ValueString(); v != "" {
-		sp.ExternalLocationLookupMode = objectParam(v)
+	if !plan.ExternalLocationLookupMode.Equal(state.ExternalLocationLookupMode) {
+		if v := plan.ExternalLocationLookupMode.ValueString(); v != "" {
+			sp.ExternalLocationLookupMode = objectParam(v)
+		}
 	}
 	if !plan.NotificationDialOutNumber.Equal(state.NotificationDialOutNumber) {
 		sp.NotificationDialOutNumber = plan.NotificationDialOutNumber.ValueString()
@@ -219,13 +223,15 @@ func (r *emergencyCallingPolicyResource) Update(ctx context.Context, req resourc
 	if !plan.NotificationGroup.Equal(state.NotificationGroup) {
 		sp.NotificationGroup = plan.NotificationGroup.ValueString()
 	}
-	if v := plan.NotificationMode.ValueString(); v != "" {
-		sp.NotificationMode = objectParam(v)
+	if !plan.NotificationMode.Equal(state.NotificationMode) {
+		if v := plan.NotificationMode.ValueString(); v != "" {
+			sp.NotificationMode = objectParam(v)
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsEmergencyCallingPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsEmergencyCallingPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-EmergencyCallingPolicy failed", err.Error())
 		return
 	}
@@ -237,6 +243,9 @@ func (r *emergencyCallingPolicyResource) Update(ctx context.Context, req resourc
 		"NotificationGroup":                  cfg.NotificationGroup,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

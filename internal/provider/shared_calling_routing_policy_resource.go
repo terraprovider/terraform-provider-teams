@@ -94,7 +94,7 @@ func (r *sharedCallingRoutingPolicyResource) Create(ctx context.Context, req res
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsSharedCallingRoutingPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsSharedCallingRoutingPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-SharedCallingRoutingPolicy failed", err.Error())
 			return
 		}
@@ -124,7 +124,7 @@ func (r *sharedCallingRoutingPolicyResource) Create(ctx context.Context, req res
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsSharedCallingRoutingPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsSharedCallingRoutingPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-SharedCallingRoutingPolicy failed", err.Error())
 		return
@@ -174,8 +174,10 @@ func (r *sharedCallingRoutingPolicyResource) Update(ctx context.Context, req res
 	if !plan.Description.Equal(state.Description) {
 		sp.Description = plan.Description.ValueString()
 	}
-	if v := plan.EmergencyNumbers.ValueString(); v != "" {
-		sp.EmergencyNumbers = objectParam(v)
+	if !plan.EmergencyNumbers.Equal(state.EmergencyNumbers) {
+		if v := plan.EmergencyNumbers.ValueString(); v != "" {
+			sp.EmergencyNumbers = objectParam(v)
+		}
 	}
 	if !plan.ResourceAccount.Equal(state.ResourceAccount) {
 		sp.ResourceAccount = plan.ResourceAccount.ValueString()
@@ -183,7 +185,7 @@ func (r *sharedCallingRoutingPolicyResource) Update(ctx context.Context, req res
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsSharedCallingRoutingPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsSharedCallingRoutingPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-SharedCallingRoutingPolicy failed", err.Error())
 		return
 	}
@@ -193,6 +195,9 @@ func (r *sharedCallingRoutingPolicyResource) Update(ctx context.Context, req res
 		"ResourceAccount": cfg.ResourceAccount,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

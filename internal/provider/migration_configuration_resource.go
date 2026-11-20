@@ -75,12 +75,14 @@ func (r *migrationConfigurationResource) Create(ctx context.Context, req resourc
 	sp := cs.SetCsTeamsMigrationConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
 	if !config.EnableLegacyClientInterop.IsNull() {
-		sp.EnableLegacyClientInterop = plan.EnableLegacyClientInterop.ValueBoolPointer()
+		if !plan.EnableLegacyClientInterop.IsUnknown() {
+			sp.EnableLegacyClientInterop = plan.EnableLegacyClientInterop.ValueBoolPointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsMigrationConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMigrationConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-MigrationConfiguration failed", err.Error())
 		return
 	}
@@ -117,18 +119,29 @@ func (r *migrationConfigurationResource) Update(ctx context.Context, req resourc
 	sp := cs.SetCsTeamsMigrationConfigurationParams{}
 	sp.Identity = id
 	if !plan.EnableLegacyClientInterop.Equal(state.EnableLegacyClientInterop) {
-		sp.EnableLegacyClientInterop = plan.EnableLegacyClientInterop.ValueBoolPointer()
+		if !plan.EnableLegacyClientInterop.IsUnknown() {
+			sp.EnableLegacyClientInterop = plan.EnableLegacyClientInterop.ValueBoolPointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsMigrationConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMigrationConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-MigrationConfiguration failed", err.Error())
 		return
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{}, getString)
+	if !cfg.EnableLegacyClientInterop.IsUnknown() && !cfg.EnableLegacyClientInterop.IsNull() && !cfg.EnableLegacyClientInterop.Equal(state.EnableLegacyClientInterop) {
+		prev, want := reflected, cfg.EnableLegacyClientInterop.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableLegacyClientInterop"] == nil || getBool(obj, "EnableLegacyClientInterop") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

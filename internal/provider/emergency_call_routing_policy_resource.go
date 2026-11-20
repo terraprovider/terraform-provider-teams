@@ -84,7 +84,9 @@ func (r *emergencyCallRoutingPolicyResource) Create(ctx context.Context, req res
 		sp := cs.SetCsTeamsEmergencyCallRoutingPolicyParams{}
 		sp.Identity = plan.Identity.ValueString()
 		if !config.AllowEnhancedEmergencyServices.IsNull() {
-			sp.AllowEnhancedEmergencyServices = plan.AllowEnhancedEmergencyServices.ValueBoolPointer()
+			if !plan.AllowEnhancedEmergencyServices.IsUnknown() {
+				sp.AllowEnhancedEmergencyServices = plan.AllowEnhancedEmergencyServices.ValueBoolPointer()
+			}
 		}
 		if !config.Description.IsNull() {
 			sp.Description = plan.Description.ValueString()
@@ -95,7 +97,7 @@ func (r *emergencyCallRoutingPolicyResource) Create(ctx context.Context, req res
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsEmergencyCallRoutingPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsEmergencyCallRoutingPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-EmergencyCallRoutingPolicy failed", err.Error())
 			return
 		}
@@ -113,7 +115,9 @@ func (r *emergencyCallRoutingPolicyResource) Create(ctx context.Context, req res
 	}
 	p := cs.NewCsTeamsEmergencyCallRoutingPolicyParams{}
 	if !config.AllowEnhancedEmergencyServices.IsNull() {
-		p.AllowEnhancedEmergencyServices = plan.AllowEnhancedEmergencyServices.ValueBoolPointer()
+		if !plan.AllowEnhancedEmergencyServices.IsUnknown() {
+			p.AllowEnhancedEmergencyServices = plan.AllowEnhancedEmergencyServices.ValueBoolPointer()
+		}
 	}
 	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
@@ -125,7 +129,7 @@ func (r *emergencyCallRoutingPolicyResource) Create(ctx context.Context, req res
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsEmergencyCallRoutingPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsEmergencyCallRoutingPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-EmergencyCallRoutingPolicy failed", err.Error())
 		return
@@ -173,18 +177,22 @@ func (r *emergencyCallRoutingPolicyResource) Update(ctx context.Context, req res
 	sp := cs.SetCsTeamsEmergencyCallRoutingPolicyParams{}
 	sp.Identity = id
 	if !plan.AllowEnhancedEmergencyServices.Equal(state.AllowEnhancedEmergencyServices) {
-		sp.AllowEnhancedEmergencyServices = plan.AllowEnhancedEmergencyServices.ValueBoolPointer()
+		if !plan.AllowEnhancedEmergencyServices.IsUnknown() {
+			sp.AllowEnhancedEmergencyServices = plan.AllowEnhancedEmergencyServices.ValueBoolPointer()
+		}
 	}
 	if !plan.Description.Equal(state.Description) {
 		sp.Description = plan.Description.ValueString()
 	}
-	if v := plan.EmergencyNumbers.ValueString(); v != "" {
-		sp.EmergencyNumbers = objectParam(v)
+	if !plan.EmergencyNumbers.Equal(state.EmergencyNumbers) {
+		if v := plan.EmergencyNumbers.ValueString(); v != "" {
+			sp.EmergencyNumbers = objectParam(v)
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsEmergencyCallRoutingPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsEmergencyCallRoutingPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-EmergencyCallRoutingPolicy failed", err.Error())
 		return
 	}
@@ -192,7 +200,16 @@ func (r *emergencyCallRoutingPolicyResource) Update(ctx context.Context, req res
 	reflected := reconcile.ReflectsFields(map[string]types.String{
 		"Description": cfg.Description,
 	}, getString)
+	if !cfg.AllowEnhancedEmergencyServices.IsUnknown() && !cfg.AllowEnhancedEmergencyServices.IsNull() && !cfg.AllowEnhancedEmergencyServices.Equal(state.AllowEnhancedEmergencyServices) {
+		prev, want := reflected, cfg.AllowEnhancedEmergencyServices.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowEnhancedEmergencyServices"] == nil || getBool(obj, "AllowEnhancedEmergencyServices") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

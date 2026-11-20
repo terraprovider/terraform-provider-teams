@@ -91,7 +91,9 @@ func (r *videoInteropServiceProviderResource) Create(ctx context.Context, req re
 			sp.AadApplicationIds = plan.AadApplicationIds.ValueString()
 		}
 		if !config.AllowAppGuestJoinsAsAuthenticated.IsNull() {
-			sp.AllowAppGuestJoinsAsAuthenticated = plan.AllowAppGuestJoinsAsAuthenticated.ValueBoolPointer()
+			if !plan.AllowAppGuestJoinsAsAuthenticated.IsUnknown() {
+				sp.AllowAppGuestJoinsAsAuthenticated = plan.AllowAppGuestJoinsAsAuthenticated.ValueBoolPointer()
+			}
 		}
 		if !config.InstructionUri.IsNull() {
 			sp.InstructionUri = plan.InstructionUri.ValueString()
@@ -102,7 +104,7 @@ func (r *videoInteropServiceProviderResource) Create(ctx context.Context, req re
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsVideoInteropServiceProvider(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsVideoInteropServiceProvider, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-VideoInteropServiceProvider failed", err.Error())
 			return
 		}
@@ -123,7 +125,9 @@ func (r *videoInteropServiceProviderResource) Create(ctx context.Context, req re
 		p.AadApplicationIds = plan.AadApplicationIds.ValueString()
 	}
 	if !config.AllowAppGuestJoinsAsAuthenticated.IsNull() {
-		p.AllowAppGuestJoinsAsAuthenticated = plan.AllowAppGuestJoinsAsAuthenticated.ValueBoolPointer()
+		if !plan.AllowAppGuestJoinsAsAuthenticated.IsUnknown() {
+			p.AllowAppGuestJoinsAsAuthenticated = plan.AllowAppGuestJoinsAsAuthenticated.ValueBoolPointer()
+		}
 	}
 	if !config.InstructionUri.IsNull() {
 		p.InstructionUri = plan.InstructionUri.ValueString()
@@ -138,7 +142,7 @@ func (r *videoInteropServiceProviderResource) Create(ctx context.Context, req re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsVideoInteropServiceProvider(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsVideoInteropServiceProvider, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-VideoInteropServiceProvider failed", err.Error())
 		return
@@ -189,7 +193,9 @@ func (r *videoInteropServiceProviderResource) Update(ctx context.Context, req re
 		sp.AadApplicationIds = plan.AadApplicationIds.ValueString()
 	}
 	if !plan.AllowAppGuestJoinsAsAuthenticated.Equal(state.AllowAppGuestJoinsAsAuthenticated) {
-		sp.AllowAppGuestJoinsAsAuthenticated = plan.AllowAppGuestJoinsAsAuthenticated.ValueBoolPointer()
+		if !plan.AllowAppGuestJoinsAsAuthenticated.IsUnknown() {
+			sp.AllowAppGuestJoinsAsAuthenticated = plan.AllowAppGuestJoinsAsAuthenticated.ValueBoolPointer()
+		}
 	}
 	if !plan.InstructionUri.Equal(state.InstructionUri) {
 		sp.InstructionUri = plan.InstructionUri.ValueString()
@@ -200,7 +206,7 @@ func (r *videoInteropServiceProviderResource) Update(ctx context.Context, req re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsVideoInteropServiceProvider(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsVideoInteropServiceProvider, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-VideoInteropServiceProvider failed", err.Error())
 		return
 	}
@@ -210,7 +216,16 @@ func (r *videoInteropServiceProviderResource) Update(ctx context.Context, req re
 		"InstructionUri":    cfg.InstructionUri,
 		"TenantKey":         cfg.TenantKey,
 	}, getString)
+	if !cfg.AllowAppGuestJoinsAsAuthenticated.IsUnknown() && !cfg.AllowAppGuestJoinsAsAuthenticated.IsNull() && !cfg.AllowAppGuestJoinsAsAuthenticated.Equal(state.AllowAppGuestJoinsAsAuthenticated) {
+		prev, want := reflected, cfg.AllowAppGuestJoinsAsAuthenticated.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowAppGuestJoinsAsAuthenticated"] == nil || getBool(obj, "AllowAppGuestJoinsAsAuthenticated") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

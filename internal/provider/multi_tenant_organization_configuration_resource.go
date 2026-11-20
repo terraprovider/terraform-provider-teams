@@ -81,7 +81,7 @@ func (r *multiTenantOrganizationConfigurationResource) Create(ctx context.Contex
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsMultiTenantOrganizationConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMultiTenantOrganizationConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-MultiTenantOrganizationConfiguration failed", err.Error())
 		return
 	}
@@ -123,7 +123,7 @@ func (r *multiTenantOrganizationConfigurationResource) Update(ctx context.Contex
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsMultiTenantOrganizationConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMultiTenantOrganizationConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-MultiTenantOrganizationConfiguration failed", err.Error())
 		return
 	}
@@ -132,6 +132,9 @@ func (r *multiTenantOrganizationConfigurationResource) Update(ctx context.Contex
 		"CopilotFromHomeTenant": cfg.CopilotFromHomeTenant,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

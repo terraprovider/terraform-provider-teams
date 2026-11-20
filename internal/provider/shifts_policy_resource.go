@@ -89,13 +89,17 @@ func (r *shiftsPolicyResource) Create(ctx context.Context, req resource.CreateRe
 		sp := cs.SetCsTeamsShiftsPolicyParams{}
 		sp.Identity = plan.Identity.ValueString()
 		if !config.AccessGracePeriodMinutes.IsNull() {
-			sp.AccessGracePeriodMinutes = plan.AccessGracePeriodMinutes.ValueInt64Pointer()
+			if !plan.AccessGracePeriodMinutes.IsUnknown() {
+				sp.AccessGracePeriodMinutes = plan.AccessGracePeriodMinutes.ValueInt64Pointer()
+			}
 		}
 		if !config.AccessType.IsNull() {
 			sp.AccessType = plan.AccessType.ValueString()
 		}
 		if !config.EnableScheduleOwnerPermissions.IsNull() {
-			sp.EnableScheduleOwnerPermissions = plan.EnableScheduleOwnerPermissions.ValueBoolPointer()
+			if !plan.EnableScheduleOwnerPermissions.IsUnknown() {
+				sp.EnableScheduleOwnerPermissions = plan.EnableScheduleOwnerPermissions.ValueBoolPointer()
+			}
 		}
 		if !config.ShiftNoticeFrequency.IsNull() {
 			sp.ShiftNoticeFrequency = plan.ShiftNoticeFrequency.ValueString()
@@ -109,7 +113,7 @@ func (r *shiftsPolicyResource) Create(ctx context.Context, req resource.CreateRe
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsShiftsPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsShiftsPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-ShiftsPolicy failed", err.Error())
 			return
 		}
@@ -127,13 +131,17 @@ func (r *shiftsPolicyResource) Create(ctx context.Context, req resource.CreateRe
 	}
 	p := cs.NewCsTeamsShiftsPolicyParams{}
 	if !config.AccessGracePeriodMinutes.IsNull() {
-		p.AccessGracePeriodMinutes = plan.AccessGracePeriodMinutes.ValueInt64Pointer()
+		if !plan.AccessGracePeriodMinutes.IsUnknown() {
+			p.AccessGracePeriodMinutes = plan.AccessGracePeriodMinutes.ValueInt64Pointer()
+		}
 	}
 	if !config.AccessType.IsNull() {
 		p.AccessType = plan.AccessType.ValueString()
 	}
 	if !config.EnableScheduleOwnerPermissions.IsNull() {
-		p.EnableScheduleOwnerPermissions = plan.EnableScheduleOwnerPermissions.ValueBoolPointer()
+		if !plan.EnableScheduleOwnerPermissions.IsUnknown() {
+			p.EnableScheduleOwnerPermissions = plan.EnableScheduleOwnerPermissions.ValueBoolPointer()
+		}
 	}
 	if !config.ShiftNoticeFrequency.IsNull() {
 		p.ShiftNoticeFrequency = plan.ShiftNoticeFrequency.ValueString()
@@ -148,7 +156,7 @@ func (r *shiftsPolicyResource) Create(ctx context.Context, req resource.CreateRe
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsShiftsPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsShiftsPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-ShiftsPolicy failed", err.Error())
 		return
@@ -196,13 +204,17 @@ func (r *shiftsPolicyResource) Update(ctx context.Context, req resource.UpdateRe
 	sp := cs.SetCsTeamsShiftsPolicyParams{}
 	sp.Identity = id
 	if !plan.AccessGracePeriodMinutes.Equal(state.AccessGracePeriodMinutes) {
-		sp.AccessGracePeriodMinutes = plan.AccessGracePeriodMinutes.ValueInt64Pointer()
+		if !plan.AccessGracePeriodMinutes.IsUnknown() {
+			sp.AccessGracePeriodMinutes = plan.AccessGracePeriodMinutes.ValueInt64Pointer()
+		}
 	}
 	if !plan.AccessType.Equal(state.AccessType) {
 		sp.AccessType = plan.AccessType.ValueString()
 	}
 	if !plan.EnableScheduleOwnerPermissions.Equal(state.EnableScheduleOwnerPermissions) {
-		sp.EnableScheduleOwnerPermissions = plan.EnableScheduleOwnerPermissions.ValueBoolPointer()
+		if !plan.EnableScheduleOwnerPermissions.IsUnknown() {
+			sp.EnableScheduleOwnerPermissions = plan.EnableScheduleOwnerPermissions.ValueBoolPointer()
+		}
 	}
 	if !plan.ShiftNoticeFrequency.Equal(state.ShiftNoticeFrequency) {
 		sp.ShiftNoticeFrequency = plan.ShiftNoticeFrequency.ValueString()
@@ -216,7 +228,7 @@ func (r *shiftsPolicyResource) Update(ctx context.Context, req resource.UpdateRe
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsShiftsPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsShiftsPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-ShiftsPolicy failed", err.Error())
 		return
 	}
@@ -227,7 +239,22 @@ func (r *shiftsPolicyResource) Update(ctx context.Context, req resource.UpdateRe
 		"ShiftNoticeMessageCustom": cfg.ShiftNoticeMessageCustom,
 		"ShiftNoticeMessageType":   cfg.ShiftNoticeMessageType,
 	}, getString)
+	if !cfg.AccessGracePeriodMinutes.IsUnknown() && !cfg.AccessGracePeriodMinutes.IsNull() && !cfg.AccessGracePeriodMinutes.Equal(state.AccessGracePeriodMinutes) {
+		prev, want := reflected, cfg.AccessGracePeriodMinutes.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AccessGracePeriodMinutes"] == nil || getInt(obj, "AccessGracePeriodMinutes") == want)
+		}
+	}
+	if !cfg.EnableScheduleOwnerPermissions.IsUnknown() && !cfg.EnableScheduleOwnerPermissions.IsNull() && !cfg.EnableScheduleOwnerPermissions.Equal(state.EnableScheduleOwnerPermissions) {
+		prev, want := reflected, cfg.EnableScheduleOwnerPermissions.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableScheduleOwnerPermissions"] == nil || getBool(obj, "EnableScheduleOwnerPermissions") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

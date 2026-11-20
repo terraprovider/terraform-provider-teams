@@ -81,7 +81,7 @@ func (r *applicationMeetingConfigurationResource) Create(ctx context.Context, re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsApplicationMeetingConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsApplicationMeetingConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-ApplicationMeetingConfiguration failed", err.Error())
 		return
 	}
@@ -117,19 +117,24 @@ func (r *applicationMeetingConfigurationResource) Update(ctx context.Context, re
 	id := r.identityOf(state)
 	sp := cs.SetCsApplicationMeetingConfigurationParams{}
 	sp.Identity = id
-	if v := plan.AllowRemoveParticipantAppIds.ValueString(); v != "" {
-		sp.AllowRemoveParticipantAppIds = objectParam(v)
+	if !plan.AllowRemoveParticipantAppIds.Equal(state.AllowRemoveParticipantAppIds) {
+		if v := plan.AllowRemoveParticipantAppIds.ValueString(); v != "" {
+			sp.AllowRemoveParticipantAppIds = objectParam(v)
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsApplicationMeetingConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsApplicationMeetingConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-ApplicationMeetingConfiguration failed", err.Error())
 		return
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

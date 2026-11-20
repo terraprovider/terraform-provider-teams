@@ -107,46 +107,72 @@ func (r *clientConfigurationResource) Create(ctx context.Context, req resource.C
 	sp := cs.SetCsTeamsClientConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
 	if !config.AllowBox.IsNull() {
-		sp.AllowBox = plan.AllowBox.ValueBoolPointer()
+		if !plan.AllowBox.IsUnknown() {
+			sp.AllowBox = plan.AllowBox.ValueBoolPointer()
+		}
 	}
 	if !config.AllowDropBox.IsNull() {
-		sp.AllowDropBox = plan.AllowDropBox.ValueBoolPointer()
+		if !plan.AllowDropBox.IsUnknown() {
+			sp.AllowDropBox = plan.AllowDropBox.ValueBoolPointer()
+		}
 	}
 	if !config.AllowEgnyte.IsNull() {
-		sp.AllowEgnyte = plan.AllowEgnyte.ValueBoolPointer()
+		if !plan.AllowEgnyte.IsUnknown() {
+			sp.AllowEgnyte = plan.AllowEgnyte.ValueBoolPointer()
+		}
 	}
 	if !config.AllowEmailIntoChannel.IsNull() {
-		sp.AllowEmailIntoChannel = plan.AllowEmailIntoChannel.ValueBoolPointer()
+		if !plan.AllowEmailIntoChannel.IsUnknown() {
+			sp.AllowEmailIntoChannel = plan.AllowEmailIntoChannel.ValueBoolPointer()
+		}
 	}
 	if !config.AllowGoogleDrive.IsNull() {
-		sp.AllowGoogleDrive = plan.AllowGoogleDrive.ValueBoolPointer()
+		if !plan.AllowGoogleDrive.IsUnknown() {
+			sp.AllowGoogleDrive = plan.AllowGoogleDrive.ValueBoolPointer()
+		}
 	}
 	if !config.AllowGuestUser.IsNull() {
-		sp.AllowGuestUser = plan.AllowGuestUser.ValueBoolPointer()
+		if !plan.AllowGuestUser.IsUnknown() {
+			sp.AllowGuestUser = plan.AllowGuestUser.ValueBoolPointer()
+		}
 	}
 	if !config.AllowOrganizationTab.IsNull() {
-		sp.AllowOrganizationTab = plan.AllowOrganizationTab.ValueBoolPointer()
+		if !plan.AllowOrganizationTab.IsUnknown() {
+			sp.AllowOrganizationTab = plan.AllowOrganizationTab.ValueBoolPointer()
+		}
 	}
 	if !config.AllowResourceAccountSendMessage.IsNull() {
-		sp.AllowResourceAccountSendMessage = plan.AllowResourceAccountSendMessage.ValueBoolPointer()
+		if !plan.AllowResourceAccountSendMessage.IsUnknown() {
+			sp.AllowResourceAccountSendMessage = plan.AllowResourceAccountSendMessage.ValueBoolPointer()
+		}
 	}
 	if !config.AllowRoleBasedChatPermissions.IsNull() {
-		sp.AllowRoleBasedChatPermissions = plan.AllowRoleBasedChatPermissions.ValueBoolPointer()
+		if !plan.AllowRoleBasedChatPermissions.IsUnknown() {
+			sp.AllowRoleBasedChatPermissions = plan.AllowRoleBasedChatPermissions.ValueBoolPointer()
+		}
 	}
 	if !config.AllowScopedPeopleSearchandAccess.IsNull() {
-		sp.AllowScopedPeopleSearchandAccess = plan.AllowScopedPeopleSearchandAccess.ValueBoolPointer()
+		if !plan.AllowScopedPeopleSearchandAccess.IsUnknown() {
+			sp.AllowScopedPeopleSearchandAccess = plan.AllowScopedPeopleSearchandAccess.ValueBoolPointer()
+		}
 	}
 	if !config.AllowShareFile.IsNull() {
-		sp.AllowShareFile = plan.AllowShareFile.ValueBoolPointer()
+		if !plan.AllowShareFile.IsUnknown() {
+			sp.AllowShareFile = plan.AllowShareFile.ValueBoolPointer()
+		}
 	}
 	if !config.AllowSkypeBusinessInterop.IsNull() {
-		sp.AllowSkypeBusinessInterop = plan.AllowSkypeBusinessInterop.ValueBoolPointer()
+		if !plan.AllowSkypeBusinessInterop.IsUnknown() {
+			sp.AllowSkypeBusinessInterop = plan.AllowSkypeBusinessInterop.ValueBoolPointer()
+		}
 	}
 	if !config.ContentPin.IsNull() {
 		sp.ContentPin = plan.ContentPin.ValueString()
 	}
 	if !config.ExtendedWorkInfoInPeopleSearch.IsNull() {
-		sp.ExtendedWorkInfoInPeopleSearch = plan.ExtendedWorkInfoInPeopleSearch.ValueBoolPointer()
+		if !plan.ExtendedWorkInfoInPeopleSearch.IsUnknown() {
+			sp.ExtendedWorkInfoInPeopleSearch = plan.ExtendedWorkInfoInPeopleSearch.ValueBoolPointer()
+		}
 	}
 	if !config.ResourceAccountContentAccess.IsNull() {
 		sp.ResourceAccountContentAccess = plan.ResourceAccountContentAccess.ValueString()
@@ -160,7 +186,7 @@ func (r *clientConfigurationResource) Create(ctx context.Context, req resource.C
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsClientConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsClientConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-ClientConfiguration failed", err.Error())
 		return
 	}
@@ -197,46 +223,72 @@ func (r *clientConfigurationResource) Update(ctx context.Context, req resource.U
 	sp := cs.SetCsTeamsClientConfigurationParams{}
 	sp.Identity = id
 	if !plan.AllowBox.Equal(state.AllowBox) {
-		sp.AllowBox = plan.AllowBox.ValueBoolPointer()
+		if !plan.AllowBox.IsUnknown() {
+			sp.AllowBox = plan.AllowBox.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowDropBox.Equal(state.AllowDropBox) {
-		sp.AllowDropBox = plan.AllowDropBox.ValueBoolPointer()
+		if !plan.AllowDropBox.IsUnknown() {
+			sp.AllowDropBox = plan.AllowDropBox.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowEgnyte.Equal(state.AllowEgnyte) {
-		sp.AllowEgnyte = plan.AllowEgnyte.ValueBoolPointer()
+		if !plan.AllowEgnyte.IsUnknown() {
+			sp.AllowEgnyte = plan.AllowEgnyte.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowEmailIntoChannel.Equal(state.AllowEmailIntoChannel) {
-		sp.AllowEmailIntoChannel = plan.AllowEmailIntoChannel.ValueBoolPointer()
+		if !plan.AllowEmailIntoChannel.IsUnknown() {
+			sp.AllowEmailIntoChannel = plan.AllowEmailIntoChannel.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowGoogleDrive.Equal(state.AllowGoogleDrive) {
-		sp.AllowGoogleDrive = plan.AllowGoogleDrive.ValueBoolPointer()
+		if !plan.AllowGoogleDrive.IsUnknown() {
+			sp.AllowGoogleDrive = plan.AllowGoogleDrive.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowGuestUser.Equal(state.AllowGuestUser) {
-		sp.AllowGuestUser = plan.AllowGuestUser.ValueBoolPointer()
+		if !plan.AllowGuestUser.IsUnknown() {
+			sp.AllowGuestUser = plan.AllowGuestUser.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowOrganizationTab.Equal(state.AllowOrganizationTab) {
-		sp.AllowOrganizationTab = plan.AllowOrganizationTab.ValueBoolPointer()
+		if !plan.AllowOrganizationTab.IsUnknown() {
+			sp.AllowOrganizationTab = plan.AllowOrganizationTab.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowResourceAccountSendMessage.Equal(state.AllowResourceAccountSendMessage) {
-		sp.AllowResourceAccountSendMessage = plan.AllowResourceAccountSendMessage.ValueBoolPointer()
+		if !plan.AllowResourceAccountSendMessage.IsUnknown() {
+			sp.AllowResourceAccountSendMessage = plan.AllowResourceAccountSendMessage.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowRoleBasedChatPermissions.Equal(state.AllowRoleBasedChatPermissions) {
-		sp.AllowRoleBasedChatPermissions = plan.AllowRoleBasedChatPermissions.ValueBoolPointer()
+		if !plan.AllowRoleBasedChatPermissions.IsUnknown() {
+			sp.AllowRoleBasedChatPermissions = plan.AllowRoleBasedChatPermissions.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowScopedPeopleSearchandAccess.Equal(state.AllowScopedPeopleSearchandAccess) {
-		sp.AllowScopedPeopleSearchandAccess = plan.AllowScopedPeopleSearchandAccess.ValueBoolPointer()
+		if !plan.AllowScopedPeopleSearchandAccess.IsUnknown() {
+			sp.AllowScopedPeopleSearchandAccess = plan.AllowScopedPeopleSearchandAccess.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowShareFile.Equal(state.AllowShareFile) {
-		sp.AllowShareFile = plan.AllowShareFile.ValueBoolPointer()
+		if !plan.AllowShareFile.IsUnknown() {
+			sp.AllowShareFile = plan.AllowShareFile.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowSkypeBusinessInterop.Equal(state.AllowSkypeBusinessInterop) {
-		sp.AllowSkypeBusinessInterop = plan.AllowSkypeBusinessInterop.ValueBoolPointer()
+		if !plan.AllowSkypeBusinessInterop.IsUnknown() {
+			sp.AllowSkypeBusinessInterop = plan.AllowSkypeBusinessInterop.ValueBoolPointer()
+		}
 	}
 	if !plan.ContentPin.Equal(state.ContentPin) {
 		sp.ContentPin = plan.ContentPin.ValueString()
 	}
 	if !plan.ExtendedWorkInfoInPeopleSearch.Equal(state.ExtendedWorkInfoInPeopleSearch) {
-		sp.ExtendedWorkInfoInPeopleSearch = plan.ExtendedWorkInfoInPeopleSearch.ValueBoolPointer()
+		if !plan.ExtendedWorkInfoInPeopleSearch.IsUnknown() {
+			sp.ExtendedWorkInfoInPeopleSearch = plan.ExtendedWorkInfoInPeopleSearch.ValueBoolPointer()
+		}
 	}
 	if !plan.ResourceAccountContentAccess.Equal(state.ResourceAccountContentAccess) {
 		sp.ResourceAccountContentAccess = plan.ResourceAccountContentAccess.ValueString()
@@ -250,7 +302,7 @@ func (r *clientConfigurationResource) Update(ctx context.Context, req resource.U
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsClientConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsClientConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-ClientConfiguration failed", err.Error())
 		return
 	}
@@ -261,7 +313,88 @@ func (r *clientConfigurationResource) Update(ctx context.Context, req resource.U
 		"RestrictedSenderList":         cfg.RestrictedSenderList,
 		"UseUnifiedDomain":             cfg.UseUnifiedDomain,
 	}, getString)
+	if !cfg.AllowBox.IsUnknown() && !cfg.AllowBox.IsNull() && !cfg.AllowBox.Equal(state.AllowBox) {
+		prev, want := reflected, cfg.AllowBox.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowBox"] == nil || getBool(obj, "AllowBox") == want)
+		}
+	}
+	if !cfg.AllowDropBox.IsUnknown() && !cfg.AllowDropBox.IsNull() && !cfg.AllowDropBox.Equal(state.AllowDropBox) {
+		prev, want := reflected, cfg.AllowDropBox.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowDropBox"] == nil || getBool(obj, "AllowDropBox") == want)
+		}
+	}
+	if !cfg.AllowEgnyte.IsUnknown() && !cfg.AllowEgnyte.IsNull() && !cfg.AllowEgnyte.Equal(state.AllowEgnyte) {
+		prev, want := reflected, cfg.AllowEgnyte.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowEgnyte"] == nil || getBool(obj, "AllowEgnyte") == want)
+		}
+	}
+	if !cfg.AllowEmailIntoChannel.IsUnknown() && !cfg.AllowEmailIntoChannel.IsNull() && !cfg.AllowEmailIntoChannel.Equal(state.AllowEmailIntoChannel) {
+		prev, want := reflected, cfg.AllowEmailIntoChannel.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowEmailIntoChannel"] == nil || getBool(obj, "AllowEmailIntoChannel") == want)
+		}
+	}
+	if !cfg.AllowGoogleDrive.IsUnknown() && !cfg.AllowGoogleDrive.IsNull() && !cfg.AllowGoogleDrive.Equal(state.AllowGoogleDrive) {
+		prev, want := reflected, cfg.AllowGoogleDrive.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowGoogleDrive"] == nil || getBool(obj, "AllowGoogleDrive") == want)
+		}
+	}
+	if !cfg.AllowGuestUser.IsUnknown() && !cfg.AllowGuestUser.IsNull() && !cfg.AllowGuestUser.Equal(state.AllowGuestUser) {
+		prev, want := reflected, cfg.AllowGuestUser.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowGuestUser"] == nil || getBool(obj, "AllowGuestUser") == want)
+		}
+	}
+	if !cfg.AllowOrganizationTab.IsUnknown() && !cfg.AllowOrganizationTab.IsNull() && !cfg.AllowOrganizationTab.Equal(state.AllowOrganizationTab) {
+		prev, want := reflected, cfg.AllowOrganizationTab.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowOrganizationTab"] == nil || getBool(obj, "AllowOrganizationTab") == want)
+		}
+	}
+	if !cfg.AllowResourceAccountSendMessage.IsUnknown() && !cfg.AllowResourceAccountSendMessage.IsNull() && !cfg.AllowResourceAccountSendMessage.Equal(state.AllowResourceAccountSendMessage) {
+		prev, want := reflected, cfg.AllowResourceAccountSendMessage.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowResourceAccountSendMessage"] == nil || getBool(obj, "AllowResourceAccountSendMessage") == want)
+		}
+	}
+	if !cfg.AllowRoleBasedChatPermissions.IsUnknown() && !cfg.AllowRoleBasedChatPermissions.IsNull() && !cfg.AllowRoleBasedChatPermissions.Equal(state.AllowRoleBasedChatPermissions) {
+		prev, want := reflected, cfg.AllowRoleBasedChatPermissions.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowRoleBasedChatPermissions"] == nil || getBool(obj, "AllowRoleBasedChatPermissions") == want)
+		}
+	}
+	if !cfg.AllowScopedPeopleSearchandAccess.IsUnknown() && !cfg.AllowScopedPeopleSearchandAccess.IsNull() && !cfg.AllowScopedPeopleSearchandAccess.Equal(state.AllowScopedPeopleSearchandAccess) {
+		prev, want := reflected, cfg.AllowScopedPeopleSearchandAccess.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowScopedPeopleSearchandAccess"] == nil || getBool(obj, "AllowScopedPeopleSearchandAccess") == want)
+		}
+	}
+	if !cfg.AllowShareFile.IsUnknown() && !cfg.AllowShareFile.IsNull() && !cfg.AllowShareFile.Equal(state.AllowShareFile) {
+		prev, want := reflected, cfg.AllowShareFile.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowShareFile"] == nil || getBool(obj, "AllowShareFile") == want)
+		}
+	}
+	if !cfg.AllowSkypeBusinessInterop.IsUnknown() && !cfg.AllowSkypeBusinessInterop.IsNull() && !cfg.AllowSkypeBusinessInterop.Equal(state.AllowSkypeBusinessInterop) {
+		prev, want := reflected, cfg.AllowSkypeBusinessInterop.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowSkypeBusinessInterop"] == nil || getBool(obj, "AllowSkypeBusinessInterop") == want)
+		}
+	}
+	if !cfg.ExtendedWorkInfoInPeopleSearch.IsUnknown() && !cfg.ExtendedWorkInfoInPeopleSearch.IsNull() && !cfg.ExtendedWorkInfoInPeopleSearch.Equal(state.ExtendedWorkInfoInPeopleSearch) {
+		prev, want := reflected, cfg.ExtendedWorkInfoInPeopleSearch.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["ExtendedWorkInfoInPeopleSearch"] == nil || getBool(obj, "ExtendedWorkInfoInPeopleSearch") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

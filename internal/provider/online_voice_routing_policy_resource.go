@@ -94,7 +94,7 @@ func (r *onlineVoiceRoutingPolicyResource) Create(ctx context.Context, req resou
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsOnlineVoiceRoutingPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsOnlineVoiceRoutingPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-OnlineVoiceRoutingPolicy failed", err.Error())
 			return
 		}
@@ -124,7 +124,7 @@ func (r *onlineVoiceRoutingPolicyResource) Create(ctx context.Context, req resou
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsOnlineVoiceRoutingPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsOnlineVoiceRoutingPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-OnlineVoiceRoutingPolicy failed", err.Error())
 		return
@@ -174,8 +174,10 @@ func (r *onlineVoiceRoutingPolicyResource) Update(ctx context.Context, req resou
 	if !plan.Description.Equal(state.Description) {
 		sp.Description = plan.Description.ValueString()
 	}
-	if v := plan.OnlinePstnUsages.ValueString(); v != "" {
-		sp.OnlinePstnUsages = objectParam(v)
+	if !plan.OnlinePstnUsages.Equal(state.OnlinePstnUsages) {
+		if v := plan.OnlinePstnUsages.ValueString(); v != "" {
+			sp.OnlinePstnUsages = objectParam(v)
+		}
 	}
 	if !plan.RouteType.Equal(state.RouteType) {
 		sp.RouteType = plan.RouteType.ValueString()
@@ -183,7 +185,7 @@ func (r *onlineVoiceRoutingPolicyResource) Update(ctx context.Context, req resou
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsOnlineVoiceRoutingPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsOnlineVoiceRoutingPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-OnlineVoiceRoutingPolicy failed", err.Error())
 		return
 	}
@@ -193,6 +195,9 @@ func (r *onlineVoiceRoutingPolicyResource) Update(ctx context.Context, req resou
 		"RouteType":   cfg.RouteType,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

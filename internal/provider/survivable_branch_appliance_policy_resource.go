@@ -84,7 +84,7 @@ func (r *survivableBranchAppliancePolicyResource) Create(ctx context.Context, re
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsSurvivableBranchAppliancePolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsSurvivableBranchAppliancePolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-SurvivableBranchAppliancePolicy failed", err.Error())
 			return
 		}
@@ -108,7 +108,7 @@ func (r *survivableBranchAppliancePolicyResource) Create(ctx context.Context, re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsSurvivableBranchAppliancePolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsSurvivableBranchAppliancePolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-SurvivableBranchAppliancePolicy failed", err.Error())
 		return
@@ -155,19 +155,24 @@ func (r *survivableBranchAppliancePolicyResource) Update(ctx context.Context, re
 	id := r.identityOf(state)
 	sp := cs.SetCsTeamsSurvivableBranchAppliancePolicyParams{}
 	sp.Identity = id
-	if v := plan.BranchApplianceFqdns.ValueString(); v != "" {
-		sp.BranchApplianceFqdns = objectParam(v)
+	if !plan.BranchApplianceFqdns.Equal(state.BranchApplianceFqdns) {
+		if v := plan.BranchApplianceFqdns.ValueString(); v != "" {
+			sp.BranchApplianceFqdns = objectParam(v)
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsSurvivableBranchAppliancePolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsSurvivableBranchAppliancePolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-SurvivableBranchAppliancePolicy failed", err.Error())
 		return
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

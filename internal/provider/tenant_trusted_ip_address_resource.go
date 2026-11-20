@@ -85,12 +85,14 @@ func (r *tenantTrustedIPAddressResource) Create(ctx context.Context, req resourc
 			sp.Description = plan.Description.ValueString()
 		}
 		if !config.MaskBits.IsNull() {
-			sp.MaskBits = plan.MaskBits.ValueInt64Pointer()
+			if !plan.MaskBits.IsUnknown() {
+				sp.MaskBits = plan.MaskBits.ValueInt64Pointer()
+			}
 		}
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTenantTrustedIPAddress(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantTrustedIPAddress, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-TenantTrustedIPAddress failed", err.Error())
 			return
 		}
@@ -114,13 +116,15 @@ func (r *tenantTrustedIPAddressResource) Create(ctx context.Context, req resourc
 		p.IPAddress = plan.IPAddress.ValueString()
 	}
 	if !config.MaskBits.IsNull() {
-		p.MaskBits = plan.MaskBits.ValueInt64Pointer()
+		if !plan.MaskBits.IsUnknown() {
+			p.MaskBits = plan.MaskBits.ValueInt64Pointer()
+		}
 	}
 	p.Identity = plan.Identity.ValueString()
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTenantTrustedIPAddress(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTenantTrustedIPAddress, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-TenantTrustedIPAddress failed", err.Error())
 		return
@@ -171,12 +175,14 @@ func (r *tenantTrustedIPAddressResource) Update(ctx context.Context, req resourc
 		sp.Description = plan.Description.ValueString()
 	}
 	if !plan.MaskBits.Equal(state.MaskBits) {
-		sp.MaskBits = plan.MaskBits.ValueInt64Pointer()
+		if !plan.MaskBits.IsUnknown() {
+			sp.MaskBits = plan.MaskBits.ValueInt64Pointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTenantTrustedIPAddress(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantTrustedIPAddress, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-TenantTrustedIPAddress failed", err.Error())
 		return
 	}
@@ -184,7 +190,16 @@ func (r *tenantTrustedIPAddressResource) Update(ctx context.Context, req resourc
 	reflected := reconcile.ReflectsFields(map[string]types.String{
 		"Description": cfg.Description,
 	}, getString)
+	if !cfg.MaskBits.IsUnknown() && !cfg.MaskBits.IsNull() && !cfg.MaskBits.Equal(state.MaskBits) {
+		prev, want := reflected, cfg.MaskBits.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["MaskBits"] == nil || getInt(obj, "MaskBits") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

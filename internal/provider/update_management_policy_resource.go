@@ -97,16 +97,22 @@ func (r *updateManagementPolicyResource) Create(ctx context.Context, req resourc
 		sp := cs.SetCsTeamsUpdateManagementPolicyParams{}
 		sp.Identity = plan.Identity.ValueString()
 		if !config.AllowManagedUpdates.IsNull() {
-			sp.AllowManagedUpdates = plan.AllowManagedUpdates.ValueBoolPointer()
+			if !plan.AllowManagedUpdates.IsUnknown() {
+				sp.AllowManagedUpdates = plan.AllowManagedUpdates.ValueBoolPointer()
+			}
 		}
 		if !config.AllowPreview.IsNull() {
-			sp.AllowPreview = plan.AllowPreview.ValueBoolPointer()
+			if !plan.AllowPreview.IsUnknown() {
+				sp.AllowPreview = plan.AllowPreview.ValueBoolPointer()
+			}
 		}
 		if !config.AllowPublicPreview.IsNull() {
 			sp.AllowPublicPreview = plan.AllowPublicPreview.ValueString()
 		}
 		if !config.BlockLegacyAuthorization.IsNull() {
-			sp.BlockLegacyAuthorization = plan.BlockLegacyAuthorization.ValueBoolPointer()
+			if !plan.BlockLegacyAuthorization.IsUnknown() {
+				sp.BlockLegacyAuthorization = plan.BlockLegacyAuthorization.ValueBoolPointer()
+			}
 		}
 		if !config.Description.IsNull() {
 			sp.Description = plan.Description.ValueString()
@@ -115,7 +121,9 @@ func (r *updateManagementPolicyResource) Create(ctx context.Context, req resourc
 			sp.DisabledInProductMessages = objectParam(v)
 		}
 		if !config.UpdateDayOfWeek.IsNull() {
-			sp.UpdateDayOfWeek = plan.UpdateDayOfWeek.ValueInt64Pointer()
+			if !plan.UpdateDayOfWeek.IsUnknown() {
+				sp.UpdateDayOfWeek = plan.UpdateDayOfWeek.ValueInt64Pointer()
+			}
 		}
 		if !config.UpdateTime.IsNull() {
 			sp.UpdateTime = plan.UpdateTime.ValueString()
@@ -129,7 +137,7 @@ func (r *updateManagementPolicyResource) Create(ctx context.Context, req resourc
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsUpdateManagementPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsUpdateManagementPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-UpdateManagementPolicy failed", err.Error())
 			return
 		}
@@ -147,16 +155,22 @@ func (r *updateManagementPolicyResource) Create(ctx context.Context, req resourc
 	}
 	p := cs.NewCsTeamsUpdateManagementPolicyParams{}
 	if !config.AllowManagedUpdates.IsNull() {
-		p.AllowManagedUpdates = plan.AllowManagedUpdates.ValueBoolPointer()
+		if !plan.AllowManagedUpdates.IsUnknown() {
+			p.AllowManagedUpdates = plan.AllowManagedUpdates.ValueBoolPointer()
+		}
 	}
 	if !config.AllowPreview.IsNull() {
-		p.AllowPreview = plan.AllowPreview.ValueBoolPointer()
+		if !plan.AllowPreview.IsUnknown() {
+			p.AllowPreview = plan.AllowPreview.ValueBoolPointer()
+		}
 	}
 	if !config.AllowPublicPreview.IsNull() {
 		p.AllowPublicPreview = plan.AllowPublicPreview.ValueString()
 	}
 	if !config.BlockLegacyAuthorization.IsNull() {
-		p.BlockLegacyAuthorization = plan.BlockLegacyAuthorization.ValueBoolPointer()
+		if !plan.BlockLegacyAuthorization.IsUnknown() {
+			p.BlockLegacyAuthorization = plan.BlockLegacyAuthorization.ValueBoolPointer()
+		}
 	}
 	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
@@ -165,7 +179,9 @@ func (r *updateManagementPolicyResource) Create(ctx context.Context, req resourc
 		p.DisabledInProductMessages = objectParam(v)
 	}
 	if !config.UpdateDayOfWeek.IsNull() {
-		p.UpdateDayOfWeek = plan.UpdateDayOfWeek.ValueInt64Pointer()
+		if !plan.UpdateDayOfWeek.IsUnknown() {
+			p.UpdateDayOfWeek = plan.UpdateDayOfWeek.ValueInt64Pointer()
+		}
 	}
 	if !config.UpdateTime.IsNull() {
 		p.UpdateTime = plan.UpdateTime.ValueString()
@@ -180,7 +196,7 @@ func (r *updateManagementPolicyResource) Create(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsUpdateManagementPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsUpdateManagementPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-UpdateManagementPolicy failed", err.Error())
 		return
@@ -228,31 +244,43 @@ func (r *updateManagementPolicyResource) Update(ctx context.Context, req resourc
 	sp := cs.SetCsTeamsUpdateManagementPolicyParams{}
 	sp.Identity = id
 	if !plan.AllowManagedUpdates.Equal(state.AllowManagedUpdates) {
-		sp.AllowManagedUpdates = plan.AllowManagedUpdates.ValueBoolPointer()
+		if !plan.AllowManagedUpdates.IsUnknown() {
+			sp.AllowManagedUpdates = plan.AllowManagedUpdates.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowPreview.Equal(state.AllowPreview) {
-		sp.AllowPreview = plan.AllowPreview.ValueBoolPointer()
+		if !plan.AllowPreview.IsUnknown() {
+			sp.AllowPreview = plan.AllowPreview.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowPublicPreview.Equal(state.AllowPublicPreview) {
 		sp.AllowPublicPreview = plan.AllowPublicPreview.ValueString()
 	}
 	if !plan.BlockLegacyAuthorization.Equal(state.BlockLegacyAuthorization) {
-		sp.BlockLegacyAuthorization = plan.BlockLegacyAuthorization.ValueBoolPointer()
+		if !plan.BlockLegacyAuthorization.IsUnknown() {
+			sp.BlockLegacyAuthorization = plan.BlockLegacyAuthorization.ValueBoolPointer()
+		}
 	}
 	if !plan.Description.Equal(state.Description) {
 		sp.Description = plan.Description.ValueString()
 	}
-	if v := plan.DisabledInProductMessages.ValueString(); v != "" {
-		sp.DisabledInProductMessages = objectParam(v)
+	if !plan.DisabledInProductMessages.Equal(state.DisabledInProductMessages) {
+		if v := plan.DisabledInProductMessages.ValueString(); v != "" {
+			sp.DisabledInProductMessages = objectParam(v)
+		}
 	}
 	if !plan.UpdateDayOfWeek.Equal(state.UpdateDayOfWeek) {
-		sp.UpdateDayOfWeek = plan.UpdateDayOfWeek.ValueInt64Pointer()
+		if !plan.UpdateDayOfWeek.IsUnknown() {
+			sp.UpdateDayOfWeek = plan.UpdateDayOfWeek.ValueInt64Pointer()
+		}
 	}
 	if !plan.UpdateTime.Equal(state.UpdateTime) {
 		sp.UpdateTime = plan.UpdateTime.ValueString()
 	}
-	if v := plan.UpdateTimeOfDay.ValueString(); v != "" {
-		sp.UpdateTimeOfDay = objectParam(v)
+	if !plan.UpdateTimeOfDay.Equal(state.UpdateTimeOfDay) {
+		if v := plan.UpdateTimeOfDay.ValueString(); v != "" {
+			sp.UpdateTimeOfDay = objectParam(v)
+		}
 	}
 	if !plan.UseNewTeamsClient.Equal(state.UseNewTeamsClient) {
 		sp.UseNewTeamsClient = plan.UseNewTeamsClient.ValueString()
@@ -260,7 +288,7 @@ func (r *updateManagementPolicyResource) Update(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsUpdateManagementPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsUpdateManagementPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-UpdateManagementPolicy failed", err.Error())
 		return
 	}
@@ -271,7 +299,34 @@ func (r *updateManagementPolicyResource) Update(ctx context.Context, req resourc
 		"UpdateTime":         cfg.UpdateTime,
 		"UseNewTeamsClient":  cfg.UseNewTeamsClient,
 	}, getString)
+	if !cfg.AllowManagedUpdates.IsUnknown() && !cfg.AllowManagedUpdates.IsNull() && !cfg.AllowManagedUpdates.Equal(state.AllowManagedUpdates) {
+		prev, want := reflected, cfg.AllowManagedUpdates.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowManagedUpdates"] == nil || getBool(obj, "AllowManagedUpdates") == want)
+		}
+	}
+	if !cfg.AllowPreview.IsUnknown() && !cfg.AllowPreview.IsNull() && !cfg.AllowPreview.Equal(state.AllowPreview) {
+		prev, want := reflected, cfg.AllowPreview.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowPreview"] == nil || getBool(obj, "AllowPreview") == want)
+		}
+	}
+	if !cfg.BlockLegacyAuthorization.IsUnknown() && !cfg.BlockLegacyAuthorization.IsNull() && !cfg.BlockLegacyAuthorization.Equal(state.BlockLegacyAuthorization) {
+		prev, want := reflected, cfg.BlockLegacyAuthorization.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["BlockLegacyAuthorization"] == nil || getBool(obj, "BlockLegacyAuthorization") == want)
+		}
+	}
+	if !cfg.UpdateDayOfWeek.IsUnknown() && !cfg.UpdateDayOfWeek.IsNull() && !cfg.UpdateDayOfWeek.Equal(state.UpdateDayOfWeek) {
+		prev, want := reflected, cfg.UpdateDayOfWeek.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["UpdateDayOfWeek"] == nil || getInt(obj, "UpdateDayOfWeek") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

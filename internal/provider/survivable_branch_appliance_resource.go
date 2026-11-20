@@ -91,7 +91,7 @@ func (r *survivableBranchApplianceResource) Create(ctx context.Context, req reso
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsSurvivableBranchAppliance(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsSurvivableBranchAppliance, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-SurvivableBranchAppliance failed", err.Error())
 			return
 		}
@@ -121,7 +121,7 @@ func (r *survivableBranchApplianceResource) Create(ctx context.Context, req reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsSurvivableBranchAppliance(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsSurvivableBranchAppliance, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-SurvivableBranchAppliance failed", err.Error())
 		return
@@ -177,7 +177,7 @@ func (r *survivableBranchApplianceResource) Update(ctx context.Context, req reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsSurvivableBranchAppliance(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsSurvivableBranchAppliance, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-SurvivableBranchAppliance failed", err.Error())
 		return
 	}
@@ -187,6 +187,9 @@ func (r *survivableBranchApplianceResource) Update(ctx context.Context, req reso
 		"Site":        cfg.Site,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

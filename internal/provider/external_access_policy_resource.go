@@ -116,39 +116,59 @@ func (r *externalAccessPolicyResource) Create(ctx context.Context, req resource.
 			sp.Description = plan.Description.ValueString()
 		}
 		if !config.EnableAcsFederationAccess.IsNull() {
-			sp.EnableAcsFederationAccess = plan.EnableAcsFederationAccess.ValueBoolPointer()
+			if !plan.EnableAcsFederationAccess.IsUnknown() {
+				sp.EnableAcsFederationAccess = plan.EnableAcsFederationAccess.ValueBoolPointer()
+			}
 		}
 		if !config.EnableFederationAccess.IsNull() {
-			sp.EnableFederationAccess = plan.EnableFederationAccess.ValueBoolPointer()
+			if !plan.EnableFederationAccess.IsUnknown() {
+				sp.EnableFederationAccess = plan.EnableFederationAccess.ValueBoolPointer()
+			}
 		}
 		if !config.EnableOutsideAccess.IsNull() {
-			sp.EnableOutsideAccess = plan.EnableOutsideAccess.ValueBoolPointer()
+			if !plan.EnableOutsideAccess.IsUnknown() {
+				sp.EnableOutsideAccess = plan.EnableOutsideAccess.ValueBoolPointer()
+			}
 		}
 		if !config.EnablePublicCloudAudioVideoAccess.IsNull() {
-			sp.EnablePublicCloudAudioVideoAccess = plan.EnablePublicCloudAudioVideoAccess.ValueBoolPointer()
+			if !plan.EnablePublicCloudAudioVideoAccess.IsUnknown() {
+				sp.EnablePublicCloudAudioVideoAccess = plan.EnablePublicCloudAudioVideoAccess.ValueBoolPointer()
+			}
 		}
 		if !config.EnableTeamsConsumerAccess.IsNull() {
-			sp.EnableTeamsConsumerAccess = plan.EnableTeamsConsumerAccess.ValueBoolPointer()
+			if !plan.EnableTeamsConsumerAccess.IsUnknown() {
+				sp.EnableTeamsConsumerAccess = plan.EnableTeamsConsumerAccess.ValueBoolPointer()
+			}
 		}
 		if !config.EnableTeamsConsumerInbound.IsNull() {
-			sp.EnableTeamsConsumerInbound = plan.EnableTeamsConsumerInbound.ValueBoolPointer()
+			if !plan.EnableTeamsConsumerInbound.IsUnknown() {
+				sp.EnableTeamsConsumerInbound = plan.EnableTeamsConsumerInbound.ValueBoolPointer()
+			}
 		}
 		if !config.EnableTeamsSmsAccess.IsNull() {
-			sp.EnableTeamsSmsAccess = plan.EnableTeamsSmsAccess.ValueBoolPointer()
+			if !plan.EnableTeamsSmsAccess.IsUnknown() {
+				sp.EnableTeamsSmsAccess = plan.EnableTeamsSmsAccess.ValueBoolPointer()
+			}
 		}
 		if !config.EnableXmppAccess.IsNull() {
-			sp.EnableXmppAccess = plan.EnableXmppAccess.ValueBoolPointer()
+			if !plan.EnableXmppAccess.IsUnknown() {
+				sp.EnableXmppAccess = plan.EnableXmppAccess.ValueBoolPointer()
+			}
 		}
 		if !config.FederatedBilateralChats.IsNull() {
-			sp.FederatedBilateralChats = plan.FederatedBilateralChats.ValueBoolPointer()
+			if !plan.FederatedBilateralChats.IsUnknown() {
+				sp.FederatedBilateralChats = plan.FederatedBilateralChats.ValueBoolPointer()
+			}
 		}
 		if !config.RestrictTeamsConsumerAccessToExternalUserProfiles.IsNull() {
-			sp.RestrictTeamsConsumerAccessToExternalUserProfiles = plan.RestrictTeamsConsumerAccessToExternalUserProfiles.ValueBoolPointer()
+			if !plan.RestrictTeamsConsumerAccessToExternalUserProfiles.IsUnknown() {
+				sp.RestrictTeamsConsumerAccessToExternalUserProfiles = plan.RestrictTeamsConsumerAccessToExternalUserProfiles.ValueBoolPointer()
+			}
 		}
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsExternalAccessPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsExternalAccessPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-ExternalAccessPolicy failed", err.Error())
 			return
 		}
@@ -178,40 +198,60 @@ func (r *externalAccessPolicyResource) Create(ctx context.Context, req resource.
 		p.Description = plan.Description.ValueString()
 	}
 	if !config.EnableAcsFederationAccess.IsNull() {
-		p.EnableAcsFederationAccess = plan.EnableAcsFederationAccess.ValueBoolPointer()
+		if !plan.EnableAcsFederationAccess.IsUnknown() {
+			p.EnableAcsFederationAccess = plan.EnableAcsFederationAccess.ValueBoolPointer()
+		}
 	}
 	if !config.EnableFederationAccess.IsNull() {
-		p.EnableFederationAccess = plan.EnableFederationAccess.ValueBoolPointer()
+		if !plan.EnableFederationAccess.IsUnknown() {
+			p.EnableFederationAccess = plan.EnableFederationAccess.ValueBoolPointer()
+		}
 	}
 	if !config.EnableOutsideAccess.IsNull() {
-		p.EnableOutsideAccess = plan.EnableOutsideAccess.ValueBoolPointer()
+		if !plan.EnableOutsideAccess.IsUnknown() {
+			p.EnableOutsideAccess = plan.EnableOutsideAccess.ValueBoolPointer()
+		}
 	}
 	if !config.EnablePublicCloudAudioVideoAccess.IsNull() {
-		p.EnablePublicCloudAudioVideoAccess = plan.EnablePublicCloudAudioVideoAccess.ValueBoolPointer()
+		if !plan.EnablePublicCloudAudioVideoAccess.IsUnknown() {
+			p.EnablePublicCloudAudioVideoAccess = plan.EnablePublicCloudAudioVideoAccess.ValueBoolPointer()
+		}
 	}
 	if !config.EnableTeamsConsumerAccess.IsNull() {
-		p.EnableTeamsConsumerAccess = plan.EnableTeamsConsumerAccess.ValueBoolPointer()
+		if !plan.EnableTeamsConsumerAccess.IsUnknown() {
+			p.EnableTeamsConsumerAccess = plan.EnableTeamsConsumerAccess.ValueBoolPointer()
+		}
 	}
 	if !config.EnableTeamsConsumerInbound.IsNull() {
-		p.EnableTeamsConsumerInbound = plan.EnableTeamsConsumerInbound.ValueBoolPointer()
+		if !plan.EnableTeamsConsumerInbound.IsUnknown() {
+			p.EnableTeamsConsumerInbound = plan.EnableTeamsConsumerInbound.ValueBoolPointer()
+		}
 	}
 	if !config.EnableTeamsSmsAccess.IsNull() {
-		p.EnableTeamsSmsAccess = plan.EnableTeamsSmsAccess.ValueBoolPointer()
+		if !plan.EnableTeamsSmsAccess.IsUnknown() {
+			p.EnableTeamsSmsAccess = plan.EnableTeamsSmsAccess.ValueBoolPointer()
+		}
 	}
 	if !config.EnableXmppAccess.IsNull() {
-		p.EnableXmppAccess = plan.EnableXmppAccess.ValueBoolPointer()
+		if !plan.EnableXmppAccess.IsUnknown() {
+			p.EnableXmppAccess = plan.EnableXmppAccess.ValueBoolPointer()
+		}
 	}
 	if !config.FederatedBilateralChats.IsNull() {
-		p.FederatedBilateralChats = plan.FederatedBilateralChats.ValueBoolPointer()
+		if !plan.FederatedBilateralChats.IsUnknown() {
+			p.FederatedBilateralChats = plan.FederatedBilateralChats.ValueBoolPointer()
+		}
 	}
 	if !config.RestrictTeamsConsumerAccessToExternalUserProfiles.IsNull() {
-		p.RestrictTeamsConsumerAccessToExternalUserProfiles = plan.RestrictTeamsConsumerAccessToExternalUserProfiles.ValueBoolPointer()
+		if !plan.RestrictTeamsConsumerAccessToExternalUserProfiles.IsUnknown() {
+			p.RestrictTeamsConsumerAccessToExternalUserProfiles = plan.RestrictTeamsConsumerAccessToExternalUserProfiles.ValueBoolPointer()
+		}
 	}
 	p.Identity = plan.Identity.ValueString()
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsExternalAccessPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsExternalAccessPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-ExternalAccessPolicy failed", err.Error())
 		return
@@ -258,52 +298,78 @@ func (r *externalAccessPolicyResource) Update(ctx context.Context, req resource.
 	id := r.identityOf(state)
 	sp := cs.SetCsExternalAccessPolicyParams{}
 	sp.Identity = id
-	if v := plan.AllowedExternalDomains.ValueString(); v != "" {
-		sp.AllowedExternalDomains = objectParam(v)
+	if !plan.AllowedExternalDomains.Equal(state.AllowedExternalDomains) {
+		if v := plan.AllowedExternalDomains.ValueString(); v != "" {
+			sp.AllowedExternalDomains = objectParam(v)
+		}
 	}
-	if v := plan.BlockedExternalDomains.ValueString(); v != "" {
-		sp.BlockedExternalDomains = objectParam(v)
+	if !plan.BlockedExternalDomains.Equal(state.BlockedExternalDomains) {
+		if v := plan.BlockedExternalDomains.ValueString(); v != "" {
+			sp.BlockedExternalDomains = objectParam(v)
+		}
 	}
-	if v := plan.CommunicationWithExternalOrgs.ValueString(); v != "" {
-		sp.CommunicationWithExternalOrgs = objectParam(v)
+	if !plan.CommunicationWithExternalOrgs.Equal(state.CommunicationWithExternalOrgs) {
+		if v := plan.CommunicationWithExternalOrgs.ValueString(); v != "" {
+			sp.CommunicationWithExternalOrgs = objectParam(v)
+		}
 	}
 	if !plan.Description.Equal(state.Description) {
 		sp.Description = plan.Description.ValueString()
 	}
 	if !plan.EnableAcsFederationAccess.Equal(state.EnableAcsFederationAccess) {
-		sp.EnableAcsFederationAccess = plan.EnableAcsFederationAccess.ValueBoolPointer()
+		if !plan.EnableAcsFederationAccess.IsUnknown() {
+			sp.EnableAcsFederationAccess = plan.EnableAcsFederationAccess.ValueBoolPointer()
+		}
 	}
 	if !plan.EnableFederationAccess.Equal(state.EnableFederationAccess) {
-		sp.EnableFederationAccess = plan.EnableFederationAccess.ValueBoolPointer()
+		if !plan.EnableFederationAccess.IsUnknown() {
+			sp.EnableFederationAccess = plan.EnableFederationAccess.ValueBoolPointer()
+		}
 	}
 	if !plan.EnableOutsideAccess.Equal(state.EnableOutsideAccess) {
-		sp.EnableOutsideAccess = plan.EnableOutsideAccess.ValueBoolPointer()
+		if !plan.EnableOutsideAccess.IsUnknown() {
+			sp.EnableOutsideAccess = plan.EnableOutsideAccess.ValueBoolPointer()
+		}
 	}
 	if !plan.EnablePublicCloudAudioVideoAccess.Equal(state.EnablePublicCloudAudioVideoAccess) {
-		sp.EnablePublicCloudAudioVideoAccess = plan.EnablePublicCloudAudioVideoAccess.ValueBoolPointer()
+		if !plan.EnablePublicCloudAudioVideoAccess.IsUnknown() {
+			sp.EnablePublicCloudAudioVideoAccess = plan.EnablePublicCloudAudioVideoAccess.ValueBoolPointer()
+		}
 	}
 	if !plan.EnableTeamsConsumerAccess.Equal(state.EnableTeamsConsumerAccess) {
-		sp.EnableTeamsConsumerAccess = plan.EnableTeamsConsumerAccess.ValueBoolPointer()
+		if !plan.EnableTeamsConsumerAccess.IsUnknown() {
+			sp.EnableTeamsConsumerAccess = plan.EnableTeamsConsumerAccess.ValueBoolPointer()
+		}
 	}
 	if !plan.EnableTeamsConsumerInbound.Equal(state.EnableTeamsConsumerInbound) {
-		sp.EnableTeamsConsumerInbound = plan.EnableTeamsConsumerInbound.ValueBoolPointer()
+		if !plan.EnableTeamsConsumerInbound.IsUnknown() {
+			sp.EnableTeamsConsumerInbound = plan.EnableTeamsConsumerInbound.ValueBoolPointer()
+		}
 	}
 	if !plan.EnableTeamsSmsAccess.Equal(state.EnableTeamsSmsAccess) {
-		sp.EnableTeamsSmsAccess = plan.EnableTeamsSmsAccess.ValueBoolPointer()
+		if !plan.EnableTeamsSmsAccess.IsUnknown() {
+			sp.EnableTeamsSmsAccess = plan.EnableTeamsSmsAccess.ValueBoolPointer()
+		}
 	}
 	if !plan.EnableXmppAccess.Equal(state.EnableXmppAccess) {
-		sp.EnableXmppAccess = plan.EnableXmppAccess.ValueBoolPointer()
+		if !plan.EnableXmppAccess.IsUnknown() {
+			sp.EnableXmppAccess = plan.EnableXmppAccess.ValueBoolPointer()
+		}
 	}
 	if !plan.FederatedBilateralChats.Equal(state.FederatedBilateralChats) {
-		sp.FederatedBilateralChats = plan.FederatedBilateralChats.ValueBoolPointer()
+		if !plan.FederatedBilateralChats.IsUnknown() {
+			sp.FederatedBilateralChats = plan.FederatedBilateralChats.ValueBoolPointer()
+		}
 	}
 	if !plan.RestrictTeamsConsumerAccessToExternalUserProfiles.Equal(state.RestrictTeamsConsumerAccessToExternalUserProfiles) {
-		sp.RestrictTeamsConsumerAccessToExternalUserProfiles = plan.RestrictTeamsConsumerAccessToExternalUserProfiles.ValueBoolPointer()
+		if !plan.RestrictTeamsConsumerAccessToExternalUserProfiles.IsUnknown() {
+			sp.RestrictTeamsConsumerAccessToExternalUserProfiles = plan.RestrictTeamsConsumerAccessToExternalUserProfiles.ValueBoolPointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsExternalAccessPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsExternalAccessPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-ExternalAccessPolicy failed", err.Error())
 		return
 	}
@@ -311,7 +377,70 @@ func (r *externalAccessPolicyResource) Update(ctx context.Context, req resource.
 	reflected := reconcile.ReflectsFields(map[string]types.String{
 		"Description": cfg.Description,
 	}, getString)
+	if !cfg.EnableAcsFederationAccess.IsUnknown() && !cfg.EnableAcsFederationAccess.IsNull() && !cfg.EnableAcsFederationAccess.Equal(state.EnableAcsFederationAccess) {
+		prev, want := reflected, cfg.EnableAcsFederationAccess.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableAcsFederationAccess"] == nil || getBool(obj, "EnableAcsFederationAccess") == want)
+		}
+	}
+	if !cfg.EnableFederationAccess.IsUnknown() && !cfg.EnableFederationAccess.IsNull() && !cfg.EnableFederationAccess.Equal(state.EnableFederationAccess) {
+		prev, want := reflected, cfg.EnableFederationAccess.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableFederationAccess"] == nil || getBool(obj, "EnableFederationAccess") == want)
+		}
+	}
+	if !cfg.EnableOutsideAccess.IsUnknown() && !cfg.EnableOutsideAccess.IsNull() && !cfg.EnableOutsideAccess.Equal(state.EnableOutsideAccess) {
+		prev, want := reflected, cfg.EnableOutsideAccess.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableOutsideAccess"] == nil || getBool(obj, "EnableOutsideAccess") == want)
+		}
+	}
+	if !cfg.EnablePublicCloudAudioVideoAccess.IsUnknown() && !cfg.EnablePublicCloudAudioVideoAccess.IsNull() && !cfg.EnablePublicCloudAudioVideoAccess.Equal(state.EnablePublicCloudAudioVideoAccess) {
+		prev, want := reflected, cfg.EnablePublicCloudAudioVideoAccess.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnablePublicCloudAudioVideoAccess"] == nil || getBool(obj, "EnablePublicCloudAudioVideoAccess") == want)
+		}
+	}
+	if !cfg.EnableTeamsConsumerAccess.IsUnknown() && !cfg.EnableTeamsConsumerAccess.IsNull() && !cfg.EnableTeamsConsumerAccess.Equal(state.EnableTeamsConsumerAccess) {
+		prev, want := reflected, cfg.EnableTeamsConsumerAccess.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableTeamsConsumerAccess"] == nil || getBool(obj, "EnableTeamsConsumerAccess") == want)
+		}
+	}
+	if !cfg.EnableTeamsConsumerInbound.IsUnknown() && !cfg.EnableTeamsConsumerInbound.IsNull() && !cfg.EnableTeamsConsumerInbound.Equal(state.EnableTeamsConsumerInbound) {
+		prev, want := reflected, cfg.EnableTeamsConsumerInbound.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableTeamsConsumerInbound"] == nil || getBool(obj, "EnableTeamsConsumerInbound") == want)
+		}
+	}
+	if !cfg.EnableTeamsSmsAccess.IsUnknown() && !cfg.EnableTeamsSmsAccess.IsNull() && !cfg.EnableTeamsSmsAccess.Equal(state.EnableTeamsSmsAccess) {
+		prev, want := reflected, cfg.EnableTeamsSmsAccess.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableTeamsSmsAccess"] == nil || getBool(obj, "EnableTeamsSmsAccess") == want)
+		}
+	}
+	if !cfg.EnableXmppAccess.IsUnknown() && !cfg.EnableXmppAccess.IsNull() && !cfg.EnableXmppAccess.Equal(state.EnableXmppAccess) {
+		prev, want := reflected, cfg.EnableXmppAccess.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableXmppAccess"] == nil || getBool(obj, "EnableXmppAccess") == want)
+		}
+	}
+	if !cfg.FederatedBilateralChats.IsUnknown() && !cfg.FederatedBilateralChats.IsNull() && !cfg.FederatedBilateralChats.Equal(state.FederatedBilateralChats) {
+		prev, want := reflected, cfg.FederatedBilateralChats.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["FederatedBilateralChats"] == nil || getBool(obj, "FederatedBilateralChats") == want)
+		}
+	}
+	if !cfg.RestrictTeamsConsumerAccessToExternalUserProfiles.IsUnknown() && !cfg.RestrictTeamsConsumerAccessToExternalUserProfiles.IsNull() && !cfg.RestrictTeamsConsumerAccessToExternalUserProfiles.Equal(state.RestrictTeamsConsumerAccessToExternalUserProfiles) {
+		prev, want := reflected, cfg.RestrictTeamsConsumerAccessToExternalUserProfiles.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["RestrictTeamsConsumerAccessToExternalUserProfiles"] == nil || getBool(obj, "RestrictTeamsConsumerAccessToExternalUserProfiles") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

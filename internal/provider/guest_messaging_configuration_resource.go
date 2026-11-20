@@ -93,28 +93,44 @@ func (r *guestMessagingConfigurationResource) Create(ctx context.Context, req re
 	sp := cs.SetCsTeamsGuestMessagingConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
 	if !config.AllowGiphy.IsNull() {
-		sp.AllowGiphy = plan.AllowGiphy.ValueBoolPointer()
+		if !plan.AllowGiphy.IsUnknown() {
+			sp.AllowGiphy = plan.AllowGiphy.ValueBoolPointer()
+		}
 	}
 	if !config.AllowImmersiveReader.IsNull() {
-		sp.AllowImmersiveReader = plan.AllowImmersiveReader.ValueBoolPointer()
+		if !plan.AllowImmersiveReader.IsUnknown() {
+			sp.AllowImmersiveReader = plan.AllowImmersiveReader.ValueBoolPointer()
+		}
 	}
 	if !config.AllowMemes.IsNull() {
-		sp.AllowMemes = plan.AllowMemes.ValueBoolPointer()
+		if !plan.AllowMemes.IsUnknown() {
+			sp.AllowMemes = plan.AllowMemes.ValueBoolPointer()
+		}
 	}
 	if !config.AllowStickers.IsNull() {
-		sp.AllowStickers = plan.AllowStickers.ValueBoolPointer()
+		if !plan.AllowStickers.IsUnknown() {
+			sp.AllowStickers = plan.AllowStickers.ValueBoolPointer()
+		}
 	}
 	if !config.AllowUserChat.IsNull() {
-		sp.AllowUserChat = plan.AllowUserChat.ValueBoolPointer()
+		if !plan.AllowUserChat.IsUnknown() {
+			sp.AllowUserChat = plan.AllowUserChat.ValueBoolPointer()
+		}
 	}
 	if !config.AllowUserDeleteChat.IsNull() {
-		sp.AllowUserDeleteChat = plan.AllowUserDeleteChat.ValueBoolPointer()
+		if !plan.AllowUserDeleteChat.IsUnknown() {
+			sp.AllowUserDeleteChat = plan.AllowUserDeleteChat.ValueBoolPointer()
+		}
 	}
 	if !config.AllowUserDeleteMessage.IsNull() {
-		sp.AllowUserDeleteMessage = plan.AllowUserDeleteMessage.ValueBoolPointer()
+		if !plan.AllowUserDeleteMessage.IsUnknown() {
+			sp.AllowUserDeleteMessage = plan.AllowUserDeleteMessage.ValueBoolPointer()
+		}
 	}
 	if !config.AllowUserEditMessage.IsNull() {
-		sp.AllowUserEditMessage = plan.AllowUserEditMessage.ValueBoolPointer()
+		if !plan.AllowUserEditMessage.IsUnknown() {
+			sp.AllowUserEditMessage = plan.AllowUserEditMessage.ValueBoolPointer()
+		}
 	}
 	if !config.GiphyRatingType.IsNull() {
 		sp.GiphyRatingType = plan.GiphyRatingType.ValueString()
@@ -122,7 +138,7 @@ func (r *guestMessagingConfigurationResource) Create(ctx context.Context, req re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsGuestMessagingConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsGuestMessagingConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-GuestMessagingConfiguration failed", err.Error())
 		return
 	}
@@ -159,28 +175,44 @@ func (r *guestMessagingConfigurationResource) Update(ctx context.Context, req re
 	sp := cs.SetCsTeamsGuestMessagingConfigurationParams{}
 	sp.Identity = id
 	if !plan.AllowGiphy.Equal(state.AllowGiphy) {
-		sp.AllowGiphy = plan.AllowGiphy.ValueBoolPointer()
+		if !plan.AllowGiphy.IsUnknown() {
+			sp.AllowGiphy = plan.AllowGiphy.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowImmersiveReader.Equal(state.AllowImmersiveReader) {
-		sp.AllowImmersiveReader = plan.AllowImmersiveReader.ValueBoolPointer()
+		if !plan.AllowImmersiveReader.IsUnknown() {
+			sp.AllowImmersiveReader = plan.AllowImmersiveReader.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowMemes.Equal(state.AllowMemes) {
-		sp.AllowMemes = plan.AllowMemes.ValueBoolPointer()
+		if !plan.AllowMemes.IsUnknown() {
+			sp.AllowMemes = plan.AllowMemes.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowStickers.Equal(state.AllowStickers) {
-		sp.AllowStickers = plan.AllowStickers.ValueBoolPointer()
+		if !plan.AllowStickers.IsUnknown() {
+			sp.AllowStickers = plan.AllowStickers.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowUserChat.Equal(state.AllowUserChat) {
-		sp.AllowUserChat = plan.AllowUserChat.ValueBoolPointer()
+		if !plan.AllowUserChat.IsUnknown() {
+			sp.AllowUserChat = plan.AllowUserChat.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowUserDeleteChat.Equal(state.AllowUserDeleteChat) {
-		sp.AllowUserDeleteChat = plan.AllowUserDeleteChat.ValueBoolPointer()
+		if !plan.AllowUserDeleteChat.IsUnknown() {
+			sp.AllowUserDeleteChat = plan.AllowUserDeleteChat.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowUserDeleteMessage.Equal(state.AllowUserDeleteMessage) {
-		sp.AllowUserDeleteMessage = plan.AllowUserDeleteMessage.ValueBoolPointer()
+		if !plan.AllowUserDeleteMessage.IsUnknown() {
+			sp.AllowUserDeleteMessage = plan.AllowUserDeleteMessage.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowUserEditMessage.Equal(state.AllowUserEditMessage) {
-		sp.AllowUserEditMessage = plan.AllowUserEditMessage.ValueBoolPointer()
+		if !plan.AllowUserEditMessage.IsUnknown() {
+			sp.AllowUserEditMessage = plan.AllowUserEditMessage.ValueBoolPointer()
+		}
 	}
 	if !plan.GiphyRatingType.Equal(state.GiphyRatingType) {
 		sp.GiphyRatingType = plan.GiphyRatingType.ValueString()
@@ -188,7 +220,7 @@ func (r *guestMessagingConfigurationResource) Update(ctx context.Context, req re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsGuestMessagingConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsGuestMessagingConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-GuestMessagingConfiguration failed", err.Error())
 		return
 	}
@@ -196,7 +228,58 @@ func (r *guestMessagingConfigurationResource) Update(ctx context.Context, req re
 	reflected := reconcile.ReflectsFields(map[string]types.String{
 		"GiphyRatingType": cfg.GiphyRatingType,
 	}, getString)
+	if !cfg.AllowGiphy.IsUnknown() && !cfg.AllowGiphy.IsNull() && !cfg.AllowGiphy.Equal(state.AllowGiphy) {
+		prev, want := reflected, cfg.AllowGiphy.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowGiphy"] == nil || getBool(obj, "AllowGiphy") == want)
+		}
+	}
+	if !cfg.AllowImmersiveReader.IsUnknown() && !cfg.AllowImmersiveReader.IsNull() && !cfg.AllowImmersiveReader.Equal(state.AllowImmersiveReader) {
+		prev, want := reflected, cfg.AllowImmersiveReader.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowImmersiveReader"] == nil || getBool(obj, "AllowImmersiveReader") == want)
+		}
+	}
+	if !cfg.AllowMemes.IsUnknown() && !cfg.AllowMemes.IsNull() && !cfg.AllowMemes.Equal(state.AllowMemes) {
+		prev, want := reflected, cfg.AllowMemes.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowMemes"] == nil || getBool(obj, "AllowMemes") == want)
+		}
+	}
+	if !cfg.AllowStickers.IsUnknown() && !cfg.AllowStickers.IsNull() && !cfg.AllowStickers.Equal(state.AllowStickers) {
+		prev, want := reflected, cfg.AllowStickers.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowStickers"] == nil || getBool(obj, "AllowStickers") == want)
+		}
+	}
+	if !cfg.AllowUserChat.IsUnknown() && !cfg.AllowUserChat.IsNull() && !cfg.AllowUserChat.Equal(state.AllowUserChat) {
+		prev, want := reflected, cfg.AllowUserChat.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowUserChat"] == nil || getBool(obj, "AllowUserChat") == want)
+		}
+	}
+	if !cfg.AllowUserDeleteChat.IsUnknown() && !cfg.AllowUserDeleteChat.IsNull() && !cfg.AllowUserDeleteChat.Equal(state.AllowUserDeleteChat) {
+		prev, want := reflected, cfg.AllowUserDeleteChat.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowUserDeleteChat"] == nil || getBool(obj, "AllowUserDeleteChat") == want)
+		}
+	}
+	if !cfg.AllowUserDeleteMessage.IsUnknown() && !cfg.AllowUserDeleteMessage.IsNull() && !cfg.AllowUserDeleteMessage.Equal(state.AllowUserDeleteMessage) {
+		prev, want := reflected, cfg.AllowUserDeleteMessage.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowUserDeleteMessage"] == nil || getBool(obj, "AllowUserDeleteMessage") == want)
+		}
+	}
+	if !cfg.AllowUserEditMessage.IsUnknown() && !cfg.AllowUserEditMessage.IsNull() && !cfg.AllowUserEditMessage.Equal(state.AllowUserEditMessage) {
+		prev, want := reflected, cfg.AllowUserEditMessage.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowUserEditMessage"] == nil || getBool(obj, "AllowUserEditMessage") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

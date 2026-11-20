@@ -94,7 +94,7 @@ func (r *translationRuleResource) Create(ctx context.Context, req resource.Creat
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsTranslationRule(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsTranslationRule, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-TranslationRule failed", err.Error())
 			return
 		}
@@ -127,7 +127,7 @@ func (r *translationRuleResource) Create(ctx context.Context, req resource.Creat
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsTranslationRule(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsTranslationRule, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-TranslationRule failed", err.Error())
 		return
@@ -186,7 +186,7 @@ func (r *translationRuleResource) Update(ctx context.Context, req resource.Updat
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsTranslationRule(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsTranslationRule, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-TranslationRule failed", err.Error())
 		return
 	}
@@ -197,6 +197,9 @@ func (r *translationRuleResource) Update(ctx context.Context, req resource.Updat
 		"Translation": cfg.Translation,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

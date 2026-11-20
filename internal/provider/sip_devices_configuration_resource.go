@@ -81,7 +81,7 @@ func (r *sipDevicesConfigurationResource) Create(ctx context.Context, req resour
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsSipDevicesConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsSipDevicesConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-SipDevicesConfiguration failed", err.Error())
 		return
 	}
@@ -123,7 +123,7 @@ func (r *sipDevicesConfigurationResource) Update(ctx context.Context, req resour
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsSipDevicesConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsSipDevicesConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-SipDevicesConfiguration failed", err.Error())
 		return
 	}
@@ -132,6 +132,9 @@ func (r *sipDevicesConfigurationResource) Update(ctx context.Context, req resour
 		"BulkSignIn": cfg.BulkSignIn,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

@@ -89,7 +89,9 @@ func (r *inboundExemptNumberPatternResource) Create(ctx context.Context, req res
 			sp.Description = plan.Description.ValueString()
 		}
 		if !config.Enabled.IsNull() {
-			sp.Enabled = plan.Enabled.ValueBoolPointer()
+			if !plan.Enabled.IsUnknown() {
+				sp.Enabled = plan.Enabled.ValueBoolPointer()
+			}
 		}
 		if !config.Pattern.IsNull() {
 			sp.Pattern = plan.Pattern.ValueString()
@@ -97,7 +99,7 @@ func (r *inboundExemptNumberPatternResource) Create(ctx context.Context, req res
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsInboundExemptNumberPattern(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsInboundExemptNumberPattern, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-InboundExemptNumberPattern failed", err.Error())
 			return
 		}
@@ -118,7 +120,9 @@ func (r *inboundExemptNumberPatternResource) Create(ctx context.Context, req res
 		p.Description = plan.Description.ValueString()
 	}
 	if !config.Enabled.IsNull() {
-		p.Enabled = plan.Enabled.ValueBoolPointer()
+		if !plan.Enabled.IsUnknown() {
+			p.Enabled = plan.Enabled.ValueBoolPointer()
+		}
 	}
 	if !config.Name.IsNull() {
 		p.Name = plan.Name.ValueString()
@@ -130,7 +134,7 @@ func (r *inboundExemptNumberPatternResource) Create(ctx context.Context, req res
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsInboundExemptNumberPattern(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsInboundExemptNumberPattern, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-InboundExemptNumberPattern failed", err.Error())
 		return
@@ -181,7 +185,9 @@ func (r *inboundExemptNumberPatternResource) Update(ctx context.Context, req res
 		sp.Description = plan.Description.ValueString()
 	}
 	if !plan.Enabled.Equal(state.Enabled) {
-		sp.Enabled = plan.Enabled.ValueBoolPointer()
+		if !plan.Enabled.IsUnknown() {
+			sp.Enabled = plan.Enabled.ValueBoolPointer()
+		}
 	}
 	if !plan.Pattern.Equal(state.Pattern) {
 		sp.Pattern = plan.Pattern.ValueString()
@@ -189,7 +195,7 @@ func (r *inboundExemptNumberPatternResource) Update(ctx context.Context, req res
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsInboundExemptNumberPattern(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsInboundExemptNumberPattern, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-InboundExemptNumberPattern failed", err.Error())
 		return
 	}
@@ -198,7 +204,16 @@ func (r *inboundExemptNumberPatternResource) Update(ctx context.Context, req res
 		"Description": cfg.Description,
 		"Pattern":     cfg.Pattern,
 	}, getString)
+	if !cfg.Enabled.IsUnknown() && !cfg.Enabled.IsNull() && !cfg.Enabled.Equal(state.Enabled) {
+		prev, want := reflected, cfg.Enabled.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["Enabled"] == nil || getBool(obj, "Enabled") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

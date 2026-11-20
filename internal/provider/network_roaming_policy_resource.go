@@ -83,18 +83,22 @@ func (r *networkRoamingPolicyResource) Create(ctx context.Context, req resource.
 		sp := cs.SetCsTeamsNetworkRoamingPolicyParams{}
 		sp.Identity = plan.Identity.ValueString()
 		if !config.AllowIPVideo.IsNull() {
-			sp.AllowIPVideo = plan.AllowIPVideo.ValueBoolPointer()
+			if !plan.AllowIPVideo.IsUnknown() {
+				sp.AllowIPVideo = plan.AllowIPVideo.ValueBoolPointer()
+			}
 		}
 		if !config.Description.IsNull() {
 			sp.Description = plan.Description.ValueString()
 		}
 		if !config.MediaBitRateKb.IsNull() {
-			sp.MediaBitRateKb = plan.MediaBitRateKb.ValueInt64Pointer()
+			if !plan.MediaBitRateKb.IsUnknown() {
+				sp.MediaBitRateKb = plan.MediaBitRateKb.ValueInt64Pointer()
+			}
 		}
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsNetworkRoamingPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsNetworkRoamingPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-NetworkRoamingPolicy failed", err.Error())
 			return
 		}
@@ -112,19 +116,23 @@ func (r *networkRoamingPolicyResource) Create(ctx context.Context, req resource.
 	}
 	p := cs.NewCsTeamsNetworkRoamingPolicyParams{}
 	if !config.AllowIPVideo.IsNull() {
-		p.AllowIPVideo = plan.AllowIPVideo.ValueBoolPointer()
+		if !plan.AllowIPVideo.IsUnknown() {
+			p.AllowIPVideo = plan.AllowIPVideo.ValueBoolPointer()
+		}
 	}
 	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
 	if !config.MediaBitRateKb.IsNull() {
-		p.MediaBitRateKb = plan.MediaBitRateKb.ValueInt64Pointer()
+		if !plan.MediaBitRateKb.IsUnknown() {
+			p.MediaBitRateKb = plan.MediaBitRateKb.ValueInt64Pointer()
+		}
 	}
 	p.Identity = plan.Identity.ValueString()
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsNetworkRoamingPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsNetworkRoamingPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-NetworkRoamingPolicy failed", err.Error())
 		return
@@ -172,18 +180,22 @@ func (r *networkRoamingPolicyResource) Update(ctx context.Context, req resource.
 	sp := cs.SetCsTeamsNetworkRoamingPolicyParams{}
 	sp.Identity = id
 	if !plan.AllowIPVideo.Equal(state.AllowIPVideo) {
-		sp.AllowIPVideo = plan.AllowIPVideo.ValueBoolPointer()
+		if !plan.AllowIPVideo.IsUnknown() {
+			sp.AllowIPVideo = plan.AllowIPVideo.ValueBoolPointer()
+		}
 	}
 	if !plan.Description.Equal(state.Description) {
 		sp.Description = plan.Description.ValueString()
 	}
 	if !plan.MediaBitRateKb.Equal(state.MediaBitRateKb) {
-		sp.MediaBitRateKb = plan.MediaBitRateKb.ValueInt64Pointer()
+		if !plan.MediaBitRateKb.IsUnknown() {
+			sp.MediaBitRateKb = plan.MediaBitRateKb.ValueInt64Pointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsNetworkRoamingPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsNetworkRoamingPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-NetworkRoamingPolicy failed", err.Error())
 		return
 	}
@@ -191,7 +203,22 @@ func (r *networkRoamingPolicyResource) Update(ctx context.Context, req resource.
 	reflected := reconcile.ReflectsFields(map[string]types.String{
 		"Description": cfg.Description,
 	}, getString)
+	if !cfg.AllowIPVideo.IsUnknown() && !cfg.AllowIPVideo.IsNull() && !cfg.AllowIPVideo.Equal(state.AllowIPVideo) {
+		prev, want := reflected, cfg.AllowIPVideo.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowIPVideo"] == nil || getBool(obj, "AllowIPVideo") == want)
+		}
+	}
+	if !cfg.MediaBitRateKb.IsUnknown() && !cfg.MediaBitRateKb.IsNull() && !cfg.MediaBitRateKb.Equal(state.MediaBitRateKb) {
+		prev, want := reflected, cfg.MediaBitRateKb.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["MediaBitRateKb"] == nil || getInt(obj, "MediaBitRateKb") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

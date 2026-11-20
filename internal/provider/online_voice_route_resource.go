@@ -105,12 +105,14 @@ func (r *onlineVoiceRouteResource) Create(ctx context.Context, req resource.Crea
 			sp.OnlinePstnUsages = objectParam(v)
 		}
 		if !config.Priority.IsNull() {
-			sp.Priority = plan.Priority.ValueInt64Pointer()
+			if !plan.Priority.IsUnknown() {
+				sp.Priority = plan.Priority.ValueInt64Pointer()
+			}
 		}
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsOnlineVoiceRoute(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsOnlineVoiceRoute, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-OnlineVoiceRoute failed", err.Error())
 			return
 		}
@@ -146,13 +148,15 @@ func (r *onlineVoiceRouteResource) Create(ctx context.Context, req resource.Crea
 		p.OnlinePstnUsages = objectParam(v)
 	}
 	if !config.Priority.IsNull() {
-		p.Priority = plan.Priority.ValueInt64Pointer()
+		if !plan.Priority.IsUnknown() {
+			p.Priority = plan.Priority.ValueInt64Pointer()
+		}
 	}
 	p.Identity = plan.Identity.ValueString()
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsOnlineVoiceRoute(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsOnlineVoiceRoute, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-OnlineVoiceRoute failed", err.Error())
 		return
@@ -208,19 +212,25 @@ func (r *onlineVoiceRouteResource) Update(ctx context.Context, req resource.Upda
 	if !plan.NumberPattern.Equal(state.NumberPattern) {
 		sp.NumberPattern = plan.NumberPattern.ValueString()
 	}
-	if v := plan.OnlinePstnGatewayList.ValueString(); v != "" {
-		sp.OnlinePstnGatewayList = objectParam(v)
+	if !plan.OnlinePstnGatewayList.Equal(state.OnlinePstnGatewayList) {
+		if v := plan.OnlinePstnGatewayList.ValueString(); v != "" {
+			sp.OnlinePstnGatewayList = objectParam(v)
+		}
 	}
-	if v := plan.OnlinePstnUsages.ValueString(); v != "" {
-		sp.OnlinePstnUsages = objectParam(v)
+	if !plan.OnlinePstnUsages.Equal(state.OnlinePstnUsages) {
+		if v := plan.OnlinePstnUsages.ValueString(); v != "" {
+			sp.OnlinePstnUsages = objectParam(v)
+		}
 	}
 	if !plan.Priority.Equal(state.Priority) {
-		sp.Priority = plan.Priority.ValueInt64Pointer()
+		if !plan.Priority.IsUnknown() {
+			sp.Priority = plan.Priority.ValueInt64Pointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsOnlineVoiceRoute(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsOnlineVoiceRoute, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-OnlineVoiceRoute failed", err.Error())
 		return
 	}
@@ -230,7 +240,16 @@ func (r *onlineVoiceRouteResource) Update(ctx context.Context, req resource.Upda
 		"Description":             cfg.Description,
 		"NumberPattern":           cfg.NumberPattern,
 	}, getString)
+	if !cfg.Priority.IsUnknown() && !cfg.Priority.IsNull() && !cfg.Priority.Equal(state.Priority) {
+		prev, want := reflected, cfg.Priority.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["Priority"] == nil || getInt(obj, "Priority") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

@@ -82,7 +82,9 @@ func (r *audioConferencingPolicyResource) Create(ctx context.Context, req resour
 		sp := cs.SetCsTeamsAudioConferencingPolicyParams{}
 		sp.Identity = plan.Identity.ValueString()
 		if !config.AllowTollFreeDialin.IsNull() {
-			sp.AllowTollFreeDialin = plan.AllowTollFreeDialin.ValueBoolPointer()
+			if !plan.AllowTollFreeDialin.IsUnknown() {
+				sp.AllowTollFreeDialin = plan.AllowTollFreeDialin.ValueBoolPointer()
+			}
 		}
 		if v := config.MeetingInvitePhoneNumbers.ValueString(); v != "" {
 			sp.MeetingInvitePhoneNumbers = objectParam(v)
@@ -90,7 +92,7 @@ func (r *audioConferencingPolicyResource) Create(ctx context.Context, req resour
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsAudioConferencingPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsAudioConferencingPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-AudioConferencingPolicy failed", err.Error())
 			return
 		}
@@ -108,7 +110,9 @@ func (r *audioConferencingPolicyResource) Create(ctx context.Context, req resour
 	}
 	p := cs.NewCsTeamsAudioConferencingPolicyParams{}
 	if !config.AllowTollFreeDialin.IsNull() {
-		p.AllowTollFreeDialin = plan.AllowTollFreeDialin.ValueBoolPointer()
+		if !plan.AllowTollFreeDialin.IsUnknown() {
+			p.AllowTollFreeDialin = plan.AllowTollFreeDialin.ValueBoolPointer()
+		}
 	}
 	if v := config.MeetingInvitePhoneNumbers.ValueString(); v != "" {
 		p.MeetingInvitePhoneNumbers = objectParam(v)
@@ -117,7 +121,7 @@ func (r *audioConferencingPolicyResource) Create(ctx context.Context, req resour
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsAudioConferencingPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsAudioConferencingPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-AudioConferencingPolicy failed", err.Error())
 		return
@@ -165,21 +169,34 @@ func (r *audioConferencingPolicyResource) Update(ctx context.Context, req resour
 	sp := cs.SetCsTeamsAudioConferencingPolicyParams{}
 	sp.Identity = id
 	if !plan.AllowTollFreeDialin.Equal(state.AllowTollFreeDialin) {
-		sp.AllowTollFreeDialin = plan.AllowTollFreeDialin.ValueBoolPointer()
+		if !plan.AllowTollFreeDialin.IsUnknown() {
+			sp.AllowTollFreeDialin = plan.AllowTollFreeDialin.ValueBoolPointer()
+		}
 	}
-	if v := plan.MeetingInvitePhoneNumbers.ValueString(); v != "" {
-		sp.MeetingInvitePhoneNumbers = objectParam(v)
+	if !plan.MeetingInvitePhoneNumbers.Equal(state.MeetingInvitePhoneNumbers) {
+		if v := plan.MeetingInvitePhoneNumbers.ValueString(); v != "" {
+			sp.MeetingInvitePhoneNumbers = objectParam(v)
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsAudioConferencingPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsAudioConferencingPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-AudioConferencingPolicy failed", err.Error())
 		return
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{}, getString)
+	if !cfg.AllowTollFreeDialin.IsUnknown() && !cfg.AllowTollFreeDialin.IsNull() && !cfg.AllowTollFreeDialin.Equal(state.AllowTollFreeDialin) {
+		prev, want := reflected, cfg.AllowTollFreeDialin.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowTollFreeDialin"] == nil || getBool(obj, "AllowTollFreeDialin") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

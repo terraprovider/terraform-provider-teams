@@ -79,7 +79,9 @@ func (r *externalAccessConfigurationResource) Create(ctx context.Context, req re
 	sp := cs.SetCsTeamsExternalAccessConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
 	if !config.BlockExternalUserAccess.IsNull() {
-		sp.BlockExternalUserAccess = plan.BlockExternalUserAccess.ValueBoolPointer()
+		if !plan.BlockExternalUserAccess.IsUnknown() {
+			sp.BlockExternalUserAccess = plan.BlockExternalUserAccess.ValueBoolPointer()
+		}
 	}
 	if v := config.BlockedUsers.ValueString(); v != "" {
 		sp.BlockedUsers = objectParam(v)
@@ -87,7 +89,7 @@ func (r *externalAccessConfigurationResource) Create(ctx context.Context, req re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsExternalAccessConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsExternalAccessConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-ExternalAccessConfiguration failed", err.Error())
 		return
 	}
@@ -124,21 +126,34 @@ func (r *externalAccessConfigurationResource) Update(ctx context.Context, req re
 	sp := cs.SetCsTeamsExternalAccessConfigurationParams{}
 	sp.Identity = id
 	if !plan.BlockExternalUserAccess.Equal(state.BlockExternalUserAccess) {
-		sp.BlockExternalUserAccess = plan.BlockExternalUserAccess.ValueBoolPointer()
+		if !plan.BlockExternalUserAccess.IsUnknown() {
+			sp.BlockExternalUserAccess = plan.BlockExternalUserAccess.ValueBoolPointer()
+		}
 	}
-	if v := plan.BlockedUsers.ValueString(); v != "" {
-		sp.BlockedUsers = objectParam(v)
+	if !plan.BlockedUsers.Equal(state.BlockedUsers) {
+		if v := plan.BlockedUsers.ValueString(); v != "" {
+			sp.BlockedUsers = objectParam(v)
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsExternalAccessConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsExternalAccessConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-ExternalAccessConfiguration failed", err.Error())
 		return
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{}, getString)
+	if !cfg.BlockExternalUserAccess.IsUnknown() && !cfg.BlockExternalUserAccess.IsNull() && !cfg.BlockExternalUserAccess.Equal(state.BlockExternalUserAccess) {
+		prev, want := reflected, cfg.BlockExternalUserAccess.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["BlockExternalUserAccess"] == nil || getBool(obj, "BlockExternalUserAccess") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

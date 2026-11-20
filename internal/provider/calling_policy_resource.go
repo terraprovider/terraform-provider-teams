@@ -158,40 +158,60 @@ func (r *callingPolicyResource) Create(ctx context.Context, req resource.CreateR
 			sp.AIInterpreter = plan.AIInterpreter.ValueString()
 		}
 		if !config.AllowCallForwardingToPhone.IsNull() {
-			sp.AllowCallForwardingToPhone = plan.AllowCallForwardingToPhone.ValueBoolPointer()
+			if !plan.AllowCallForwardingToPhone.IsUnknown() {
+				sp.AllowCallForwardingToPhone = plan.AllowCallForwardingToPhone.ValueBoolPointer()
+			}
 		}
 		if !config.AllowCallForwardingToUser.IsNull() {
-			sp.AllowCallForwardingToUser = plan.AllowCallForwardingToUser.ValueBoolPointer()
+			if !plan.AllowCallForwardingToUser.IsUnknown() {
+				sp.AllowCallForwardingToUser = plan.AllowCallForwardingToUser.ValueBoolPointer()
+			}
 		}
 		if !config.AllowCallGroups.IsNull() {
-			sp.AllowCallGroups = plan.AllowCallGroups.ValueBoolPointer()
+			if !plan.AllowCallGroups.IsUnknown() {
+				sp.AllowCallGroups = plan.AllowCallGroups.ValueBoolPointer()
+			}
 		}
 		if !config.AllowCallRedirect.IsNull() {
 			sp.AllowCallRedirect = plan.AllowCallRedirect.ValueString()
 		}
 		if !config.AllowCloudRecordingForCalls.IsNull() {
-			sp.AllowCloudRecordingForCalls = plan.AllowCloudRecordingForCalls.ValueBoolPointer()
+			if !plan.AllowCloudRecordingForCalls.IsUnknown() {
+				sp.AllowCloudRecordingForCalls = plan.AllowCloudRecordingForCalls.ValueBoolPointer()
+			}
 		}
 		if !config.AllowDelegation.IsNull() {
-			sp.AllowDelegation = plan.AllowDelegation.ValueBoolPointer()
+			if !plan.AllowDelegation.IsUnknown() {
+				sp.AllowDelegation = plan.AllowDelegation.ValueBoolPointer()
+			}
 		}
 		if !config.AllowMeetingKnowledgeGeneration.IsNull() {
-			sp.AllowMeetingKnowledgeGeneration = plan.AllowMeetingKnowledgeGeneration.ValueBoolPointer()
+			if !plan.AllowMeetingKnowledgeGeneration.IsUnknown() {
+				sp.AllowMeetingKnowledgeGeneration = plan.AllowMeetingKnowledgeGeneration.ValueBoolPointer()
+			}
 		}
 		if !config.AllowPrivateCalling.IsNull() {
-			sp.AllowPrivateCalling = plan.AllowPrivateCalling.ValueBoolPointer()
+			if !plan.AllowPrivateCalling.IsUnknown() {
+				sp.AllowPrivateCalling = plan.AllowPrivateCalling.ValueBoolPointer()
+			}
 		}
 		if !config.AllowSIPDevicesCalling.IsNull() {
-			sp.AllowSIPDevicesCalling = plan.AllowSIPDevicesCalling.ValueBoolPointer()
+			if !plan.AllowSIPDevicesCalling.IsUnknown() {
+				sp.AllowSIPDevicesCalling = plan.AllowSIPDevicesCalling.ValueBoolPointer()
+			}
 		}
 		if !config.AllowTranscriptionForCalling.IsNull() {
-			sp.AllowTranscriptionForCalling = plan.AllowTranscriptionForCalling.ValueBoolPointer()
+			if !plan.AllowTranscriptionForCalling.IsUnknown() {
+				sp.AllowTranscriptionForCalling = plan.AllowTranscriptionForCalling.ValueBoolPointer()
+			}
 		}
 		if !config.AllowVoicemail.IsNull() {
 			sp.AllowVoicemail = plan.AllowVoicemail.ValueString()
 		}
 		if !config.AllowWebPSTNCalling.IsNull() {
-			sp.AllowWebPSTNCalling = plan.AllowWebPSTNCalling.ValueBoolPointer()
+			if !plan.AllowWebPSTNCalling.IsUnknown() {
+				sp.AllowWebPSTNCalling = plan.AllowWebPSTNCalling.ValueBoolPointer()
+			}
 		}
 		if !config.AutoAnswerEnabledType.IsNull() {
 			sp.AutoAnswerEnabledType = plan.AutoAnswerEnabledType.ValueString()
@@ -200,10 +220,14 @@ func (r *callingPolicyResource) Create(ctx context.Context, req resource.CreateR
 			sp.BusyOnBusyEnabledType = plan.BusyOnBusyEnabledType.ValueString()
 		}
 		if !config.CallRecordingExpirationDays.IsNull() {
-			sp.CallRecordingExpirationDays = plan.CallRecordingExpirationDays.ValueInt64Pointer()
+			if !plan.CallRecordingExpirationDays.IsUnknown() {
+				sp.CallRecordingExpirationDays = plan.CallRecordingExpirationDays.ValueInt64Pointer()
+			}
 		}
 		if !config.CallingSpendUserLimit.IsNull() {
-			sp.CallingSpendUserLimit = plan.CallingSpendUserLimit.ValueInt64Pointer()
+			if !plan.CallingSpendUserLimit.IsUnknown() {
+				sp.CallingSpendUserLimit = plan.CallingSpendUserLimit.ValueInt64Pointer()
+			}
 		}
 		if !config.Copilot.IsNull() {
 			sp.Copilot = plan.Copilot.ValueString()
@@ -212,13 +236,19 @@ func (r *callingPolicyResource) Create(ctx context.Context, req resource.CreateR
 			sp.Description = plan.Description.ValueString()
 		}
 		if !config.EnableRecordingAndTranscriptionCustomMessage.IsNull() {
-			sp.EnableRecordingAndTranscriptionCustomMessage = plan.EnableRecordingAndTranscriptionCustomMessage.ValueBoolPointer()
+			if !plan.EnableRecordingAndTranscriptionCustomMessage.IsUnknown() {
+				sp.EnableRecordingAndTranscriptionCustomMessage = plan.EnableRecordingAndTranscriptionCustomMessage.ValueBoolPointer()
+			}
 		}
 		if !config.EnableSpendLimits.IsNull() {
-			sp.EnableSpendLimits = plan.EnableSpendLimits.ValueBoolPointer()
+			if !plan.EnableSpendLimits.IsUnknown() {
+				sp.EnableSpendLimits = plan.EnableSpendLimits.ValueBoolPointer()
+			}
 		}
 		if !config.EnableWebPstnMediaBypass.IsNull() {
-			sp.EnableWebPstnMediaBypass = plan.EnableWebPstnMediaBypass.ValueBoolPointer()
+			if !plan.EnableWebPstnMediaBypass.IsUnknown() {
+				sp.EnableWebPstnMediaBypass = plan.EnableWebPstnMediaBypass.ValueBoolPointer()
+			}
 		}
 		if !config.ExplicitRecordingConsent.IsNull() {
 			sp.ExplicitRecordingConsent = plan.ExplicitRecordingConsent.ValueString()
@@ -245,7 +275,9 @@ func (r *callingPolicyResource) Create(ctx context.Context, req resource.CreateR
 			sp.PreventComplianceRecording = plan.PreventComplianceRecording.ValueString()
 		}
 		if !config.PreventTollBypass.IsNull() {
-			sp.PreventTollBypass = plan.PreventTollBypass.ValueBoolPointer()
+			if !plan.PreventTollBypass.IsUnknown() {
+				sp.PreventTollBypass = plan.PreventTollBypass.ValueBoolPointer()
+			}
 		}
 		if !config.RealTimeText.IsNull() {
 			sp.RealTimeText = plan.RealTimeText.ValueString()
@@ -260,7 +292,9 @@ func (r *callingPolicyResource) Create(ctx context.Context, req resource.CreateR
 			sp.ReportCall = plan.ReportCall.ValueString()
 		}
 		if !config.ShowTeamsCallsInCallLog.IsNull() {
-			sp.ShowTeamsCallsInCallLog = plan.ShowTeamsCallsInCallLog.ValueBoolPointer()
+			if !plan.ShowTeamsCallsInCallLog.IsUnknown() {
+				sp.ShowTeamsCallsInCallLog = plan.ShowTeamsCallsInCallLog.ValueBoolPointer()
+			}
 		}
 		if !config.SpamFilteringEnabledType.IsNull() {
 			sp.SpamFilteringEnabledType = plan.SpamFilteringEnabledType.ValueString()
@@ -274,7 +308,7 @@ func (r *callingPolicyResource) Create(ctx context.Context, req resource.CreateR
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsCallingPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsCallingPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-CallingPolicy failed", err.Error())
 			return
 		}
@@ -295,40 +329,60 @@ func (r *callingPolicyResource) Create(ctx context.Context, req resource.CreateR
 		p.AIInterpreter = plan.AIInterpreter.ValueString()
 	}
 	if !config.AllowCallForwardingToPhone.IsNull() {
-		p.AllowCallForwardingToPhone = plan.AllowCallForwardingToPhone.ValueBoolPointer()
+		if !plan.AllowCallForwardingToPhone.IsUnknown() {
+			p.AllowCallForwardingToPhone = plan.AllowCallForwardingToPhone.ValueBoolPointer()
+		}
 	}
 	if !config.AllowCallForwardingToUser.IsNull() {
-		p.AllowCallForwardingToUser = plan.AllowCallForwardingToUser.ValueBoolPointer()
+		if !plan.AllowCallForwardingToUser.IsUnknown() {
+			p.AllowCallForwardingToUser = plan.AllowCallForwardingToUser.ValueBoolPointer()
+		}
 	}
 	if !config.AllowCallGroups.IsNull() {
-		p.AllowCallGroups = plan.AllowCallGroups.ValueBoolPointer()
+		if !plan.AllowCallGroups.IsUnknown() {
+			p.AllowCallGroups = plan.AllowCallGroups.ValueBoolPointer()
+		}
 	}
 	if !config.AllowCallRedirect.IsNull() {
 		p.AllowCallRedirect = plan.AllowCallRedirect.ValueString()
 	}
 	if !config.AllowCloudRecordingForCalls.IsNull() {
-		p.AllowCloudRecordingForCalls = plan.AllowCloudRecordingForCalls.ValueBoolPointer()
+		if !plan.AllowCloudRecordingForCalls.IsUnknown() {
+			p.AllowCloudRecordingForCalls = plan.AllowCloudRecordingForCalls.ValueBoolPointer()
+		}
 	}
 	if !config.AllowDelegation.IsNull() {
-		p.AllowDelegation = plan.AllowDelegation.ValueBoolPointer()
+		if !plan.AllowDelegation.IsUnknown() {
+			p.AllowDelegation = plan.AllowDelegation.ValueBoolPointer()
+		}
 	}
 	if !config.AllowMeetingKnowledgeGeneration.IsNull() {
-		p.AllowMeetingKnowledgeGeneration = plan.AllowMeetingKnowledgeGeneration.ValueBoolPointer()
+		if !plan.AllowMeetingKnowledgeGeneration.IsUnknown() {
+			p.AllowMeetingKnowledgeGeneration = plan.AllowMeetingKnowledgeGeneration.ValueBoolPointer()
+		}
 	}
 	if !config.AllowPrivateCalling.IsNull() {
-		p.AllowPrivateCalling = plan.AllowPrivateCalling.ValueBoolPointer()
+		if !plan.AllowPrivateCalling.IsUnknown() {
+			p.AllowPrivateCalling = plan.AllowPrivateCalling.ValueBoolPointer()
+		}
 	}
 	if !config.AllowSIPDevicesCalling.IsNull() {
-		p.AllowSIPDevicesCalling = plan.AllowSIPDevicesCalling.ValueBoolPointer()
+		if !plan.AllowSIPDevicesCalling.IsUnknown() {
+			p.AllowSIPDevicesCalling = plan.AllowSIPDevicesCalling.ValueBoolPointer()
+		}
 	}
 	if !config.AllowTranscriptionForCalling.IsNull() {
-		p.AllowTranscriptionForCalling = plan.AllowTranscriptionForCalling.ValueBoolPointer()
+		if !plan.AllowTranscriptionForCalling.IsUnknown() {
+			p.AllowTranscriptionForCalling = plan.AllowTranscriptionForCalling.ValueBoolPointer()
+		}
 	}
 	if !config.AllowVoicemail.IsNull() {
 		p.AllowVoicemail = plan.AllowVoicemail.ValueString()
 	}
 	if !config.AllowWebPSTNCalling.IsNull() {
-		p.AllowWebPSTNCalling = plan.AllowWebPSTNCalling.ValueBoolPointer()
+		if !plan.AllowWebPSTNCalling.IsUnknown() {
+			p.AllowWebPSTNCalling = plan.AllowWebPSTNCalling.ValueBoolPointer()
+		}
 	}
 	if !config.AutoAnswerEnabledType.IsNull() {
 		p.AutoAnswerEnabledType = plan.AutoAnswerEnabledType.ValueString()
@@ -337,10 +391,14 @@ func (r *callingPolicyResource) Create(ctx context.Context, req resource.CreateR
 		p.BusyOnBusyEnabledType = plan.BusyOnBusyEnabledType.ValueString()
 	}
 	if !config.CallRecordingExpirationDays.IsNull() {
-		p.CallRecordingExpirationDays = plan.CallRecordingExpirationDays.ValueInt64Pointer()
+		if !plan.CallRecordingExpirationDays.IsUnknown() {
+			p.CallRecordingExpirationDays = plan.CallRecordingExpirationDays.ValueInt64Pointer()
+		}
 	}
 	if !config.CallingSpendUserLimit.IsNull() {
-		p.CallingSpendUserLimit = plan.CallingSpendUserLimit.ValueInt64Pointer()
+		if !plan.CallingSpendUserLimit.IsUnknown() {
+			p.CallingSpendUserLimit = plan.CallingSpendUserLimit.ValueInt64Pointer()
+		}
 	}
 	if !config.Copilot.IsNull() {
 		p.Copilot = plan.Copilot.ValueString()
@@ -349,13 +407,19 @@ func (r *callingPolicyResource) Create(ctx context.Context, req resource.CreateR
 		p.Description = plan.Description.ValueString()
 	}
 	if !config.EnableRecordingAndTranscriptionCustomMessage.IsNull() {
-		p.EnableRecordingAndTranscriptionCustomMessage = plan.EnableRecordingAndTranscriptionCustomMessage.ValueBoolPointer()
+		if !plan.EnableRecordingAndTranscriptionCustomMessage.IsUnknown() {
+			p.EnableRecordingAndTranscriptionCustomMessage = plan.EnableRecordingAndTranscriptionCustomMessage.ValueBoolPointer()
+		}
 	}
 	if !config.EnableSpendLimits.IsNull() {
-		p.EnableSpendLimits = plan.EnableSpendLimits.ValueBoolPointer()
+		if !plan.EnableSpendLimits.IsUnknown() {
+			p.EnableSpendLimits = plan.EnableSpendLimits.ValueBoolPointer()
+		}
 	}
 	if !config.EnableWebPstnMediaBypass.IsNull() {
-		p.EnableWebPstnMediaBypass = plan.EnableWebPstnMediaBypass.ValueBoolPointer()
+		if !plan.EnableWebPstnMediaBypass.IsUnknown() {
+			p.EnableWebPstnMediaBypass = plan.EnableWebPstnMediaBypass.ValueBoolPointer()
+		}
 	}
 	if !config.ExplicitRecordingConsent.IsNull() {
 		p.ExplicitRecordingConsent = plan.ExplicitRecordingConsent.ValueString()
@@ -382,7 +446,9 @@ func (r *callingPolicyResource) Create(ctx context.Context, req resource.CreateR
 		p.PreventComplianceRecording = plan.PreventComplianceRecording.ValueString()
 	}
 	if !config.PreventTollBypass.IsNull() {
-		p.PreventTollBypass = plan.PreventTollBypass.ValueBoolPointer()
+		if !plan.PreventTollBypass.IsUnknown() {
+			p.PreventTollBypass = plan.PreventTollBypass.ValueBoolPointer()
+		}
 	}
 	if !config.RealTimeText.IsNull() {
 		p.RealTimeText = plan.RealTimeText.ValueString()
@@ -397,7 +463,9 @@ func (r *callingPolicyResource) Create(ctx context.Context, req resource.CreateR
 		p.ReportCall = plan.ReportCall.ValueString()
 	}
 	if !config.ShowTeamsCallsInCallLog.IsNull() {
-		p.ShowTeamsCallsInCallLog = plan.ShowTeamsCallsInCallLog.ValueBoolPointer()
+		if !plan.ShowTeamsCallsInCallLog.IsUnknown() {
+			p.ShowTeamsCallsInCallLog = plan.ShowTeamsCallsInCallLog.ValueBoolPointer()
+		}
 	}
 	if !config.SpamFilteringEnabledType.IsNull() {
 		p.SpamFilteringEnabledType = plan.SpamFilteringEnabledType.ValueString()
@@ -412,7 +480,7 @@ func (r *callingPolicyResource) Create(ctx context.Context, req resource.CreateR
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsCallingPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsCallingPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-CallingPolicy failed", err.Error())
 		return
@@ -463,40 +531,60 @@ func (r *callingPolicyResource) Update(ctx context.Context, req resource.UpdateR
 		sp.AIInterpreter = plan.AIInterpreter.ValueString()
 	}
 	if !plan.AllowCallForwardingToPhone.Equal(state.AllowCallForwardingToPhone) {
-		sp.AllowCallForwardingToPhone = plan.AllowCallForwardingToPhone.ValueBoolPointer()
+		if !plan.AllowCallForwardingToPhone.IsUnknown() {
+			sp.AllowCallForwardingToPhone = plan.AllowCallForwardingToPhone.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowCallForwardingToUser.Equal(state.AllowCallForwardingToUser) {
-		sp.AllowCallForwardingToUser = plan.AllowCallForwardingToUser.ValueBoolPointer()
+		if !plan.AllowCallForwardingToUser.IsUnknown() {
+			sp.AllowCallForwardingToUser = plan.AllowCallForwardingToUser.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowCallGroups.Equal(state.AllowCallGroups) {
-		sp.AllowCallGroups = plan.AllowCallGroups.ValueBoolPointer()
+		if !plan.AllowCallGroups.IsUnknown() {
+			sp.AllowCallGroups = plan.AllowCallGroups.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowCallRedirect.Equal(state.AllowCallRedirect) {
 		sp.AllowCallRedirect = plan.AllowCallRedirect.ValueString()
 	}
 	if !plan.AllowCloudRecordingForCalls.Equal(state.AllowCloudRecordingForCalls) {
-		sp.AllowCloudRecordingForCalls = plan.AllowCloudRecordingForCalls.ValueBoolPointer()
+		if !plan.AllowCloudRecordingForCalls.IsUnknown() {
+			sp.AllowCloudRecordingForCalls = plan.AllowCloudRecordingForCalls.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowDelegation.Equal(state.AllowDelegation) {
-		sp.AllowDelegation = plan.AllowDelegation.ValueBoolPointer()
+		if !plan.AllowDelegation.IsUnknown() {
+			sp.AllowDelegation = plan.AllowDelegation.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowMeetingKnowledgeGeneration.Equal(state.AllowMeetingKnowledgeGeneration) {
-		sp.AllowMeetingKnowledgeGeneration = plan.AllowMeetingKnowledgeGeneration.ValueBoolPointer()
+		if !plan.AllowMeetingKnowledgeGeneration.IsUnknown() {
+			sp.AllowMeetingKnowledgeGeneration = plan.AllowMeetingKnowledgeGeneration.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowPrivateCalling.Equal(state.AllowPrivateCalling) {
-		sp.AllowPrivateCalling = plan.AllowPrivateCalling.ValueBoolPointer()
+		if !plan.AllowPrivateCalling.IsUnknown() {
+			sp.AllowPrivateCalling = plan.AllowPrivateCalling.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowSIPDevicesCalling.Equal(state.AllowSIPDevicesCalling) {
-		sp.AllowSIPDevicesCalling = plan.AllowSIPDevicesCalling.ValueBoolPointer()
+		if !plan.AllowSIPDevicesCalling.IsUnknown() {
+			sp.AllowSIPDevicesCalling = plan.AllowSIPDevicesCalling.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowTranscriptionForCalling.Equal(state.AllowTranscriptionForCalling) {
-		sp.AllowTranscriptionForCalling = plan.AllowTranscriptionForCalling.ValueBoolPointer()
+		if !plan.AllowTranscriptionForCalling.IsUnknown() {
+			sp.AllowTranscriptionForCalling = plan.AllowTranscriptionForCalling.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowVoicemail.Equal(state.AllowVoicemail) {
 		sp.AllowVoicemail = plan.AllowVoicemail.ValueString()
 	}
 	if !plan.AllowWebPSTNCalling.Equal(state.AllowWebPSTNCalling) {
-		sp.AllowWebPSTNCalling = plan.AllowWebPSTNCalling.ValueBoolPointer()
+		if !plan.AllowWebPSTNCalling.IsUnknown() {
+			sp.AllowWebPSTNCalling = plan.AllowWebPSTNCalling.ValueBoolPointer()
+		}
 	}
 	if !plan.AutoAnswerEnabledType.Equal(state.AutoAnswerEnabledType) {
 		sp.AutoAnswerEnabledType = plan.AutoAnswerEnabledType.ValueString()
@@ -505,10 +593,14 @@ func (r *callingPolicyResource) Update(ctx context.Context, req resource.UpdateR
 		sp.BusyOnBusyEnabledType = plan.BusyOnBusyEnabledType.ValueString()
 	}
 	if !plan.CallRecordingExpirationDays.Equal(state.CallRecordingExpirationDays) {
-		sp.CallRecordingExpirationDays = plan.CallRecordingExpirationDays.ValueInt64Pointer()
+		if !plan.CallRecordingExpirationDays.IsUnknown() {
+			sp.CallRecordingExpirationDays = plan.CallRecordingExpirationDays.ValueInt64Pointer()
+		}
 	}
 	if !plan.CallingSpendUserLimit.Equal(state.CallingSpendUserLimit) {
-		sp.CallingSpendUserLimit = plan.CallingSpendUserLimit.ValueInt64Pointer()
+		if !plan.CallingSpendUserLimit.IsUnknown() {
+			sp.CallingSpendUserLimit = plan.CallingSpendUserLimit.ValueInt64Pointer()
+		}
 	}
 	if !plan.Copilot.Equal(state.Copilot) {
 		sp.Copilot = plan.Copilot.ValueString()
@@ -517,13 +609,19 @@ func (r *callingPolicyResource) Update(ctx context.Context, req resource.UpdateR
 		sp.Description = plan.Description.ValueString()
 	}
 	if !plan.EnableRecordingAndTranscriptionCustomMessage.Equal(state.EnableRecordingAndTranscriptionCustomMessage) {
-		sp.EnableRecordingAndTranscriptionCustomMessage = plan.EnableRecordingAndTranscriptionCustomMessage.ValueBoolPointer()
+		if !plan.EnableRecordingAndTranscriptionCustomMessage.IsUnknown() {
+			sp.EnableRecordingAndTranscriptionCustomMessage = plan.EnableRecordingAndTranscriptionCustomMessage.ValueBoolPointer()
+		}
 	}
 	if !plan.EnableSpendLimits.Equal(state.EnableSpendLimits) {
-		sp.EnableSpendLimits = plan.EnableSpendLimits.ValueBoolPointer()
+		if !plan.EnableSpendLimits.IsUnknown() {
+			sp.EnableSpendLimits = plan.EnableSpendLimits.ValueBoolPointer()
+		}
 	}
 	if !plan.EnableWebPstnMediaBypass.Equal(state.EnableWebPstnMediaBypass) {
-		sp.EnableWebPstnMediaBypass = plan.EnableWebPstnMediaBypass.ValueBoolPointer()
+		if !plan.EnableWebPstnMediaBypass.IsUnknown() {
+			sp.EnableWebPstnMediaBypass = plan.EnableWebPstnMediaBypass.ValueBoolPointer()
+		}
 	}
 	if !plan.ExplicitRecordingConsent.Equal(state.ExplicitRecordingConsent) {
 		sp.ExplicitRecordingConsent = plan.ExplicitRecordingConsent.ValueString()
@@ -550,7 +648,9 @@ func (r *callingPolicyResource) Update(ctx context.Context, req resource.UpdateR
 		sp.PreventComplianceRecording = plan.PreventComplianceRecording.ValueString()
 	}
 	if !plan.PreventTollBypass.Equal(state.PreventTollBypass) {
-		sp.PreventTollBypass = plan.PreventTollBypass.ValueBoolPointer()
+		if !plan.PreventTollBypass.IsUnknown() {
+			sp.PreventTollBypass = plan.PreventTollBypass.ValueBoolPointer()
+		}
 	}
 	if !plan.RealTimeText.Equal(state.RealTimeText) {
 		sp.RealTimeText = plan.RealTimeText.ValueString()
@@ -565,7 +665,9 @@ func (r *callingPolicyResource) Update(ctx context.Context, req resource.UpdateR
 		sp.ReportCall = plan.ReportCall.ValueString()
 	}
 	if !plan.ShowTeamsCallsInCallLog.Equal(state.ShowTeamsCallsInCallLog) {
-		sp.ShowTeamsCallsInCallLog = plan.ShowTeamsCallsInCallLog.ValueBoolPointer()
+		if !plan.ShowTeamsCallsInCallLog.IsUnknown() {
+			sp.ShowTeamsCallsInCallLog = plan.ShowTeamsCallsInCallLog.ValueBoolPointer()
+		}
 	}
 	if !plan.SpamFilteringEnabledType.Equal(state.SpamFilteringEnabledType) {
 		sp.SpamFilteringEnabledType = plan.SpamFilteringEnabledType.ValueString()
@@ -579,7 +681,7 @@ func (r *callingPolicyResource) Update(ctx context.Context, req resource.UpdateR
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsCallingPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsCallingPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-CallingPolicy failed", err.Error())
 		return
 	}
@@ -608,7 +710,112 @@ func (r *callingPolicyResource) Update(ctx context.Context, req resource.UpdateR
 		"VoicePhishingDetection":                           cfg.VoicePhishingDetection,
 		"VoiceSimulationInInterpreter":                     cfg.VoiceSimulationInInterpreter,
 	}, getString)
+	if !cfg.AllowCallForwardingToPhone.IsUnknown() && !cfg.AllowCallForwardingToPhone.IsNull() && !cfg.AllowCallForwardingToPhone.Equal(state.AllowCallForwardingToPhone) {
+		prev, want := reflected, cfg.AllowCallForwardingToPhone.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowCallForwardingToPhone"] == nil || getBool(obj, "AllowCallForwardingToPhone") == want)
+		}
+	}
+	if !cfg.AllowCallForwardingToUser.IsUnknown() && !cfg.AllowCallForwardingToUser.IsNull() && !cfg.AllowCallForwardingToUser.Equal(state.AllowCallForwardingToUser) {
+		prev, want := reflected, cfg.AllowCallForwardingToUser.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowCallForwardingToUser"] == nil || getBool(obj, "AllowCallForwardingToUser") == want)
+		}
+	}
+	if !cfg.AllowCallGroups.IsUnknown() && !cfg.AllowCallGroups.IsNull() && !cfg.AllowCallGroups.Equal(state.AllowCallGroups) {
+		prev, want := reflected, cfg.AllowCallGroups.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowCallGroups"] == nil || getBool(obj, "AllowCallGroups") == want)
+		}
+	}
+	if !cfg.AllowCloudRecordingForCalls.IsUnknown() && !cfg.AllowCloudRecordingForCalls.IsNull() && !cfg.AllowCloudRecordingForCalls.Equal(state.AllowCloudRecordingForCalls) {
+		prev, want := reflected, cfg.AllowCloudRecordingForCalls.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowCloudRecordingForCalls"] == nil || getBool(obj, "AllowCloudRecordingForCalls") == want)
+		}
+	}
+	if !cfg.AllowDelegation.IsUnknown() && !cfg.AllowDelegation.IsNull() && !cfg.AllowDelegation.Equal(state.AllowDelegation) {
+		prev, want := reflected, cfg.AllowDelegation.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowDelegation"] == nil || getBool(obj, "AllowDelegation") == want)
+		}
+	}
+	if !cfg.AllowMeetingKnowledgeGeneration.IsUnknown() && !cfg.AllowMeetingKnowledgeGeneration.IsNull() && !cfg.AllowMeetingKnowledgeGeneration.Equal(state.AllowMeetingKnowledgeGeneration) {
+		prev, want := reflected, cfg.AllowMeetingKnowledgeGeneration.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowMeetingKnowledgeGeneration"] == nil || getBool(obj, "AllowMeetingKnowledgeGeneration") == want)
+		}
+	}
+	if !cfg.AllowPrivateCalling.IsUnknown() && !cfg.AllowPrivateCalling.IsNull() && !cfg.AllowPrivateCalling.Equal(state.AllowPrivateCalling) {
+		prev, want := reflected, cfg.AllowPrivateCalling.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowPrivateCalling"] == nil || getBool(obj, "AllowPrivateCalling") == want)
+		}
+	}
+	if !cfg.AllowSIPDevicesCalling.IsUnknown() && !cfg.AllowSIPDevicesCalling.IsNull() && !cfg.AllowSIPDevicesCalling.Equal(state.AllowSIPDevicesCalling) {
+		prev, want := reflected, cfg.AllowSIPDevicesCalling.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowSIPDevicesCalling"] == nil || getBool(obj, "AllowSIPDevicesCalling") == want)
+		}
+	}
+	if !cfg.AllowTranscriptionForCalling.IsUnknown() && !cfg.AllowTranscriptionForCalling.IsNull() && !cfg.AllowTranscriptionForCalling.Equal(state.AllowTranscriptionForCalling) {
+		prev, want := reflected, cfg.AllowTranscriptionForCalling.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowTranscriptionForCalling"] == nil || getBool(obj, "AllowTranscriptionForCalling") == want)
+		}
+	}
+	if !cfg.AllowWebPSTNCalling.IsUnknown() && !cfg.AllowWebPSTNCalling.IsNull() && !cfg.AllowWebPSTNCalling.Equal(state.AllowWebPSTNCalling) {
+		prev, want := reflected, cfg.AllowWebPSTNCalling.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowWebPSTNCalling"] == nil || getBool(obj, "AllowWebPSTNCalling") == want)
+		}
+	}
+	if !cfg.CallRecordingExpirationDays.IsUnknown() && !cfg.CallRecordingExpirationDays.IsNull() && !cfg.CallRecordingExpirationDays.Equal(state.CallRecordingExpirationDays) {
+		prev, want := reflected, cfg.CallRecordingExpirationDays.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["CallRecordingExpirationDays"] == nil || getInt(obj, "CallRecordingExpirationDays") == want)
+		}
+	}
+	if !cfg.CallingSpendUserLimit.IsUnknown() && !cfg.CallingSpendUserLimit.IsNull() && !cfg.CallingSpendUserLimit.Equal(state.CallingSpendUserLimit) {
+		prev, want := reflected, cfg.CallingSpendUserLimit.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["CallingSpendUserLimit"] == nil || getInt(obj, "CallingSpendUserLimit") == want)
+		}
+	}
+	if !cfg.EnableRecordingAndTranscriptionCustomMessage.IsUnknown() && !cfg.EnableRecordingAndTranscriptionCustomMessage.IsNull() && !cfg.EnableRecordingAndTranscriptionCustomMessage.Equal(state.EnableRecordingAndTranscriptionCustomMessage) {
+		prev, want := reflected, cfg.EnableRecordingAndTranscriptionCustomMessage.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableRecordingAndTranscriptionCustomMessage"] == nil || getBool(obj, "EnableRecordingAndTranscriptionCustomMessage") == want)
+		}
+	}
+	if !cfg.EnableSpendLimits.IsUnknown() && !cfg.EnableSpendLimits.IsNull() && !cfg.EnableSpendLimits.Equal(state.EnableSpendLimits) {
+		prev, want := reflected, cfg.EnableSpendLimits.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableSpendLimits"] == nil || getBool(obj, "EnableSpendLimits") == want)
+		}
+	}
+	if !cfg.EnableWebPstnMediaBypass.IsUnknown() && !cfg.EnableWebPstnMediaBypass.IsNull() && !cfg.EnableWebPstnMediaBypass.Equal(state.EnableWebPstnMediaBypass) {
+		prev, want := reflected, cfg.EnableWebPstnMediaBypass.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableWebPstnMediaBypass"] == nil || getBool(obj, "EnableWebPstnMediaBypass") == want)
+		}
+	}
+	if !cfg.PreventTollBypass.IsUnknown() && !cfg.PreventTollBypass.IsNull() && !cfg.PreventTollBypass.Equal(state.PreventTollBypass) {
+		prev, want := reflected, cfg.PreventTollBypass.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["PreventTollBypass"] == nil || getBool(obj, "PreventTollBypass") == want)
+		}
+	}
+	if !cfg.ShowTeamsCallsInCallLog.IsUnknown() && !cfg.ShowTeamsCallsInCallLog.IsNull() && !cfg.ShowTeamsCallsInCallLog.Equal(state.ShowTeamsCallsInCallLog) {
+		prev, want := reflected, cfg.ShowTeamsCallsInCallLog.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["ShowTeamsCallsInCallLog"] == nil || getBool(obj, "ShowTeamsCallsInCallLog") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

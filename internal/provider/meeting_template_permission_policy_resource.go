@@ -94,7 +94,7 @@ func (r *meetingTemplatePermissionPolicyResource) Create(ctx context.Context, re
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsMeetingTemplatePermissionPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingTemplatePermissionPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-MeetingTemplatePermissionPolicy failed", err.Error())
 			return
 		}
@@ -124,7 +124,7 @@ func (r *meetingTemplatePermissionPolicyResource) Create(ctx context.Context, re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsMeetingTemplatePermissionPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsMeetingTemplatePermissionPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-MeetingTemplatePermissionPolicy failed", err.Error())
 		return
@@ -177,13 +177,15 @@ func (r *meetingTemplatePermissionPolicyResource) Update(ctx context.Context, re
 	if !plan.Description.Equal(state.Description) {
 		sp.Description = plan.Description.ValueString()
 	}
-	if v := plan.HiddenMeetingTemplates.ValueString(); v != "" {
-		sp.HiddenMeetingTemplates = objectParam(v)
+	if !plan.HiddenMeetingTemplates.Equal(state.HiddenMeetingTemplates) {
+		if v := plan.HiddenMeetingTemplates.ValueString(); v != "" {
+			sp.HiddenMeetingTemplates = objectParam(v)
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsMeetingTemplatePermissionPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingTemplatePermissionPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-MeetingTemplatePermissionPolicy failed", err.Error())
 		return
 	}
@@ -193,6 +195,9 @@ func (r *meetingTemplatePermissionPolicyResource) Update(ctx context.Context, re
 		"Description":              cfg.Description,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

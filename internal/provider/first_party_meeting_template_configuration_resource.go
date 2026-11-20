@@ -86,7 +86,7 @@ func (r *firstPartyMeetingTemplateConfigurationResource) Create(ctx context.Cont
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsFirstPartyMeetingTemplateConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsFirstPartyMeetingTemplateConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-FirstPartyMeetingTemplateConfiguration failed", err.Error())
 		return
 	}
@@ -125,13 +125,15 @@ func (r *firstPartyMeetingTemplateConfigurationResource) Update(ctx context.Cont
 	if !plan.Description.Equal(state.Description) {
 		sp.Description = plan.Description.ValueString()
 	}
-	if v := plan.TeamsMeetingTemplates.ValueString(); v != "" {
-		sp.TeamsMeetingTemplates = objectParam(v)
+	if !plan.TeamsMeetingTemplates.Equal(state.TeamsMeetingTemplates) {
+		if v := plan.TeamsMeetingTemplates.ValueString(); v != "" {
+			sp.TeamsMeetingTemplates = objectParam(v)
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsFirstPartyMeetingTemplateConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsFirstPartyMeetingTemplateConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-FirstPartyMeetingTemplateConfiguration failed", err.Error())
 		return
 	}
@@ -140,6 +142,9 @@ func (r *firstPartyMeetingTemplateConfigurationResource) Update(ctx context.Cont
 		"Description": cfg.Description,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

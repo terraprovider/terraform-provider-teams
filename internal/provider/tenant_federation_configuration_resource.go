@@ -105,13 +105,19 @@ func (r *tenantFederationConfigurationResource) Create(ctx context.Context, req 
 	sp := cs.SetCsTenantFederationConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
 	if !config.AllowFederatedUsers.IsNull() {
-		sp.AllowFederatedUsers = plan.AllowFederatedUsers.ValueBoolPointer()
+		if !plan.AllowFederatedUsers.IsUnknown() {
+			sp.AllowFederatedUsers = plan.AllowFederatedUsers.ValueBoolPointer()
+		}
 	}
 	if !config.AllowTeamsConsumer.IsNull() {
-		sp.AllowTeamsConsumer = plan.AllowTeamsConsumer.ValueBoolPointer()
+		if !plan.AllowTeamsConsumer.IsUnknown() {
+			sp.AllowTeamsConsumer = plan.AllowTeamsConsumer.ValueBoolPointer()
+		}
 	}
 	if !config.AllowTeamsConsumerInbound.IsNull() {
-		sp.AllowTeamsConsumerInbound = plan.AllowTeamsConsumerInbound.ValueBoolPointer()
+		if !plan.AllowTeamsConsumerInbound.IsUnknown() {
+			sp.AllowTeamsConsumerInbound = plan.AllowTeamsConsumerInbound.ValueBoolPointer()
+		}
 	}
 	if v := config.AllowedDomains.ValueString(); v != "" {
 		sp.AllowedDomains = objectParam(v)
@@ -123,36 +129,48 @@ func (r *tenantFederationConfigurationResource) Create(ctx context.Context, req 
 		sp.AllowedTrialTenantDomains = objectParam(v)
 	}
 	if !config.BlockAllSubdomains.IsNull() {
-		sp.BlockAllSubdomains = plan.BlockAllSubdomains.ValueBoolPointer()
+		if !plan.BlockAllSubdomains.IsUnknown() {
+			sp.BlockAllSubdomains = plan.BlockAllSubdomains.ValueBoolPointer()
+		}
 	}
 	if v := config.BlockedDomains.ValueString(); v != "" {
 		sp.BlockedDomains = objectParam(v)
 	}
 	if !config.EnableExternalAccessRestrictionsForChatParticipants.IsNull() {
-		sp.EnableExternalAccessRestrictionsForChatParticipants = plan.EnableExternalAccessRestrictionsForChatParticipants.ValueBoolPointer()
+		if !plan.EnableExternalAccessRestrictionsForChatParticipants.IsUnknown() {
+			sp.EnableExternalAccessRestrictionsForChatParticipants = plan.EnableExternalAccessRestrictionsForChatParticipants.ValueBoolPointer()
+		}
 	}
 	if !config.EnableMutualFederationForChatParticipants.IsNull() {
-		sp.EnableMutualFederationForChatParticipants = plan.EnableMutualFederationForChatParticipants.ValueBoolPointer()
+		if !plan.EnableMutualFederationForChatParticipants.IsUnknown() {
+			sp.EnableMutualFederationForChatParticipants = plan.EnableMutualFederationForChatParticipants.ValueBoolPointer()
+		}
 	}
 	if !config.ExternalAccessWithTrialTenants.IsNull() {
 		sp.ExternalAccessWithTrialTenants = plan.ExternalAccessWithTrialTenants.ValueString()
 	}
 	if !config.RestrictTeamsConsumerToExternalUserProfiles.IsNull() {
-		sp.RestrictTeamsConsumerToExternalUserProfiles = plan.RestrictTeamsConsumerToExternalUserProfiles.ValueBoolPointer()
+		if !plan.RestrictTeamsConsumerToExternalUserProfiles.IsUnknown() {
+			sp.RestrictTeamsConsumerToExternalUserProfiles = plan.RestrictTeamsConsumerToExternalUserProfiles.ValueBoolPointer()
+		}
 	}
 	if !config.SecurityTeamAllowBlockListDelegation.IsNull() {
 		sp.SecurityTeamAllowBlockListDelegation = plan.SecurityTeamAllowBlockListDelegation.ValueString()
 	}
 	if !config.SharedSipAddressSpace.IsNull() {
-		sp.SharedSipAddressSpace = plan.SharedSipAddressSpace.ValueBoolPointer()
+		if !plan.SharedSipAddressSpace.IsUnknown() {
+			sp.SharedSipAddressSpace = plan.SharedSipAddressSpace.ValueBoolPointer()
+		}
 	}
 	if !config.TreatDiscoveredPartnersAsUnverified.IsNull() {
-		sp.TreatDiscoveredPartnersAsUnverified = plan.TreatDiscoveredPartnersAsUnverified.ValueBoolPointer()
+		if !plan.TreatDiscoveredPartnersAsUnverified.IsUnknown() {
+			sp.TreatDiscoveredPartnersAsUnverified = plan.TreatDiscoveredPartnersAsUnverified.ValueBoolPointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTenantFederationConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantFederationConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-TenantFederationConfiguration failed", err.Error())
 		return
 	}
@@ -189,54 +207,80 @@ func (r *tenantFederationConfigurationResource) Update(ctx context.Context, req 
 	sp := cs.SetCsTenantFederationConfigurationParams{}
 	sp.Identity = id
 	if !plan.AllowFederatedUsers.Equal(state.AllowFederatedUsers) {
-		sp.AllowFederatedUsers = plan.AllowFederatedUsers.ValueBoolPointer()
+		if !plan.AllowFederatedUsers.IsUnknown() {
+			sp.AllowFederatedUsers = plan.AllowFederatedUsers.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowTeamsConsumer.Equal(state.AllowTeamsConsumer) {
-		sp.AllowTeamsConsumer = plan.AllowTeamsConsumer.ValueBoolPointer()
+		if !plan.AllowTeamsConsumer.IsUnknown() {
+			sp.AllowTeamsConsumer = plan.AllowTeamsConsumer.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowTeamsConsumerInbound.Equal(state.AllowTeamsConsumerInbound) {
-		sp.AllowTeamsConsumerInbound = plan.AllowTeamsConsumerInbound.ValueBoolPointer()
+		if !plan.AllowTeamsConsumerInbound.IsUnknown() {
+			sp.AllowTeamsConsumerInbound = plan.AllowTeamsConsumerInbound.ValueBoolPointer()
+		}
 	}
-	if v := plan.AllowedDomains.ValueString(); v != "" {
-		sp.AllowedDomains = objectParam(v)
+	if !plan.AllowedDomains.Equal(state.AllowedDomains) {
+		if v := plan.AllowedDomains.ValueString(); v != "" {
+			sp.AllowedDomains = objectParam(v)
+		}
 	}
-	if v := plan.AllowedDomainsAsAList.ValueString(); v != "" {
-		sp.AllowedDomainsAsAList = objectParam(v)
+	if !plan.AllowedDomainsAsAList.Equal(state.AllowedDomainsAsAList) {
+		if v := plan.AllowedDomainsAsAList.ValueString(); v != "" {
+			sp.AllowedDomainsAsAList = objectParam(v)
+		}
 	}
-	if v := plan.AllowedTrialTenantDomains.ValueString(); v != "" {
-		sp.AllowedTrialTenantDomains = objectParam(v)
+	if !plan.AllowedTrialTenantDomains.Equal(state.AllowedTrialTenantDomains) {
+		if v := plan.AllowedTrialTenantDomains.ValueString(); v != "" {
+			sp.AllowedTrialTenantDomains = objectParam(v)
+		}
 	}
 	if !plan.BlockAllSubdomains.Equal(state.BlockAllSubdomains) {
-		sp.BlockAllSubdomains = plan.BlockAllSubdomains.ValueBoolPointer()
+		if !plan.BlockAllSubdomains.IsUnknown() {
+			sp.BlockAllSubdomains = plan.BlockAllSubdomains.ValueBoolPointer()
+		}
 	}
-	if v := plan.BlockedDomains.ValueString(); v != "" {
-		sp.BlockedDomains = objectParam(v)
+	if !plan.BlockedDomains.Equal(state.BlockedDomains) {
+		if v := plan.BlockedDomains.ValueString(); v != "" {
+			sp.BlockedDomains = objectParam(v)
+		}
 	}
 	if !plan.EnableExternalAccessRestrictionsForChatParticipants.Equal(state.EnableExternalAccessRestrictionsForChatParticipants) {
-		sp.EnableExternalAccessRestrictionsForChatParticipants = plan.EnableExternalAccessRestrictionsForChatParticipants.ValueBoolPointer()
+		if !plan.EnableExternalAccessRestrictionsForChatParticipants.IsUnknown() {
+			sp.EnableExternalAccessRestrictionsForChatParticipants = plan.EnableExternalAccessRestrictionsForChatParticipants.ValueBoolPointer()
+		}
 	}
 	if !plan.EnableMutualFederationForChatParticipants.Equal(state.EnableMutualFederationForChatParticipants) {
-		sp.EnableMutualFederationForChatParticipants = plan.EnableMutualFederationForChatParticipants.ValueBoolPointer()
+		if !plan.EnableMutualFederationForChatParticipants.IsUnknown() {
+			sp.EnableMutualFederationForChatParticipants = plan.EnableMutualFederationForChatParticipants.ValueBoolPointer()
+		}
 	}
 	if !plan.ExternalAccessWithTrialTenants.Equal(state.ExternalAccessWithTrialTenants) {
 		sp.ExternalAccessWithTrialTenants = plan.ExternalAccessWithTrialTenants.ValueString()
 	}
 	if !plan.RestrictTeamsConsumerToExternalUserProfiles.Equal(state.RestrictTeamsConsumerToExternalUserProfiles) {
-		sp.RestrictTeamsConsumerToExternalUserProfiles = plan.RestrictTeamsConsumerToExternalUserProfiles.ValueBoolPointer()
+		if !plan.RestrictTeamsConsumerToExternalUserProfiles.IsUnknown() {
+			sp.RestrictTeamsConsumerToExternalUserProfiles = plan.RestrictTeamsConsumerToExternalUserProfiles.ValueBoolPointer()
+		}
 	}
 	if !plan.SecurityTeamAllowBlockListDelegation.Equal(state.SecurityTeamAllowBlockListDelegation) {
 		sp.SecurityTeamAllowBlockListDelegation = plan.SecurityTeamAllowBlockListDelegation.ValueString()
 	}
 	if !plan.SharedSipAddressSpace.Equal(state.SharedSipAddressSpace) {
-		sp.SharedSipAddressSpace = plan.SharedSipAddressSpace.ValueBoolPointer()
+		if !plan.SharedSipAddressSpace.IsUnknown() {
+			sp.SharedSipAddressSpace = plan.SharedSipAddressSpace.ValueBoolPointer()
+		}
 	}
 	if !plan.TreatDiscoveredPartnersAsUnverified.Equal(state.TreatDiscoveredPartnersAsUnverified) {
-		sp.TreatDiscoveredPartnersAsUnverified = plan.TreatDiscoveredPartnersAsUnverified.ValueBoolPointer()
+		if !plan.TreatDiscoveredPartnersAsUnverified.IsUnknown() {
+			sp.TreatDiscoveredPartnersAsUnverified = plan.TreatDiscoveredPartnersAsUnverified.ValueBoolPointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTenantFederationConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantFederationConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-TenantFederationConfiguration failed", err.Error())
 		return
 	}
@@ -245,7 +289,64 @@ func (r *tenantFederationConfigurationResource) Update(ctx context.Context, req 
 		"ExternalAccessWithTrialTenants":       cfg.ExternalAccessWithTrialTenants,
 		"SecurityTeamAllowBlockListDelegation": cfg.SecurityTeamAllowBlockListDelegation,
 	}, getString)
+	if !cfg.AllowFederatedUsers.IsUnknown() && !cfg.AllowFederatedUsers.IsNull() && !cfg.AllowFederatedUsers.Equal(state.AllowFederatedUsers) {
+		prev, want := reflected, cfg.AllowFederatedUsers.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowFederatedUsers"] == nil || getBool(obj, "AllowFederatedUsers") == want)
+		}
+	}
+	if !cfg.AllowTeamsConsumer.IsUnknown() && !cfg.AllowTeamsConsumer.IsNull() && !cfg.AllowTeamsConsumer.Equal(state.AllowTeamsConsumer) {
+		prev, want := reflected, cfg.AllowTeamsConsumer.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowTeamsConsumer"] == nil || getBool(obj, "AllowTeamsConsumer") == want)
+		}
+	}
+	if !cfg.AllowTeamsConsumerInbound.IsUnknown() && !cfg.AllowTeamsConsumerInbound.IsNull() && !cfg.AllowTeamsConsumerInbound.Equal(state.AllowTeamsConsumerInbound) {
+		prev, want := reflected, cfg.AllowTeamsConsumerInbound.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowTeamsConsumerInbound"] == nil || getBool(obj, "AllowTeamsConsumerInbound") == want)
+		}
+	}
+	if !cfg.BlockAllSubdomains.IsUnknown() && !cfg.BlockAllSubdomains.IsNull() && !cfg.BlockAllSubdomains.Equal(state.BlockAllSubdomains) {
+		prev, want := reflected, cfg.BlockAllSubdomains.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["BlockAllSubdomains"] == nil || getBool(obj, "BlockAllSubdomains") == want)
+		}
+	}
+	if !cfg.EnableExternalAccessRestrictionsForChatParticipants.IsUnknown() && !cfg.EnableExternalAccessRestrictionsForChatParticipants.IsNull() && !cfg.EnableExternalAccessRestrictionsForChatParticipants.Equal(state.EnableExternalAccessRestrictionsForChatParticipants) {
+		prev, want := reflected, cfg.EnableExternalAccessRestrictionsForChatParticipants.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableExternalAccessRestrictionsForChatParticipants"] == nil || getBool(obj, "EnableExternalAccessRestrictionsForChatParticipants") == want)
+		}
+	}
+	if !cfg.EnableMutualFederationForChatParticipants.IsUnknown() && !cfg.EnableMutualFederationForChatParticipants.IsNull() && !cfg.EnableMutualFederationForChatParticipants.Equal(state.EnableMutualFederationForChatParticipants) {
+		prev, want := reflected, cfg.EnableMutualFederationForChatParticipants.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableMutualFederationForChatParticipants"] == nil || getBool(obj, "EnableMutualFederationForChatParticipants") == want)
+		}
+	}
+	if !cfg.RestrictTeamsConsumerToExternalUserProfiles.IsUnknown() && !cfg.RestrictTeamsConsumerToExternalUserProfiles.IsNull() && !cfg.RestrictTeamsConsumerToExternalUserProfiles.Equal(state.RestrictTeamsConsumerToExternalUserProfiles) {
+		prev, want := reflected, cfg.RestrictTeamsConsumerToExternalUserProfiles.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["RestrictTeamsConsumerToExternalUserProfiles"] == nil || getBool(obj, "RestrictTeamsConsumerToExternalUserProfiles") == want)
+		}
+	}
+	if !cfg.SharedSipAddressSpace.IsUnknown() && !cfg.SharedSipAddressSpace.IsNull() && !cfg.SharedSipAddressSpace.Equal(state.SharedSipAddressSpace) {
+		prev, want := reflected, cfg.SharedSipAddressSpace.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["SharedSipAddressSpace"] == nil || getBool(obj, "SharedSipAddressSpace") == want)
+		}
+	}
+	if !cfg.TreatDiscoveredPartnersAsUnverified.IsUnknown() && !cfg.TreatDiscoveredPartnersAsUnverified.IsNull() && !cfg.TreatDiscoveredPartnersAsUnverified.Equal(state.TreatDiscoveredPartnersAsUnverified) {
+		prev, want := reflected, cfg.TreatDiscoveredPartnersAsUnverified.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["TreatDiscoveredPartnersAsUnverified"] == nil || getBool(obj, "TreatDiscoveredPartnersAsUnverified") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

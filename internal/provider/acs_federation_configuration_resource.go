@@ -88,21 +88,27 @@ func (r *acsFederationConfigurationResource) Create(ctx context.Context, req res
 		sp.AllowedAcsResources = objectParam(v)
 	}
 	if !config.EnableAcsUsers.IsNull() {
-		sp.EnableAcsUsers = plan.EnableAcsUsers.ValueBoolPointer()
+		if !plan.EnableAcsUsers.IsUnknown() {
+			sp.EnableAcsUsers = plan.EnableAcsUsers.ValueBoolPointer()
+		}
 	}
 	if !config.HideBannerForAllowedAcsUsers.IsNull() {
-		sp.HideBannerForAllowedAcsUsers = plan.HideBannerForAllowedAcsUsers.ValueBoolPointer()
+		if !plan.HideBannerForAllowedAcsUsers.IsUnknown() {
+			sp.HideBannerForAllowedAcsUsers = plan.HideBannerForAllowedAcsUsers.ValueBoolPointer()
+		}
 	}
 	if !config.LabelForAllowedAcsUsers.IsNull() {
 		sp.LabelForAllowedAcsUsers = plan.LabelForAllowedAcsUsers.ValueString()
 	}
 	if !config.RequireAcsFederationForMeeting.IsNull() {
-		sp.RequireAcsFederationForMeeting = plan.RequireAcsFederationForMeeting.ValueBoolPointer()
+		if !plan.RequireAcsFederationForMeeting.IsUnknown() {
+			sp.RequireAcsFederationForMeeting = plan.RequireAcsFederationForMeeting.ValueBoolPointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsAcsFederationConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsAcsFederationConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-AcsFederationConfiguration failed", err.Error())
 		return
 	}
@@ -138,25 +144,33 @@ func (r *acsFederationConfigurationResource) Update(ctx context.Context, req res
 	id := r.identityOf(state)
 	sp := cs.SetCsTeamsAcsFederationConfigurationParams{}
 	sp.Identity = id
-	if v := plan.AllowedAcsResources.ValueString(); v != "" {
-		sp.AllowedAcsResources = objectParam(v)
+	if !plan.AllowedAcsResources.Equal(state.AllowedAcsResources) {
+		if v := plan.AllowedAcsResources.ValueString(); v != "" {
+			sp.AllowedAcsResources = objectParam(v)
+		}
 	}
 	if !plan.EnableAcsUsers.Equal(state.EnableAcsUsers) {
-		sp.EnableAcsUsers = plan.EnableAcsUsers.ValueBoolPointer()
+		if !plan.EnableAcsUsers.IsUnknown() {
+			sp.EnableAcsUsers = plan.EnableAcsUsers.ValueBoolPointer()
+		}
 	}
 	if !plan.HideBannerForAllowedAcsUsers.Equal(state.HideBannerForAllowedAcsUsers) {
-		sp.HideBannerForAllowedAcsUsers = plan.HideBannerForAllowedAcsUsers.ValueBoolPointer()
+		if !plan.HideBannerForAllowedAcsUsers.IsUnknown() {
+			sp.HideBannerForAllowedAcsUsers = plan.HideBannerForAllowedAcsUsers.ValueBoolPointer()
+		}
 	}
 	if !plan.LabelForAllowedAcsUsers.Equal(state.LabelForAllowedAcsUsers) {
 		sp.LabelForAllowedAcsUsers = plan.LabelForAllowedAcsUsers.ValueString()
 	}
 	if !plan.RequireAcsFederationForMeeting.Equal(state.RequireAcsFederationForMeeting) {
-		sp.RequireAcsFederationForMeeting = plan.RequireAcsFederationForMeeting.ValueBoolPointer()
+		if !plan.RequireAcsFederationForMeeting.IsUnknown() {
+			sp.RequireAcsFederationForMeeting = plan.RequireAcsFederationForMeeting.ValueBoolPointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsAcsFederationConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsAcsFederationConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-AcsFederationConfiguration failed", err.Error())
 		return
 	}
@@ -164,7 +178,28 @@ func (r *acsFederationConfigurationResource) Update(ctx context.Context, req res
 	reflected := reconcile.ReflectsFields(map[string]types.String{
 		"LabelForAllowedAcsUsers": cfg.LabelForAllowedAcsUsers,
 	}, getString)
+	if !cfg.EnableAcsUsers.IsUnknown() && !cfg.EnableAcsUsers.IsNull() && !cfg.EnableAcsUsers.Equal(state.EnableAcsUsers) {
+		prev, want := reflected, cfg.EnableAcsUsers.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableAcsUsers"] == nil || getBool(obj, "EnableAcsUsers") == want)
+		}
+	}
+	if !cfg.HideBannerForAllowedAcsUsers.IsUnknown() && !cfg.HideBannerForAllowedAcsUsers.IsNull() && !cfg.HideBannerForAllowedAcsUsers.Equal(state.HideBannerForAllowedAcsUsers) {
+		prev, want := reflected, cfg.HideBannerForAllowedAcsUsers.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["HideBannerForAllowedAcsUsers"] == nil || getBool(obj, "HideBannerForAllowedAcsUsers") == want)
+		}
+	}
+	if !cfg.RequireAcsFederationForMeeting.IsUnknown() && !cfg.RequireAcsFederationForMeeting.IsNull() && !cfg.RequireAcsFederationForMeeting.Equal(state.RequireAcsFederationForMeeting) {
+		prev, want := reflected, cfg.RequireAcsFederationForMeeting.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["RequireAcsFederationForMeeting"] == nil || getBool(obj, "RequireAcsFederationForMeeting") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

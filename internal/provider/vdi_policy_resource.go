@@ -82,10 +82,14 @@ func (r *vdiPolicyResource) Create(ctx context.Context, req resource.CreateReque
 		sp := cs.SetCsTeamsVdiPolicyParams{}
 		sp.Identity = plan.Identity.ValueString()
 		if !config.DisableAudioVideoInCallsAndMeetings.IsNull() {
-			sp.DisableAudioVideoInCallsAndMeetings = plan.DisableAudioVideoInCallsAndMeetings.ValueBoolPointer()
+			if !plan.DisableAudioVideoInCallsAndMeetings.IsUnknown() {
+				sp.DisableAudioVideoInCallsAndMeetings = plan.DisableAudioVideoInCallsAndMeetings.ValueBoolPointer()
+			}
 		}
 		if !config.DisableCallsAndMeetings.IsNull() {
-			sp.DisableCallsAndMeetings = plan.DisableCallsAndMeetings.ValueBoolPointer()
+			if !plan.DisableCallsAndMeetings.IsUnknown() {
+				sp.DisableCallsAndMeetings = plan.DisableCallsAndMeetings.ValueBoolPointer()
+			}
 		}
 		if !config.VDI2Optimization.IsNull() {
 			sp.VDI2Optimization = plan.VDI2Optimization.ValueString()
@@ -93,7 +97,7 @@ func (r *vdiPolicyResource) Create(ctx context.Context, req resource.CreateReque
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsVdiPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsVdiPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-VdiPolicy failed", err.Error())
 			return
 		}
@@ -111,10 +115,14 @@ func (r *vdiPolicyResource) Create(ctx context.Context, req resource.CreateReque
 	}
 	p := cs.NewCsTeamsVdiPolicyParams{}
 	if !config.DisableAudioVideoInCallsAndMeetings.IsNull() {
-		p.DisableAudioVideoInCallsAndMeetings = plan.DisableAudioVideoInCallsAndMeetings.ValueBoolPointer()
+		if !plan.DisableAudioVideoInCallsAndMeetings.IsUnknown() {
+			p.DisableAudioVideoInCallsAndMeetings = plan.DisableAudioVideoInCallsAndMeetings.ValueBoolPointer()
+		}
 	}
 	if !config.DisableCallsAndMeetings.IsNull() {
-		p.DisableCallsAndMeetings = plan.DisableCallsAndMeetings.ValueBoolPointer()
+		if !plan.DisableCallsAndMeetings.IsUnknown() {
+			p.DisableCallsAndMeetings = plan.DisableCallsAndMeetings.ValueBoolPointer()
+		}
 	}
 	if !config.VDI2Optimization.IsNull() {
 		p.VDI2Optimization = plan.VDI2Optimization.ValueString()
@@ -123,7 +131,7 @@ func (r *vdiPolicyResource) Create(ctx context.Context, req resource.CreateReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsVdiPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsVdiPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-VdiPolicy failed", err.Error())
 		return
@@ -171,10 +179,14 @@ func (r *vdiPolicyResource) Update(ctx context.Context, req resource.UpdateReque
 	sp := cs.SetCsTeamsVdiPolicyParams{}
 	sp.Identity = id
 	if !plan.DisableAudioVideoInCallsAndMeetings.Equal(state.DisableAudioVideoInCallsAndMeetings) {
-		sp.DisableAudioVideoInCallsAndMeetings = plan.DisableAudioVideoInCallsAndMeetings.ValueBoolPointer()
+		if !plan.DisableAudioVideoInCallsAndMeetings.IsUnknown() {
+			sp.DisableAudioVideoInCallsAndMeetings = plan.DisableAudioVideoInCallsAndMeetings.ValueBoolPointer()
+		}
 	}
 	if !plan.DisableCallsAndMeetings.Equal(state.DisableCallsAndMeetings) {
-		sp.DisableCallsAndMeetings = plan.DisableCallsAndMeetings.ValueBoolPointer()
+		if !plan.DisableCallsAndMeetings.IsUnknown() {
+			sp.DisableCallsAndMeetings = plan.DisableCallsAndMeetings.ValueBoolPointer()
+		}
 	}
 	if !plan.VDI2Optimization.Equal(state.VDI2Optimization) {
 		sp.VDI2Optimization = plan.VDI2Optimization.ValueString()
@@ -182,7 +194,7 @@ func (r *vdiPolicyResource) Update(ctx context.Context, req resource.UpdateReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsVdiPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsVdiPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-VdiPolicy failed", err.Error())
 		return
 	}
@@ -190,7 +202,22 @@ func (r *vdiPolicyResource) Update(ctx context.Context, req resource.UpdateReque
 	reflected := reconcile.ReflectsFields(map[string]types.String{
 		"VDI2Optimization": cfg.VDI2Optimization,
 	}, getString)
+	if !cfg.DisableAudioVideoInCallsAndMeetings.IsUnknown() && !cfg.DisableAudioVideoInCallsAndMeetings.IsNull() && !cfg.DisableAudioVideoInCallsAndMeetings.Equal(state.DisableAudioVideoInCallsAndMeetings) {
+		prev, want := reflected, cfg.DisableAudioVideoInCallsAndMeetings.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["DisableAudioVideoInCallsAndMeetings"] == nil || getBool(obj, "DisableAudioVideoInCallsAndMeetings") == want)
+		}
+	}
+	if !cfg.DisableCallsAndMeetings.IsUnknown() && !cfg.DisableCallsAndMeetings.IsNull() && !cfg.DisableCallsAndMeetings.Equal(state.DisableCallsAndMeetings) {
+		prev, want := reflected, cfg.DisableCallsAndMeetings.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["DisableCallsAndMeetings"] == nil || getBool(obj, "DisableCallsAndMeetings") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

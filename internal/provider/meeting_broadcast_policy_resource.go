@@ -86,10 +86,14 @@ func (r *meetingBroadcastPolicyResource) Create(ctx context.Context, req resourc
 		sp := cs.SetCsTeamsMeetingBroadcastPolicyParams{}
 		sp.Identity = plan.Identity.ValueString()
 		if !config.AllowBroadcastScheduling.IsNull() {
-			sp.AllowBroadcastScheduling = plan.AllowBroadcastScheduling.ValueBoolPointer()
+			if !plan.AllowBroadcastScheduling.IsUnknown() {
+				sp.AllowBroadcastScheduling = plan.AllowBroadcastScheduling.ValueBoolPointer()
+			}
 		}
 		if !config.AllowBroadcastTranscription.IsNull() {
-			sp.AllowBroadcastTranscription = plan.AllowBroadcastTranscription.ValueBoolPointer()
+			if !plan.AllowBroadcastTranscription.IsUnknown() {
+				sp.AllowBroadcastTranscription = plan.AllowBroadcastTranscription.ValueBoolPointer()
+			}
 		}
 		if !config.BroadcastAttendeeVisibilityMode.IsNull() {
 			sp.BroadcastAttendeeVisibilityMode = plan.BroadcastAttendeeVisibilityMode.ValueString()
@@ -103,7 +107,7 @@ func (r *meetingBroadcastPolicyResource) Create(ctx context.Context, req resourc
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsMeetingBroadcastPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingBroadcastPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-MeetingBroadcastPolicy failed", err.Error())
 			return
 		}
@@ -121,10 +125,14 @@ func (r *meetingBroadcastPolicyResource) Create(ctx context.Context, req resourc
 	}
 	p := cs.NewCsTeamsMeetingBroadcastPolicyParams{}
 	if !config.AllowBroadcastScheduling.IsNull() {
-		p.AllowBroadcastScheduling = plan.AllowBroadcastScheduling.ValueBoolPointer()
+		if !plan.AllowBroadcastScheduling.IsUnknown() {
+			p.AllowBroadcastScheduling = plan.AllowBroadcastScheduling.ValueBoolPointer()
+		}
 	}
 	if !config.AllowBroadcastTranscription.IsNull() {
-		p.AllowBroadcastTranscription = plan.AllowBroadcastTranscription.ValueBoolPointer()
+		if !plan.AllowBroadcastTranscription.IsUnknown() {
+			p.AllowBroadcastTranscription = plan.AllowBroadcastTranscription.ValueBoolPointer()
+		}
 	}
 	if !config.BroadcastAttendeeVisibilityMode.IsNull() {
 		p.BroadcastAttendeeVisibilityMode = plan.BroadcastAttendeeVisibilityMode.ValueString()
@@ -139,7 +147,7 @@ func (r *meetingBroadcastPolicyResource) Create(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsMeetingBroadcastPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsMeetingBroadcastPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-MeetingBroadcastPolicy failed", err.Error())
 		return
@@ -187,10 +195,14 @@ func (r *meetingBroadcastPolicyResource) Update(ctx context.Context, req resourc
 	sp := cs.SetCsTeamsMeetingBroadcastPolicyParams{}
 	sp.Identity = id
 	if !plan.AllowBroadcastScheduling.Equal(state.AllowBroadcastScheduling) {
-		sp.AllowBroadcastScheduling = plan.AllowBroadcastScheduling.ValueBoolPointer()
+		if !plan.AllowBroadcastScheduling.IsUnknown() {
+			sp.AllowBroadcastScheduling = plan.AllowBroadcastScheduling.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowBroadcastTranscription.Equal(state.AllowBroadcastTranscription) {
-		sp.AllowBroadcastTranscription = plan.AllowBroadcastTranscription.ValueBoolPointer()
+		if !plan.AllowBroadcastTranscription.IsUnknown() {
+			sp.AllowBroadcastTranscription = plan.AllowBroadcastTranscription.ValueBoolPointer()
+		}
 	}
 	if !plan.BroadcastAttendeeVisibilityMode.Equal(state.BroadcastAttendeeVisibilityMode) {
 		sp.BroadcastAttendeeVisibilityMode = plan.BroadcastAttendeeVisibilityMode.ValueString()
@@ -204,7 +216,7 @@ func (r *meetingBroadcastPolicyResource) Update(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsMeetingBroadcastPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingBroadcastPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-MeetingBroadcastPolicy failed", err.Error())
 		return
 	}
@@ -214,7 +226,22 @@ func (r *meetingBroadcastPolicyResource) Update(ctx context.Context, req resourc
 		"BroadcastRecordingMode":          cfg.BroadcastRecordingMode,
 		"Description":                     cfg.Description,
 	}, getString)
+	if !cfg.AllowBroadcastScheduling.IsUnknown() && !cfg.AllowBroadcastScheduling.IsNull() && !cfg.AllowBroadcastScheduling.Equal(state.AllowBroadcastScheduling) {
+		prev, want := reflected, cfg.AllowBroadcastScheduling.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowBroadcastScheduling"] == nil || getBool(obj, "AllowBroadcastScheduling") == want)
+		}
+	}
+	if !cfg.AllowBroadcastTranscription.IsUnknown() && !cfg.AllowBroadcastTranscription.IsNull() && !cfg.AllowBroadcastTranscription.Equal(state.AllowBroadcastTranscription) {
+		prev, want := reflected, cfg.AllowBroadcastTranscription.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowBroadcastTranscription"] == nil || getBool(obj, "AllowBroadcastTranscription") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

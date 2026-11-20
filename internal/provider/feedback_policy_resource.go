@@ -88,16 +88,24 @@ func (r *feedbackPolicyResource) Create(ctx context.Context, req resource.Create
 		sp := cs.SetCsTeamsFeedbackPolicyParams{}
 		sp.Identity = plan.Identity.ValueString()
 		if !config.AllowEmailCollection.IsNull() {
-			sp.AllowEmailCollection = plan.AllowEmailCollection.ValueBoolPointer()
+			if !plan.AllowEmailCollection.IsUnknown() {
+				sp.AllowEmailCollection = plan.AllowEmailCollection.ValueBoolPointer()
+			}
 		}
 		if !config.AllowLogCollection.IsNull() {
-			sp.AllowLogCollection = plan.AllowLogCollection.ValueBoolPointer()
+			if !plan.AllowLogCollection.IsUnknown() {
+				sp.AllowLogCollection = plan.AllowLogCollection.ValueBoolPointer()
+			}
 		}
 		if !config.AllowScreenshotCollection.IsNull() {
-			sp.AllowScreenshotCollection = plan.AllowScreenshotCollection.ValueBoolPointer()
+			if !plan.AllowScreenshotCollection.IsUnknown() {
+				sp.AllowScreenshotCollection = plan.AllowScreenshotCollection.ValueBoolPointer()
+			}
 		}
 		if !config.EnableFeatureSuggestions.IsNull() {
-			sp.EnableFeatureSuggestions = plan.EnableFeatureSuggestions.ValueBoolPointer()
+			if !plan.EnableFeatureSuggestions.IsUnknown() {
+				sp.EnableFeatureSuggestions = plan.EnableFeatureSuggestions.ValueBoolPointer()
+			}
 		}
 		if !config.ReceiveSurveysMode.IsNull() {
 			sp.ReceiveSurveysMode = plan.ReceiveSurveysMode.ValueString()
@@ -108,7 +116,7 @@ func (r *feedbackPolicyResource) Create(ctx context.Context, req resource.Create
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsFeedbackPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsFeedbackPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-FeedbackPolicy failed", err.Error())
 			return
 		}
@@ -126,16 +134,24 @@ func (r *feedbackPolicyResource) Create(ctx context.Context, req resource.Create
 	}
 	p := cs.NewCsTeamsFeedbackPolicyParams{}
 	if !config.AllowEmailCollection.IsNull() {
-		p.AllowEmailCollection = plan.AllowEmailCollection.ValueBoolPointer()
+		if !plan.AllowEmailCollection.IsUnknown() {
+			p.AllowEmailCollection = plan.AllowEmailCollection.ValueBoolPointer()
+		}
 	}
 	if !config.AllowLogCollection.IsNull() {
-		p.AllowLogCollection = plan.AllowLogCollection.ValueBoolPointer()
+		if !plan.AllowLogCollection.IsUnknown() {
+			p.AllowLogCollection = plan.AllowLogCollection.ValueBoolPointer()
+		}
 	}
 	if !config.AllowScreenshotCollection.IsNull() {
-		p.AllowScreenshotCollection = plan.AllowScreenshotCollection.ValueBoolPointer()
+		if !plan.AllowScreenshotCollection.IsUnknown() {
+			p.AllowScreenshotCollection = plan.AllowScreenshotCollection.ValueBoolPointer()
+		}
 	}
 	if !config.EnableFeatureSuggestions.IsNull() {
-		p.EnableFeatureSuggestions = plan.EnableFeatureSuggestions.ValueBoolPointer()
+		if !plan.EnableFeatureSuggestions.IsUnknown() {
+			p.EnableFeatureSuggestions = plan.EnableFeatureSuggestions.ValueBoolPointer()
+		}
 	}
 	if !config.ReceiveSurveysMode.IsNull() {
 		p.ReceiveSurveysMode = plan.ReceiveSurveysMode.ValueString()
@@ -147,7 +163,7 @@ func (r *feedbackPolicyResource) Create(ctx context.Context, req resource.Create
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsFeedbackPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsFeedbackPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-FeedbackPolicy failed", err.Error())
 		return
@@ -195,16 +211,24 @@ func (r *feedbackPolicyResource) Update(ctx context.Context, req resource.Update
 	sp := cs.SetCsTeamsFeedbackPolicyParams{}
 	sp.Identity = id
 	if !plan.AllowEmailCollection.Equal(state.AllowEmailCollection) {
-		sp.AllowEmailCollection = plan.AllowEmailCollection.ValueBoolPointer()
+		if !plan.AllowEmailCollection.IsUnknown() {
+			sp.AllowEmailCollection = plan.AllowEmailCollection.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowLogCollection.Equal(state.AllowLogCollection) {
-		sp.AllowLogCollection = plan.AllowLogCollection.ValueBoolPointer()
+		if !plan.AllowLogCollection.IsUnknown() {
+			sp.AllowLogCollection = plan.AllowLogCollection.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowScreenshotCollection.Equal(state.AllowScreenshotCollection) {
-		sp.AllowScreenshotCollection = plan.AllowScreenshotCollection.ValueBoolPointer()
+		if !plan.AllowScreenshotCollection.IsUnknown() {
+			sp.AllowScreenshotCollection = plan.AllowScreenshotCollection.ValueBoolPointer()
+		}
 	}
 	if !plan.EnableFeatureSuggestions.Equal(state.EnableFeatureSuggestions) {
-		sp.EnableFeatureSuggestions = plan.EnableFeatureSuggestions.ValueBoolPointer()
+		if !plan.EnableFeatureSuggestions.IsUnknown() {
+			sp.EnableFeatureSuggestions = plan.EnableFeatureSuggestions.ValueBoolPointer()
+		}
 	}
 	if !plan.ReceiveSurveysMode.Equal(state.ReceiveSurveysMode) {
 		sp.ReceiveSurveysMode = plan.ReceiveSurveysMode.ValueString()
@@ -215,7 +239,7 @@ func (r *feedbackPolicyResource) Update(ctx context.Context, req resource.Update
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsFeedbackPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsFeedbackPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-FeedbackPolicy failed", err.Error())
 		return
 	}
@@ -224,7 +248,34 @@ func (r *feedbackPolicyResource) Update(ctx context.Context, req resource.Update
 		"ReceiveSurveysMode": cfg.ReceiveSurveysMode,
 		"UserInitiatedMode":  cfg.UserInitiatedMode,
 	}, getString)
+	if !cfg.AllowEmailCollection.IsUnknown() && !cfg.AllowEmailCollection.IsNull() && !cfg.AllowEmailCollection.Equal(state.AllowEmailCollection) {
+		prev, want := reflected, cfg.AllowEmailCollection.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowEmailCollection"] == nil || getBool(obj, "AllowEmailCollection") == want)
+		}
+	}
+	if !cfg.AllowLogCollection.IsUnknown() && !cfg.AllowLogCollection.IsNull() && !cfg.AllowLogCollection.Equal(state.AllowLogCollection) {
+		prev, want := reflected, cfg.AllowLogCollection.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowLogCollection"] == nil || getBool(obj, "AllowLogCollection") == want)
+		}
+	}
+	if !cfg.AllowScreenshotCollection.IsUnknown() && !cfg.AllowScreenshotCollection.IsNull() && !cfg.AllowScreenshotCollection.Equal(state.AllowScreenshotCollection) {
+		prev, want := reflected, cfg.AllowScreenshotCollection.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowScreenshotCollection"] == nil || getBool(obj, "AllowScreenshotCollection") == want)
+		}
+	}
+	if !cfg.EnableFeatureSuggestions.IsUnknown() && !cfg.EnableFeatureSuggestions.IsNull() && !cfg.EnableFeatureSuggestions.Equal(state.EnableFeatureSuggestions) {
+		prev, want := reflected, cfg.EnableFeatureSuggestions.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableFeatureSuggestions"] == nil || getBool(obj, "EnableFeatureSuggestions") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

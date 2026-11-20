@@ -94,7 +94,7 @@ func (r *enhancedEncryptionPolicyResource) Create(ctx context.Context, req resou
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsEnhancedEncryptionPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsEnhancedEncryptionPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-EnhancedEncryptionPolicy failed", err.Error())
 			return
 		}
@@ -124,7 +124,7 @@ func (r *enhancedEncryptionPolicyResource) Create(ctx context.Context, req resou
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsEnhancedEncryptionPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsEnhancedEncryptionPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-EnhancedEncryptionPolicy failed", err.Error())
 		return
@@ -183,7 +183,7 @@ func (r *enhancedEncryptionPolicyResource) Update(ctx context.Context, req resou
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsEnhancedEncryptionPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsEnhancedEncryptionPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-EnhancedEncryptionPolicy failed", err.Error())
 		return
 	}
@@ -194,6 +194,9 @@ func (r *enhancedEncryptionPolicyResource) Update(ctx context.Context, req resou
 		"MeetingEndToEndEncryption":            cfg.MeetingEndToEndEncryption,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

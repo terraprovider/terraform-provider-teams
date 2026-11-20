@@ -94,7 +94,7 @@ func (r *onlineAudioConferencingRoutingPolicyResource) Create(ctx context.Contex
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsOnlineAudioConferencingRoutingPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsOnlineAudioConferencingRoutingPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-OnlineAudioConferencingRoutingPolicy failed", err.Error())
 			return
 		}
@@ -124,7 +124,7 @@ func (r *onlineAudioConferencingRoutingPolicyResource) Create(ctx context.Contex
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsOnlineAudioConferencingRoutingPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsOnlineAudioConferencingRoutingPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-OnlineAudioConferencingRoutingPolicy failed", err.Error())
 		return
@@ -174,8 +174,10 @@ func (r *onlineAudioConferencingRoutingPolicyResource) Update(ctx context.Contex
 	if !plan.Description.Equal(state.Description) {
 		sp.Description = plan.Description.ValueString()
 	}
-	if v := plan.OnlinePstnUsages.ValueString(); v != "" {
-		sp.OnlinePstnUsages = objectParam(v)
+	if !plan.OnlinePstnUsages.Equal(state.OnlinePstnUsages) {
+		if v := plan.OnlinePstnUsages.ValueString(); v != "" {
+			sp.OnlinePstnUsages = objectParam(v)
+		}
 	}
 	if !plan.RouteType.Equal(state.RouteType) {
 		sp.RouteType = plan.RouteType.ValueString()
@@ -183,7 +185,7 @@ func (r *onlineAudioConferencingRoutingPolicyResource) Update(ctx context.Contex
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsOnlineAudioConferencingRoutingPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsOnlineAudioConferencingRoutingPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-OnlineAudioConferencingRoutingPolicy failed", err.Error())
 		return
 	}
@@ -193,6 +195,9 @@ func (r *onlineAudioConferencingRoutingPolicyResource) Update(ctx context.Contex
 		"RouteType":   cfg.RouteType,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

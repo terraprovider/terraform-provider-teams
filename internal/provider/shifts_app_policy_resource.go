@@ -75,12 +75,14 @@ func (r *shiftsAppPolicyResource) Create(ctx context.Context, req resource.Creat
 	sp := cs.SetCsTeamsShiftsAppPolicyParams{}
 	sp.Identity = plan.Identity.ValueString()
 	if !config.AllowTimeClockLocationDetection.IsNull() {
-		sp.AllowTimeClockLocationDetection = plan.AllowTimeClockLocationDetection.ValueBoolPointer()
+		if !plan.AllowTimeClockLocationDetection.IsUnknown() {
+			sp.AllowTimeClockLocationDetection = plan.AllowTimeClockLocationDetection.ValueBoolPointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsShiftsAppPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsShiftsAppPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-ShiftsAppPolicy failed", err.Error())
 		return
 	}
@@ -117,18 +119,29 @@ func (r *shiftsAppPolicyResource) Update(ctx context.Context, req resource.Updat
 	sp := cs.SetCsTeamsShiftsAppPolicyParams{}
 	sp.Identity = id
 	if !plan.AllowTimeClockLocationDetection.Equal(state.AllowTimeClockLocationDetection) {
-		sp.AllowTimeClockLocationDetection = plan.AllowTimeClockLocationDetection.ValueBoolPointer()
+		if !plan.AllowTimeClockLocationDetection.IsUnknown() {
+			sp.AllowTimeClockLocationDetection = plan.AllowTimeClockLocationDetection.ValueBoolPointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsShiftsAppPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsShiftsAppPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-ShiftsAppPolicy failed", err.Error())
 		return
 	}
 	cfg := plan
 	reflected := reconcile.ReflectsFields(map[string]types.String{}, getString)
+	if !cfg.AllowTimeClockLocationDetection.IsUnknown() && !cfg.AllowTimeClockLocationDetection.IsNull() && !cfg.AllowTimeClockLocationDetection.Equal(state.AllowTimeClockLocationDetection) {
+		prev, want := reflected, cfg.AllowTimeClockLocationDetection.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowTimeClockLocationDetection"] == nil || getBool(obj, "AllowTimeClockLocationDetection") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

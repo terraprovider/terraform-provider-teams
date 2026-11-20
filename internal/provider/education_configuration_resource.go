@@ -89,7 +89,7 @@ func (r *educationConfigurationResource) Create(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsEducationConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsEducationConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-EducationConfiguration failed", err.Error())
 		return
 	}
@@ -137,7 +137,7 @@ func (r *educationConfigurationResource) Update(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsEducationConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsEducationConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-EducationConfiguration failed", err.Error())
 		return
 	}
@@ -148,6 +148,9 @@ func (r *educationConfigurationResource) Update(ctx context.Context, req resourc
 		"UpdateParentInformation":              cfg.UpdateParentInformation,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

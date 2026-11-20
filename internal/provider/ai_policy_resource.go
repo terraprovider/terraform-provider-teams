@@ -102,7 +102,7 @@ func (r *aIPolicyResource) Create(ctx context.Context, req resource.CreateReques
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsAIPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsAIPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-AIPolicy failed", err.Error())
 			return
 		}
@@ -138,7 +138,7 @@ func (r *aIPolicyResource) Create(ctx context.Context, req resource.CreateReques
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsAIPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsAIPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-AIPolicy failed", err.Error())
 		return
@@ -203,7 +203,7 @@ func (r *aIPolicyResource) Update(ctx context.Context, req resource.UpdateReques
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsAIPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsAIPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-AIPolicy failed", err.Error())
 		return
 	}
@@ -216,6 +216,9 @@ func (r *aIPolicyResource) Update(ctx context.Context, req resource.UpdateReques
 		"SpeakerAttributionForBYOD": cfg.SpeakerAttributionForBYOD,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

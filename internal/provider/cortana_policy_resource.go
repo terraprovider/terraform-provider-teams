@@ -86,13 +86,19 @@ func (r *cortanaPolicyResource) Create(ctx context.Context, req resource.CreateR
 		sp := cs.SetCsTeamsCortanaPolicyParams{}
 		sp.Identity = plan.Identity.ValueString()
 		if !config.AllowCortanaAmbientListening.IsNull() {
-			sp.AllowCortanaAmbientListening = plan.AllowCortanaAmbientListening.ValueBoolPointer()
+			if !plan.AllowCortanaAmbientListening.IsUnknown() {
+				sp.AllowCortanaAmbientListening = plan.AllowCortanaAmbientListening.ValueBoolPointer()
+			}
 		}
 		if !config.AllowCortanaInContextSuggestions.IsNull() {
-			sp.AllowCortanaInContextSuggestions = plan.AllowCortanaInContextSuggestions.ValueBoolPointer()
+			if !plan.AllowCortanaInContextSuggestions.IsUnknown() {
+				sp.AllowCortanaInContextSuggestions = plan.AllowCortanaInContextSuggestions.ValueBoolPointer()
+			}
 		}
 		if !config.AllowCortanaVoiceInvocation.IsNull() {
-			sp.AllowCortanaVoiceInvocation = plan.AllowCortanaVoiceInvocation.ValueBoolPointer()
+			if !plan.AllowCortanaVoiceInvocation.IsUnknown() {
+				sp.AllowCortanaVoiceInvocation = plan.AllowCortanaVoiceInvocation.ValueBoolPointer()
+			}
 		}
 		if !config.CortanaVoiceInvocationMode.IsNull() {
 			sp.CortanaVoiceInvocationMode = plan.CortanaVoiceInvocationMode.ValueString()
@@ -103,7 +109,7 @@ func (r *cortanaPolicyResource) Create(ctx context.Context, req resource.CreateR
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsCortanaPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsCortanaPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-CortanaPolicy failed", err.Error())
 			return
 		}
@@ -121,13 +127,19 @@ func (r *cortanaPolicyResource) Create(ctx context.Context, req resource.CreateR
 	}
 	p := cs.NewCsTeamsCortanaPolicyParams{}
 	if !config.AllowCortanaAmbientListening.IsNull() {
-		p.AllowCortanaAmbientListening = plan.AllowCortanaAmbientListening.ValueBoolPointer()
+		if !plan.AllowCortanaAmbientListening.IsUnknown() {
+			p.AllowCortanaAmbientListening = plan.AllowCortanaAmbientListening.ValueBoolPointer()
+		}
 	}
 	if !config.AllowCortanaInContextSuggestions.IsNull() {
-		p.AllowCortanaInContextSuggestions = plan.AllowCortanaInContextSuggestions.ValueBoolPointer()
+		if !plan.AllowCortanaInContextSuggestions.IsUnknown() {
+			p.AllowCortanaInContextSuggestions = plan.AllowCortanaInContextSuggestions.ValueBoolPointer()
+		}
 	}
 	if !config.AllowCortanaVoiceInvocation.IsNull() {
-		p.AllowCortanaVoiceInvocation = plan.AllowCortanaVoiceInvocation.ValueBoolPointer()
+		if !plan.AllowCortanaVoiceInvocation.IsUnknown() {
+			p.AllowCortanaVoiceInvocation = plan.AllowCortanaVoiceInvocation.ValueBoolPointer()
+		}
 	}
 	if !config.CortanaVoiceInvocationMode.IsNull() {
 		p.CortanaVoiceInvocationMode = plan.CortanaVoiceInvocationMode.ValueString()
@@ -139,7 +151,7 @@ func (r *cortanaPolicyResource) Create(ctx context.Context, req resource.CreateR
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsCortanaPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsCortanaPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-CortanaPolicy failed", err.Error())
 		return
@@ -187,13 +199,19 @@ func (r *cortanaPolicyResource) Update(ctx context.Context, req resource.UpdateR
 	sp := cs.SetCsTeamsCortanaPolicyParams{}
 	sp.Identity = id
 	if !plan.AllowCortanaAmbientListening.Equal(state.AllowCortanaAmbientListening) {
-		sp.AllowCortanaAmbientListening = plan.AllowCortanaAmbientListening.ValueBoolPointer()
+		if !plan.AllowCortanaAmbientListening.IsUnknown() {
+			sp.AllowCortanaAmbientListening = plan.AllowCortanaAmbientListening.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowCortanaInContextSuggestions.Equal(state.AllowCortanaInContextSuggestions) {
-		sp.AllowCortanaInContextSuggestions = plan.AllowCortanaInContextSuggestions.ValueBoolPointer()
+		if !plan.AllowCortanaInContextSuggestions.IsUnknown() {
+			sp.AllowCortanaInContextSuggestions = plan.AllowCortanaInContextSuggestions.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowCortanaVoiceInvocation.Equal(state.AllowCortanaVoiceInvocation) {
-		sp.AllowCortanaVoiceInvocation = plan.AllowCortanaVoiceInvocation.ValueBoolPointer()
+		if !plan.AllowCortanaVoiceInvocation.IsUnknown() {
+			sp.AllowCortanaVoiceInvocation = plan.AllowCortanaVoiceInvocation.ValueBoolPointer()
+		}
 	}
 	if !plan.CortanaVoiceInvocationMode.Equal(state.CortanaVoiceInvocationMode) {
 		sp.CortanaVoiceInvocationMode = plan.CortanaVoiceInvocationMode.ValueString()
@@ -204,7 +222,7 @@ func (r *cortanaPolicyResource) Update(ctx context.Context, req resource.UpdateR
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsCortanaPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsCortanaPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-CortanaPolicy failed", err.Error())
 		return
 	}
@@ -213,7 +231,28 @@ func (r *cortanaPolicyResource) Update(ctx context.Context, req resource.UpdateR
 		"CortanaVoiceInvocationMode": cfg.CortanaVoiceInvocationMode,
 		"Description":                cfg.Description,
 	}, getString)
+	if !cfg.AllowCortanaAmbientListening.IsUnknown() && !cfg.AllowCortanaAmbientListening.IsNull() && !cfg.AllowCortanaAmbientListening.Equal(state.AllowCortanaAmbientListening) {
+		prev, want := reflected, cfg.AllowCortanaAmbientListening.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowCortanaAmbientListening"] == nil || getBool(obj, "AllowCortanaAmbientListening") == want)
+		}
+	}
+	if !cfg.AllowCortanaInContextSuggestions.IsUnknown() && !cfg.AllowCortanaInContextSuggestions.IsNull() && !cfg.AllowCortanaInContextSuggestions.Equal(state.AllowCortanaInContextSuggestions) {
+		prev, want := reflected, cfg.AllowCortanaInContextSuggestions.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowCortanaInContextSuggestions"] == nil || getBool(obj, "AllowCortanaInContextSuggestions") == want)
+		}
+	}
+	if !cfg.AllowCortanaVoiceInvocation.IsUnknown() && !cfg.AllowCortanaVoiceInvocation.IsNull() && !cfg.AllowCortanaVoiceInvocation.Equal(state.AllowCortanaVoiceInvocation) {
+		prev, want := reflected, cfg.AllowCortanaVoiceInvocation.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowCortanaVoiceInvocation"] == nil || getBool(obj, "AllowCortanaVoiceInvocation") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

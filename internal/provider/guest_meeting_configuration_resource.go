@@ -91,22 +91,34 @@ func (r *guestMeetingConfigurationResource) Create(ctx context.Context, req reso
 	sp := cs.SetCsTeamsGuestMeetingConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
 	if !config.AllowExternalParticipantGiveRequestControl.IsNull() {
-		sp.AllowExternalParticipantGiveRequestControl = plan.AllowExternalParticipantGiveRequestControl.ValueBoolPointer()
+		if !plan.AllowExternalParticipantGiveRequestControl.IsUnknown() {
+			sp.AllowExternalParticipantGiveRequestControl = plan.AllowExternalParticipantGiveRequestControl.ValueBoolPointer()
+		}
 	}
 	if !config.AllowIPVideo.IsNull() {
-		sp.AllowIPVideo = plan.AllowIPVideo.ValueBoolPointer()
+		if !plan.AllowIPVideo.IsUnknown() {
+			sp.AllowIPVideo = plan.AllowIPVideo.ValueBoolPointer()
+		}
 	}
 	if !config.AllowMeetNow.IsNull() {
-		sp.AllowMeetNow = plan.AllowMeetNow.ValueBoolPointer()
+		if !plan.AllowMeetNow.IsUnknown() {
+			sp.AllowMeetNow = plan.AllowMeetNow.ValueBoolPointer()
+		}
 	}
 	if !config.AllowMultipleScreenshare.IsNull() {
-		sp.AllowMultipleScreenshare = plan.AllowMultipleScreenshare.ValueBoolPointer()
+		if !plan.AllowMultipleScreenshare.IsUnknown() {
+			sp.AllowMultipleScreenshare = plan.AllowMultipleScreenshare.ValueBoolPointer()
+		}
 	}
 	if !config.AllowParticipantGiveRequestControl.IsNull() {
-		sp.AllowParticipantGiveRequestControl = plan.AllowParticipantGiveRequestControl.ValueBoolPointer()
+		if !plan.AllowParticipantGiveRequestControl.IsUnknown() {
+			sp.AllowParticipantGiveRequestControl = plan.AllowParticipantGiveRequestControl.ValueBoolPointer()
+		}
 	}
 	if !config.AllowTranscription.IsNull() {
-		sp.AllowTranscription = plan.AllowTranscription.ValueBoolPointer()
+		if !plan.AllowTranscription.IsUnknown() {
+			sp.AllowTranscription = plan.AllowTranscription.ValueBoolPointer()
+		}
 	}
 	if !config.LiveCaptionsEnabledType.IsNull() {
 		sp.LiveCaptionsEnabledType = plan.LiveCaptionsEnabledType.ValueString()
@@ -117,7 +129,7 @@ func (r *guestMeetingConfigurationResource) Create(ctx context.Context, req reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsGuestMeetingConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsGuestMeetingConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-GuestMeetingConfiguration failed", err.Error())
 		return
 	}
@@ -154,22 +166,34 @@ func (r *guestMeetingConfigurationResource) Update(ctx context.Context, req reso
 	sp := cs.SetCsTeamsGuestMeetingConfigurationParams{}
 	sp.Identity = id
 	if !plan.AllowExternalParticipantGiveRequestControl.Equal(state.AllowExternalParticipantGiveRequestControl) {
-		sp.AllowExternalParticipantGiveRequestControl = plan.AllowExternalParticipantGiveRequestControl.ValueBoolPointer()
+		if !plan.AllowExternalParticipantGiveRequestControl.IsUnknown() {
+			sp.AllowExternalParticipantGiveRequestControl = plan.AllowExternalParticipantGiveRequestControl.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowIPVideo.Equal(state.AllowIPVideo) {
-		sp.AllowIPVideo = plan.AllowIPVideo.ValueBoolPointer()
+		if !plan.AllowIPVideo.IsUnknown() {
+			sp.AllowIPVideo = plan.AllowIPVideo.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowMeetNow.Equal(state.AllowMeetNow) {
-		sp.AllowMeetNow = plan.AllowMeetNow.ValueBoolPointer()
+		if !plan.AllowMeetNow.IsUnknown() {
+			sp.AllowMeetNow = plan.AllowMeetNow.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowMultipleScreenshare.Equal(state.AllowMultipleScreenshare) {
-		sp.AllowMultipleScreenshare = plan.AllowMultipleScreenshare.ValueBoolPointer()
+		if !plan.AllowMultipleScreenshare.IsUnknown() {
+			sp.AllowMultipleScreenshare = plan.AllowMultipleScreenshare.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowParticipantGiveRequestControl.Equal(state.AllowParticipantGiveRequestControl) {
-		sp.AllowParticipantGiveRequestControl = plan.AllowParticipantGiveRequestControl.ValueBoolPointer()
+		if !plan.AllowParticipantGiveRequestControl.IsUnknown() {
+			sp.AllowParticipantGiveRequestControl = plan.AllowParticipantGiveRequestControl.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowTranscription.Equal(state.AllowTranscription) {
-		sp.AllowTranscription = plan.AllowTranscription.ValueBoolPointer()
+		if !plan.AllowTranscription.IsUnknown() {
+			sp.AllowTranscription = plan.AllowTranscription.ValueBoolPointer()
+		}
 	}
 	if !plan.LiveCaptionsEnabledType.Equal(state.LiveCaptionsEnabledType) {
 		sp.LiveCaptionsEnabledType = plan.LiveCaptionsEnabledType.ValueString()
@@ -180,7 +204,7 @@ func (r *guestMeetingConfigurationResource) Update(ctx context.Context, req reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsGuestMeetingConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsGuestMeetingConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-GuestMeetingConfiguration failed", err.Error())
 		return
 	}
@@ -189,7 +213,46 @@ func (r *guestMeetingConfigurationResource) Update(ctx context.Context, req reso
 		"LiveCaptionsEnabledType": cfg.LiveCaptionsEnabledType,
 		"ScreenSharingMode":       cfg.ScreenSharingMode,
 	}, getString)
+	if !cfg.AllowExternalParticipantGiveRequestControl.IsUnknown() && !cfg.AllowExternalParticipantGiveRequestControl.IsNull() && !cfg.AllowExternalParticipantGiveRequestControl.Equal(state.AllowExternalParticipantGiveRequestControl) {
+		prev, want := reflected, cfg.AllowExternalParticipantGiveRequestControl.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowExternalParticipantGiveRequestControl"] == nil || getBool(obj, "AllowExternalParticipantGiveRequestControl") == want)
+		}
+	}
+	if !cfg.AllowIPVideo.IsUnknown() && !cfg.AllowIPVideo.IsNull() && !cfg.AllowIPVideo.Equal(state.AllowIPVideo) {
+		prev, want := reflected, cfg.AllowIPVideo.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowIPVideo"] == nil || getBool(obj, "AllowIPVideo") == want)
+		}
+	}
+	if !cfg.AllowMeetNow.IsUnknown() && !cfg.AllowMeetNow.IsNull() && !cfg.AllowMeetNow.Equal(state.AllowMeetNow) {
+		prev, want := reflected, cfg.AllowMeetNow.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowMeetNow"] == nil || getBool(obj, "AllowMeetNow") == want)
+		}
+	}
+	if !cfg.AllowMultipleScreenshare.IsUnknown() && !cfg.AllowMultipleScreenshare.IsNull() && !cfg.AllowMultipleScreenshare.Equal(state.AllowMultipleScreenshare) {
+		prev, want := reflected, cfg.AllowMultipleScreenshare.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowMultipleScreenshare"] == nil || getBool(obj, "AllowMultipleScreenshare") == want)
+		}
+	}
+	if !cfg.AllowParticipantGiveRequestControl.IsUnknown() && !cfg.AllowParticipantGiveRequestControl.IsNull() && !cfg.AllowParticipantGiveRequestControl.Equal(state.AllowParticipantGiveRequestControl) {
+		prev, want := reflected, cfg.AllowParticipantGiveRequestControl.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowParticipantGiveRequestControl"] == nil || getBool(obj, "AllowParticipantGiveRequestControl") == want)
+		}
+	}
+	if !cfg.AllowTranscription.IsUnknown() && !cfg.AllowTranscription.IsNull() && !cfg.AllowTranscription.Equal(state.AllowTranscription) {
+		prev, want := reflected, cfg.AllowTranscription.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowTranscription"] == nil || getBool(obj, "AllowTranscription") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

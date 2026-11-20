@@ -98,7 +98,9 @@ func (r *roomVideoTeleConferencingPolicyResource) Create(ctx context.Context, re
 			sp.Description = plan.Description.ValueString()
 		}
 		if !config.Enabled.IsNull() {
-			sp.Enabled = plan.Enabled.ValueBoolPointer()
+			if !plan.Enabled.IsUnknown() {
+				sp.Enabled = plan.Enabled.ValueBoolPointer()
+			}
 		}
 		if !config.PlaceExternalCalls.IsNull() {
 			sp.PlaceExternalCalls = plan.PlaceExternalCalls.ValueString()
@@ -115,7 +117,7 @@ func (r *roomVideoTeleConferencingPolicyResource) Create(ctx context.Context, re
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsRoomVideoTeleConferencingPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsRoomVideoTeleConferencingPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-RoomVideoTeleConferencingPolicy failed", err.Error())
 			return
 		}
@@ -139,7 +141,9 @@ func (r *roomVideoTeleConferencingPolicyResource) Create(ctx context.Context, re
 		p.Description = plan.Description.ValueString()
 	}
 	if !config.Enabled.IsNull() {
-		p.Enabled = plan.Enabled.ValueBoolPointer()
+		if !plan.Enabled.IsUnknown() {
+			p.Enabled = plan.Enabled.ValueBoolPointer()
+		}
 	}
 	if !config.PlaceExternalCalls.IsNull() {
 		p.PlaceExternalCalls = plan.PlaceExternalCalls.ValueString()
@@ -157,7 +161,7 @@ func (r *roomVideoTeleConferencingPolicyResource) Create(ctx context.Context, re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsRoomVideoTeleConferencingPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsRoomVideoTeleConferencingPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-RoomVideoTeleConferencingPolicy failed", err.Error())
 		return
@@ -211,7 +215,9 @@ func (r *roomVideoTeleConferencingPolicyResource) Update(ctx context.Context, re
 		sp.Description = plan.Description.ValueString()
 	}
 	if !plan.Enabled.Equal(state.Enabled) {
-		sp.Enabled = plan.Enabled.ValueBoolPointer()
+		if !plan.Enabled.IsUnknown() {
+			sp.Enabled = plan.Enabled.ValueBoolPointer()
+		}
 	}
 	if !plan.PlaceExternalCalls.Equal(state.PlaceExternalCalls) {
 		sp.PlaceExternalCalls = plan.PlaceExternalCalls.ValueString()
@@ -228,7 +234,7 @@ func (r *roomVideoTeleConferencingPolicyResource) Update(ctx context.Context, re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsRoomVideoTeleConferencingPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsRoomVideoTeleConferencingPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-RoomVideoTeleConferencingPolicy failed", err.Error())
 		return
 	}
@@ -241,7 +247,16 @@ func (r *roomVideoTeleConferencingPolicyResource) Update(ctx context.Context, re
 		"ReceiveExternalCalls": cfg.ReceiveExternalCalls,
 		"ReceiveInternalCalls": cfg.ReceiveInternalCalls,
 	}, getString)
+	if !cfg.Enabled.IsUnknown() && !cfg.Enabled.IsNull() && !cfg.Enabled.Equal(state.Enabled) {
+		prev, want := reflected, cfg.Enabled.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["Enabled"] == nil || getBool(obj, "Enabled") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

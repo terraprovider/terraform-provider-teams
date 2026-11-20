@@ -82,7 +82,7 @@ func (r *recordingRollOutPolicyResource) Create(ctx context.Context, req resourc
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsRecordingRollOutPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsRecordingRollOutPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-RecordingRollOutPolicy failed", err.Error())
 			return
 		}
@@ -106,7 +106,7 @@ func (r *recordingRollOutPolicyResource) Create(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsRecordingRollOutPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsRecordingRollOutPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-RecordingRollOutPolicy failed", err.Error())
 		return
@@ -159,7 +159,7 @@ func (r *recordingRollOutPolicyResource) Update(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsRecordingRollOutPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsRecordingRollOutPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-RecordingRollOutPolicy failed", err.Error())
 		return
 	}
@@ -168,6 +168,9 @@ func (r *recordingRollOutPolicyResource) Update(ctx context.Context, req resourc
 		"MeetingRecordingOwnership": cfg.MeetingRecordingOwnership,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

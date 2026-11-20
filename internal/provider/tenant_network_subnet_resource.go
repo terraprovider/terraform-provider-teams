@@ -87,7 +87,9 @@ func (r *tenantNetworkSubnetResource) Create(ctx context.Context, req resource.C
 			sp.Description = plan.Description.ValueString()
 		}
 		if !config.MaskBits.IsNull() {
-			sp.MaskBits = plan.MaskBits.ValueInt64Pointer()
+			if !plan.MaskBits.IsUnknown() {
+				sp.MaskBits = plan.MaskBits.ValueInt64Pointer()
+			}
 		}
 		if !config.NetworkSiteID.IsNull() {
 			sp.NetworkSiteID = plan.NetworkSiteID.ValueString()
@@ -95,7 +97,7 @@ func (r *tenantNetworkSubnetResource) Create(ctx context.Context, req resource.C
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTenantNetworkSubnet(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantNetworkSubnet, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-TenantNetworkSubnet failed", err.Error())
 			return
 		}
@@ -116,7 +118,9 @@ func (r *tenantNetworkSubnetResource) Create(ctx context.Context, req resource.C
 		p.Description = plan.Description.ValueString()
 	}
 	if !config.MaskBits.IsNull() {
-		p.MaskBits = plan.MaskBits.ValueInt64Pointer()
+		if !plan.MaskBits.IsUnknown() {
+			p.MaskBits = plan.MaskBits.ValueInt64Pointer()
+		}
 	}
 	if !config.NetworkSiteID.IsNull() {
 		p.NetworkSiteID = plan.NetworkSiteID.ValueString()
@@ -128,7 +132,7 @@ func (r *tenantNetworkSubnetResource) Create(ctx context.Context, req resource.C
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTenantNetworkSubnet(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTenantNetworkSubnet, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-TenantNetworkSubnet failed", err.Error())
 		return
@@ -179,7 +183,9 @@ func (r *tenantNetworkSubnetResource) Update(ctx context.Context, req resource.U
 		sp.Description = plan.Description.ValueString()
 	}
 	if !plan.MaskBits.Equal(state.MaskBits) {
-		sp.MaskBits = plan.MaskBits.ValueInt64Pointer()
+		if !plan.MaskBits.IsUnknown() {
+			sp.MaskBits = plan.MaskBits.ValueInt64Pointer()
+		}
 	}
 	if !plan.NetworkSiteID.Equal(state.NetworkSiteID) {
 		sp.NetworkSiteID = plan.NetworkSiteID.ValueString()
@@ -187,7 +193,7 @@ func (r *tenantNetworkSubnetResource) Update(ctx context.Context, req resource.U
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTenantNetworkSubnet(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantNetworkSubnet, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-TenantNetworkSubnet failed", err.Error())
 		return
 	}
@@ -196,7 +202,16 @@ func (r *tenantNetworkSubnetResource) Update(ctx context.Context, req resource.U
 		"Description":   cfg.Description,
 		"NetworkSiteID": cfg.NetworkSiteID,
 	}, getString)
+	if !cfg.MaskBits.IsUnknown() && !cfg.MaskBits.IsNull() && !cfg.MaskBits.Equal(state.MaskBits) {
+		prev, want := reflected, cfg.MaskBits.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["MaskBits"] == nil || getInt(obj, "MaskBits") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

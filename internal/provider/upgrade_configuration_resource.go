@@ -79,10 +79,14 @@ func (r *upgradeConfigurationResource) Create(ctx context.Context, req resource.
 	sp := cs.SetCsTeamsUpgradeConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
 	if !config.BlockLegacyAuthorization.IsNull() {
-		sp.BlockLegacyAuthorization = plan.BlockLegacyAuthorization.ValueBoolPointer()
+		if !plan.BlockLegacyAuthorization.IsUnknown() {
+			sp.BlockLegacyAuthorization = plan.BlockLegacyAuthorization.ValueBoolPointer()
+		}
 	}
 	if !config.DownloadTeams.IsNull() {
-		sp.DownloadTeams = plan.DownloadTeams.ValueBoolPointer()
+		if !plan.DownloadTeams.IsUnknown() {
+			sp.DownloadTeams = plan.DownloadTeams.ValueBoolPointer()
+		}
 	}
 	if !config.SfBMeetingJoinUx.IsNull() {
 		sp.SfBMeetingJoinUx = plan.SfBMeetingJoinUx.ValueString()
@@ -90,7 +94,7 @@ func (r *upgradeConfigurationResource) Create(ctx context.Context, req resource.
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsUpgradeConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsUpgradeConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-UpgradeConfiguration failed", err.Error())
 		return
 	}
@@ -127,10 +131,14 @@ func (r *upgradeConfigurationResource) Update(ctx context.Context, req resource.
 	sp := cs.SetCsTeamsUpgradeConfigurationParams{}
 	sp.Identity = id
 	if !plan.BlockLegacyAuthorization.Equal(state.BlockLegacyAuthorization) {
-		sp.BlockLegacyAuthorization = plan.BlockLegacyAuthorization.ValueBoolPointer()
+		if !plan.BlockLegacyAuthorization.IsUnknown() {
+			sp.BlockLegacyAuthorization = plan.BlockLegacyAuthorization.ValueBoolPointer()
+		}
 	}
 	if !plan.DownloadTeams.Equal(state.DownloadTeams) {
-		sp.DownloadTeams = plan.DownloadTeams.ValueBoolPointer()
+		if !plan.DownloadTeams.IsUnknown() {
+			sp.DownloadTeams = plan.DownloadTeams.ValueBoolPointer()
+		}
 	}
 	if !plan.SfBMeetingJoinUx.Equal(state.SfBMeetingJoinUx) {
 		sp.SfBMeetingJoinUx = plan.SfBMeetingJoinUx.ValueString()
@@ -138,7 +146,7 @@ func (r *upgradeConfigurationResource) Update(ctx context.Context, req resource.
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsUpgradeConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsUpgradeConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-UpgradeConfiguration failed", err.Error())
 		return
 	}
@@ -146,7 +154,22 @@ func (r *upgradeConfigurationResource) Update(ctx context.Context, req resource.
 	reflected := reconcile.ReflectsFields(map[string]types.String{
 		"SfBMeetingJoinUx": cfg.SfBMeetingJoinUx,
 	}, getString)
+	if !cfg.BlockLegacyAuthorization.IsUnknown() && !cfg.BlockLegacyAuthorization.IsNull() && !cfg.BlockLegacyAuthorization.Equal(state.BlockLegacyAuthorization) {
+		prev, want := reflected, cfg.BlockLegacyAuthorization.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["BlockLegacyAuthorization"] == nil || getBool(obj, "BlockLegacyAuthorization") == want)
+		}
+	}
+	if !cfg.DownloadTeams.IsUnknown() && !cfg.DownloadTeams.IsNull() && !cfg.DownloadTeams.Equal(state.DownloadTeams) {
+		prev, want := reflected, cfg.DownloadTeams.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["DownloadTeams"] == nil || getBool(obj, "DownloadTeams") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

@@ -102,7 +102,7 @@ func (r *mobilityPolicyResource) Create(ctx context.Context, req resource.Create
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsMobilityPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMobilityPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-MobilityPolicy failed", err.Error())
 			return
 		}
@@ -138,7 +138,7 @@ func (r *mobilityPolicyResource) Create(ctx context.Context, req resource.Create
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsMobilityPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsMobilityPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-MobilityPolicy failed", err.Error())
 		return
@@ -203,7 +203,7 @@ func (r *mobilityPolicyResource) Update(ctx context.Context, req resource.Update
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsMobilityPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMobilityPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-MobilityPolicy failed", err.Error())
 		return
 	}
@@ -216,6 +216,9 @@ func (r *mobilityPolicyResource) Update(ctx context.Context, req resource.Update
 		"MobileDialerPreference": cfg.MobileDialerPreference,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

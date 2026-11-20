@@ -82,7 +82,9 @@ func (r *workLocationDetectionPolicyResource) Create(ctx context.Context, req re
 		sp := cs.SetCsTeamsWorkLocationDetectionPolicyParams{}
 		sp.Identity = plan.Identity.ValueString()
 		if !config.EnableWorkLocationDetection.IsNull() {
-			sp.EnableWorkLocationDetection = plan.EnableWorkLocationDetection.ValueBoolPointer()
+			if !plan.EnableWorkLocationDetection.IsUnknown() {
+				sp.EnableWorkLocationDetection = plan.EnableWorkLocationDetection.ValueBoolPointer()
+			}
 		}
 		if !config.UserSettingsDefault.IsNull() {
 			sp.UserSettingsDefault = plan.UserSettingsDefault.ValueString()
@@ -90,7 +92,7 @@ func (r *workLocationDetectionPolicyResource) Create(ctx context.Context, req re
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsWorkLocationDetectionPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsWorkLocationDetectionPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-WorkLocationDetectionPolicy failed", err.Error())
 			return
 		}
@@ -108,7 +110,9 @@ func (r *workLocationDetectionPolicyResource) Create(ctx context.Context, req re
 	}
 	p := cs.NewCsTeamsWorkLocationDetectionPolicyParams{}
 	if !config.EnableWorkLocationDetection.IsNull() {
-		p.EnableWorkLocationDetection = plan.EnableWorkLocationDetection.ValueBoolPointer()
+		if !plan.EnableWorkLocationDetection.IsUnknown() {
+			p.EnableWorkLocationDetection = plan.EnableWorkLocationDetection.ValueBoolPointer()
+		}
 	}
 	if !config.UserSettingsDefault.IsNull() {
 		p.UserSettingsDefault = plan.UserSettingsDefault.ValueString()
@@ -117,7 +121,7 @@ func (r *workLocationDetectionPolicyResource) Create(ctx context.Context, req re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsWorkLocationDetectionPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsWorkLocationDetectionPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-WorkLocationDetectionPolicy failed", err.Error())
 		return
@@ -165,7 +169,9 @@ func (r *workLocationDetectionPolicyResource) Update(ctx context.Context, req re
 	sp := cs.SetCsTeamsWorkLocationDetectionPolicyParams{}
 	sp.Identity = id
 	if !plan.EnableWorkLocationDetection.Equal(state.EnableWorkLocationDetection) {
-		sp.EnableWorkLocationDetection = plan.EnableWorkLocationDetection.ValueBoolPointer()
+		if !plan.EnableWorkLocationDetection.IsUnknown() {
+			sp.EnableWorkLocationDetection = plan.EnableWorkLocationDetection.ValueBoolPointer()
+		}
 	}
 	if !plan.UserSettingsDefault.Equal(state.UserSettingsDefault) {
 		sp.UserSettingsDefault = plan.UserSettingsDefault.ValueString()
@@ -173,7 +179,7 @@ func (r *workLocationDetectionPolicyResource) Update(ctx context.Context, req re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsWorkLocationDetectionPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsWorkLocationDetectionPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-WorkLocationDetectionPolicy failed", err.Error())
 		return
 	}
@@ -181,7 +187,16 @@ func (r *workLocationDetectionPolicyResource) Update(ctx context.Context, req re
 	reflected := reconcile.ReflectsFields(map[string]types.String{
 		"UserSettingsDefault": cfg.UserSettingsDefault,
 	}, getString)
+	if !cfg.EnableWorkLocationDetection.IsUnknown() && !cfg.EnableWorkLocationDetection.IsNull() && !cfg.EnableWorkLocationDetection.Equal(state.EnableWorkLocationDetection) {
+		prev, want := reflected, cfg.EnableWorkLocationDetection.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableWorkLocationDetection"] == nil || getBool(obj, "EnableWorkLocationDetection") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

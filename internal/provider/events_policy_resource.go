@@ -132,7 +132,9 @@ func (r *eventsPolicyResource) Create(ctx context.Context, req resource.CreateRe
 			sp.AllowEngagementReport = plan.AllowEngagementReport.ValueString()
 		}
 		if !config.AllowEventIntegrations.IsNull() {
-			sp.AllowEventIntegrations = plan.AllowEventIntegrations.ValueBoolPointer()
+			if !plan.AllowEventIntegrations.IsUnknown() {
+				sp.AllowEventIntegrations = plan.AllowEventIntegrations.ValueBoolPointer()
+			}
 		}
 		if !config.AllowTownhalls.IsNull() {
 			sp.AllowTownhalls = plan.AllowTownhalls.ValueString()
@@ -198,12 +200,14 @@ func (r *eventsPolicyResource) Create(ctx context.Context, req resource.CreateRe
 			sp.TranscriptionForWebinar = plan.TranscriptionForWebinar.ValueString()
 		}
 		if !config.UseMicrosoftECDN.IsNull() {
-			sp.UseMicrosoftECDN = plan.UseMicrosoftECDN.ValueBoolPointer()
+			if !plan.UseMicrosoftECDN.IsUnknown() {
+				sp.UseMicrosoftECDN = plan.UseMicrosoftECDN.ValueBoolPointer()
+			}
 		}
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsEventsPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsEventsPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-EventsPolicy failed", err.Error())
 			return
 		}
@@ -227,7 +231,9 @@ func (r *eventsPolicyResource) Create(ctx context.Context, req resource.CreateRe
 		p.AllowEngagementReport = plan.AllowEngagementReport.ValueString()
 	}
 	if !config.AllowEventIntegrations.IsNull() {
-		p.AllowEventIntegrations = plan.AllowEventIntegrations.ValueBoolPointer()
+		if !plan.AllowEventIntegrations.IsUnknown() {
+			p.AllowEventIntegrations = plan.AllowEventIntegrations.ValueBoolPointer()
+		}
 	}
 	if !config.AllowTownhalls.IsNull() {
 		p.AllowTownhalls = plan.AllowTownhalls.ValueString()
@@ -293,13 +299,15 @@ func (r *eventsPolicyResource) Create(ctx context.Context, req resource.CreateRe
 		p.TranscriptionForWebinar = plan.TranscriptionForWebinar.ValueString()
 	}
 	if !config.UseMicrosoftECDN.IsNull() {
-		p.UseMicrosoftECDN = plan.UseMicrosoftECDN.ValueBoolPointer()
+		if !plan.UseMicrosoftECDN.IsUnknown() {
+			p.UseMicrosoftECDN = plan.UseMicrosoftECDN.ValueBoolPointer()
+		}
 	}
 	p.Identity = plan.Identity.ValueString()
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsEventsPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsEventsPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-EventsPolicy failed", err.Error())
 		return
@@ -353,7 +361,9 @@ func (r *eventsPolicyResource) Update(ctx context.Context, req resource.UpdateRe
 		sp.AllowEngagementReport = plan.AllowEngagementReport.ValueString()
 	}
 	if !plan.AllowEventIntegrations.Equal(state.AllowEventIntegrations) {
-		sp.AllowEventIntegrations = plan.AllowEventIntegrations.ValueBoolPointer()
+		if !plan.AllowEventIntegrations.IsUnknown() {
+			sp.AllowEventIntegrations = plan.AllowEventIntegrations.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowTownhalls.Equal(state.AllowTownhalls) {
 		sp.AllowTownhalls = plan.AllowTownhalls.ValueString()
@@ -419,12 +429,14 @@ func (r *eventsPolicyResource) Update(ctx context.Context, req resource.UpdateRe
 		sp.TranscriptionForWebinar = plan.TranscriptionForWebinar.ValueString()
 	}
 	if !plan.UseMicrosoftECDN.Equal(state.UseMicrosoftECDN) {
-		sp.UseMicrosoftECDN = plan.UseMicrosoftECDN.ValueBoolPointer()
+		if !plan.UseMicrosoftECDN.IsUnknown() {
+			sp.UseMicrosoftECDN = plan.UseMicrosoftECDN.ValueBoolPointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsEventsPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsEventsPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-EventsPolicy failed", err.Error())
 		return
 	}
@@ -454,7 +466,22 @@ func (r *eventsPolicyResource) Update(ctx context.Context, req resource.UpdateRe
 		"TranscriptionForTownhall":                cfg.TranscriptionForTownhall,
 		"TranscriptionForWebinar":                 cfg.TranscriptionForWebinar,
 	}, getString)
+	if !cfg.AllowEventIntegrations.IsUnknown() && !cfg.AllowEventIntegrations.IsNull() && !cfg.AllowEventIntegrations.Equal(state.AllowEventIntegrations) {
+		prev, want := reflected, cfg.AllowEventIntegrations.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowEventIntegrations"] == nil || getBool(obj, "AllowEventIntegrations") == want)
+		}
+	}
+	if !cfg.UseMicrosoftECDN.IsUnknown() && !cfg.UseMicrosoftECDN.IsNull() && !cfg.UseMicrosoftECDN.Equal(state.UseMicrosoftECDN) {
+		prev, want := reflected, cfg.UseMicrosoftECDN.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["UseMicrosoftECDN"] == nil || getBool(obj, "UseMicrosoftECDN") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

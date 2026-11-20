@@ -79,7 +79,9 @@ func (r *onlineVoicemailValidationConfigurationResource) Create(ctx context.Cont
 	sp := cs.SetCsOnlineVoicemailValidationConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
 	if !config.AudioFileValidationEnabled.IsNull() {
-		sp.AudioFileValidationEnabled = plan.AudioFileValidationEnabled.ValueBoolPointer()
+		if !plan.AudioFileValidationEnabled.IsUnknown() {
+			sp.AudioFileValidationEnabled = plan.AudioFileValidationEnabled.ValueBoolPointer()
+		}
 	}
 	if !config.AudioFileValidationUri.IsNull() {
 		sp.AudioFileValidationUri = plan.AudioFileValidationUri.ValueString()
@@ -87,7 +89,7 @@ func (r *onlineVoicemailValidationConfigurationResource) Create(ctx context.Cont
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsOnlineVoicemailValidationConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsOnlineVoicemailValidationConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-OnlineVoicemailValidationConfiguration failed", err.Error())
 		return
 	}
@@ -124,7 +126,9 @@ func (r *onlineVoicemailValidationConfigurationResource) Update(ctx context.Cont
 	sp := cs.SetCsOnlineVoicemailValidationConfigurationParams{}
 	sp.Identity = id
 	if !plan.AudioFileValidationEnabled.Equal(state.AudioFileValidationEnabled) {
-		sp.AudioFileValidationEnabled = plan.AudioFileValidationEnabled.ValueBoolPointer()
+		if !plan.AudioFileValidationEnabled.IsUnknown() {
+			sp.AudioFileValidationEnabled = plan.AudioFileValidationEnabled.ValueBoolPointer()
+		}
 	}
 	if !plan.AudioFileValidationUri.Equal(state.AudioFileValidationUri) {
 		sp.AudioFileValidationUri = plan.AudioFileValidationUri.ValueString()
@@ -132,7 +136,7 @@ func (r *onlineVoicemailValidationConfigurationResource) Update(ctx context.Cont
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsOnlineVoicemailValidationConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsOnlineVoicemailValidationConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-OnlineVoicemailValidationConfiguration failed", err.Error())
 		return
 	}
@@ -140,7 +144,16 @@ func (r *onlineVoicemailValidationConfigurationResource) Update(ctx context.Cont
 	reflected := reconcile.ReflectsFields(map[string]types.String{
 		"AudioFileValidationUri": cfg.AudioFileValidationUri,
 	}, getString)
+	if !cfg.AudioFileValidationEnabled.IsUnknown() && !cfg.AudioFileValidationEnabled.IsNull() && !cfg.AudioFileValidationEnabled.Equal(state.AudioFileValidationEnabled) {
+		prev, want := reflected, cfg.AudioFileValidationEnabled.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AudioFileValidationEnabled"] == nil || getBool(obj, "AudioFileValidationEnabled") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

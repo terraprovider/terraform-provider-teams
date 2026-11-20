@@ -95,13 +95,19 @@ func (r *meetingBrandingPolicyResource) Create(ctx context.Context, req resource
 			sp.DefaultTheme = plan.DefaultTheme.ValueString()
 		}
 		if !config.EnableMeetingBackgroundImages.IsNull() {
-			sp.EnableMeetingBackgroundImages = plan.EnableMeetingBackgroundImages.ValueBoolPointer()
+			if !plan.EnableMeetingBackgroundImages.IsUnknown() {
+				sp.EnableMeetingBackgroundImages = plan.EnableMeetingBackgroundImages.ValueBoolPointer()
+			}
 		}
 		if !config.EnableMeetingOptionsThemeOverride.IsNull() {
-			sp.EnableMeetingOptionsThemeOverride = plan.EnableMeetingOptionsThemeOverride.ValueBoolPointer()
+			if !plan.EnableMeetingOptionsThemeOverride.IsUnknown() {
+				sp.EnableMeetingOptionsThemeOverride = plan.EnableMeetingOptionsThemeOverride.ValueBoolPointer()
+			}
 		}
 		if !config.EnableNdiAssuranceSlate.IsNull() {
-			sp.EnableNdiAssuranceSlate = plan.EnableNdiAssuranceSlate.ValueBoolPointer()
+			if !plan.EnableNdiAssuranceSlate.IsUnknown() {
+				sp.EnableNdiAssuranceSlate = plan.EnableNdiAssuranceSlate.ValueBoolPointer()
+			}
 		}
 		if v := config.MeetingBackgroundImages.ValueString(); v != "" {
 			sp.MeetingBackgroundImages = objectParam(v)
@@ -113,12 +119,14 @@ func (r *meetingBrandingPolicyResource) Create(ctx context.Context, req resource
 			sp.NdiAssuranceSlateImages = objectParam(v)
 		}
 		if !config.RequireBackgroundEffect.IsNull() {
-			sp.RequireBackgroundEffect = plan.RequireBackgroundEffect.ValueBoolPointer()
+			if !plan.RequireBackgroundEffect.IsUnknown() {
+				sp.RequireBackgroundEffect = plan.RequireBackgroundEffect.ValueBoolPointer()
+			}
 		}
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsMeetingBrandingPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingBrandingPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-MeetingBrandingPolicy failed", err.Error())
 			return
 		}
@@ -139,13 +147,19 @@ func (r *meetingBrandingPolicyResource) Create(ctx context.Context, req resource
 		p.DefaultTheme = plan.DefaultTheme.ValueString()
 	}
 	if !config.EnableMeetingBackgroundImages.IsNull() {
-		p.EnableMeetingBackgroundImages = plan.EnableMeetingBackgroundImages.ValueBoolPointer()
+		if !plan.EnableMeetingBackgroundImages.IsUnknown() {
+			p.EnableMeetingBackgroundImages = plan.EnableMeetingBackgroundImages.ValueBoolPointer()
+		}
 	}
 	if !config.EnableMeetingOptionsThemeOverride.IsNull() {
-		p.EnableMeetingOptionsThemeOverride = plan.EnableMeetingOptionsThemeOverride.ValueBoolPointer()
+		if !plan.EnableMeetingOptionsThemeOverride.IsUnknown() {
+			p.EnableMeetingOptionsThemeOverride = plan.EnableMeetingOptionsThemeOverride.ValueBoolPointer()
+		}
 	}
 	if !config.EnableNdiAssuranceSlate.IsNull() {
-		p.EnableNdiAssuranceSlate = plan.EnableNdiAssuranceSlate.ValueBoolPointer()
+		if !plan.EnableNdiAssuranceSlate.IsUnknown() {
+			p.EnableNdiAssuranceSlate = plan.EnableNdiAssuranceSlate.ValueBoolPointer()
+		}
 	}
 	if v := config.MeetingBackgroundImages.ValueString(); v != "" {
 		p.MeetingBackgroundImages = objectParam(v)
@@ -157,13 +171,15 @@ func (r *meetingBrandingPolicyResource) Create(ctx context.Context, req resource
 		p.NdiAssuranceSlateImages = objectParam(v)
 	}
 	if !config.RequireBackgroundEffect.IsNull() {
-		p.RequireBackgroundEffect = plan.RequireBackgroundEffect.ValueBoolPointer()
+		if !plan.RequireBackgroundEffect.IsUnknown() {
+			p.RequireBackgroundEffect = plan.RequireBackgroundEffect.ValueBoolPointer()
+		}
 	}
 	p.Identity = plan.Identity.ValueString()
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsMeetingBrandingPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsMeetingBrandingPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-MeetingBrandingPolicy failed", err.Error())
 		return
@@ -214,30 +230,44 @@ func (r *meetingBrandingPolicyResource) Update(ctx context.Context, req resource
 		sp.DefaultTheme = plan.DefaultTheme.ValueString()
 	}
 	if !plan.EnableMeetingBackgroundImages.Equal(state.EnableMeetingBackgroundImages) {
-		sp.EnableMeetingBackgroundImages = plan.EnableMeetingBackgroundImages.ValueBoolPointer()
+		if !plan.EnableMeetingBackgroundImages.IsUnknown() {
+			sp.EnableMeetingBackgroundImages = plan.EnableMeetingBackgroundImages.ValueBoolPointer()
+		}
 	}
 	if !plan.EnableMeetingOptionsThemeOverride.Equal(state.EnableMeetingOptionsThemeOverride) {
-		sp.EnableMeetingOptionsThemeOverride = plan.EnableMeetingOptionsThemeOverride.ValueBoolPointer()
+		if !plan.EnableMeetingOptionsThemeOverride.IsUnknown() {
+			sp.EnableMeetingOptionsThemeOverride = plan.EnableMeetingOptionsThemeOverride.ValueBoolPointer()
+		}
 	}
 	if !plan.EnableNdiAssuranceSlate.Equal(state.EnableNdiAssuranceSlate) {
-		sp.EnableNdiAssuranceSlate = plan.EnableNdiAssuranceSlate.ValueBoolPointer()
+		if !plan.EnableNdiAssuranceSlate.IsUnknown() {
+			sp.EnableNdiAssuranceSlate = plan.EnableNdiAssuranceSlate.ValueBoolPointer()
+		}
 	}
-	if v := plan.MeetingBackgroundImages.ValueString(); v != "" {
-		sp.MeetingBackgroundImages = objectParam(v)
+	if !plan.MeetingBackgroundImages.Equal(state.MeetingBackgroundImages) {
+		if v := plan.MeetingBackgroundImages.ValueString(); v != "" {
+			sp.MeetingBackgroundImages = objectParam(v)
+		}
 	}
-	if v := plan.MeetingBrandingThemes.ValueString(); v != "" {
-		sp.MeetingBrandingThemes = objectParam(v)
+	if !plan.MeetingBrandingThemes.Equal(state.MeetingBrandingThemes) {
+		if v := plan.MeetingBrandingThemes.ValueString(); v != "" {
+			sp.MeetingBrandingThemes = objectParam(v)
+		}
 	}
-	if v := plan.NdiAssuranceSlateImages.ValueString(); v != "" {
-		sp.NdiAssuranceSlateImages = objectParam(v)
+	if !plan.NdiAssuranceSlateImages.Equal(state.NdiAssuranceSlateImages) {
+		if v := plan.NdiAssuranceSlateImages.ValueString(); v != "" {
+			sp.NdiAssuranceSlateImages = objectParam(v)
+		}
 	}
 	if !plan.RequireBackgroundEffect.Equal(state.RequireBackgroundEffect) {
-		sp.RequireBackgroundEffect = plan.RequireBackgroundEffect.ValueBoolPointer()
+		if !plan.RequireBackgroundEffect.IsUnknown() {
+			sp.RequireBackgroundEffect = plan.RequireBackgroundEffect.ValueBoolPointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsMeetingBrandingPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingBrandingPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-MeetingBrandingPolicy failed", err.Error())
 		return
 	}
@@ -245,7 +275,34 @@ func (r *meetingBrandingPolicyResource) Update(ctx context.Context, req resource
 	reflected := reconcile.ReflectsFields(map[string]types.String{
 		"DefaultTheme": cfg.DefaultTheme,
 	}, getString)
+	if !cfg.EnableMeetingBackgroundImages.IsUnknown() && !cfg.EnableMeetingBackgroundImages.IsNull() && !cfg.EnableMeetingBackgroundImages.Equal(state.EnableMeetingBackgroundImages) {
+		prev, want := reflected, cfg.EnableMeetingBackgroundImages.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableMeetingBackgroundImages"] == nil || getBool(obj, "EnableMeetingBackgroundImages") == want)
+		}
+	}
+	if !cfg.EnableMeetingOptionsThemeOverride.IsUnknown() && !cfg.EnableMeetingOptionsThemeOverride.IsNull() && !cfg.EnableMeetingOptionsThemeOverride.Equal(state.EnableMeetingOptionsThemeOverride) {
+		prev, want := reflected, cfg.EnableMeetingOptionsThemeOverride.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableMeetingOptionsThemeOverride"] == nil || getBool(obj, "EnableMeetingOptionsThemeOverride") == want)
+		}
+	}
+	if !cfg.EnableNdiAssuranceSlate.IsUnknown() && !cfg.EnableNdiAssuranceSlate.IsNull() && !cfg.EnableNdiAssuranceSlate.Equal(state.EnableNdiAssuranceSlate) {
+		prev, want := reflected, cfg.EnableNdiAssuranceSlate.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableNdiAssuranceSlate"] == nil || getBool(obj, "EnableNdiAssuranceSlate") == want)
+		}
+	}
+	if !cfg.RequireBackgroundEffect.IsUnknown() && !cfg.RequireBackgroundEffect.IsNull() && !cfg.RequireBackgroundEffect.Equal(state.RequireBackgroundEffect) {
+		prev, want := reflected, cfg.RequireBackgroundEffect.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["RequireBackgroundEffect"] == nil || getBool(obj, "RequireBackgroundEffect") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

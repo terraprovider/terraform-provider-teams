@@ -91,7 +91,9 @@ func (r *inboundBlockedNumberPatternResource) Create(ctx context.Context, req re
 			sp.Description = plan.Description.ValueString()
 		}
 		if !config.Enabled.IsNull() {
-			sp.Enabled = plan.Enabled.ValueBoolPointer()
+			if !plan.Enabled.IsUnknown() {
+				sp.Enabled = plan.Enabled.ValueBoolPointer()
+			}
 		}
 		if !config.Pattern.IsNull() {
 			sp.Pattern = plan.Pattern.ValueString()
@@ -102,7 +104,7 @@ func (r *inboundBlockedNumberPatternResource) Create(ctx context.Context, req re
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsInboundBlockedNumberPattern(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsInboundBlockedNumberPattern, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-InboundBlockedNumberPattern failed", err.Error())
 			return
 		}
@@ -123,7 +125,9 @@ func (r *inboundBlockedNumberPatternResource) Create(ctx context.Context, req re
 		p.Description = plan.Description.ValueString()
 	}
 	if !config.Enabled.IsNull() {
-		p.Enabled = plan.Enabled.ValueBoolPointer()
+		if !plan.Enabled.IsUnknown() {
+			p.Enabled = plan.Enabled.ValueBoolPointer()
+		}
 	}
 	if !config.Name.IsNull() {
 		p.Name = plan.Name.ValueString()
@@ -138,7 +142,7 @@ func (r *inboundBlockedNumberPatternResource) Create(ctx context.Context, req re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsInboundBlockedNumberPattern(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsInboundBlockedNumberPattern, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-InboundBlockedNumberPattern failed", err.Error())
 		return
@@ -189,18 +193,22 @@ func (r *inboundBlockedNumberPatternResource) Update(ctx context.Context, req re
 		sp.Description = plan.Description.ValueString()
 	}
 	if !plan.Enabled.Equal(state.Enabled) {
-		sp.Enabled = plan.Enabled.ValueBoolPointer()
+		if !plan.Enabled.IsUnknown() {
+			sp.Enabled = plan.Enabled.ValueBoolPointer()
+		}
 	}
 	if !plan.Pattern.Equal(state.Pattern) {
 		sp.Pattern = plan.Pattern.ValueString()
 	}
-	if v := plan.ResourceAccount.ValueString(); v != "" {
-		sp.ResourceAccount = objectParam(v)
+	if !plan.ResourceAccount.Equal(state.ResourceAccount) {
+		if v := plan.ResourceAccount.ValueString(); v != "" {
+			sp.ResourceAccount = objectParam(v)
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsInboundBlockedNumberPattern(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsInboundBlockedNumberPattern, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-InboundBlockedNumberPattern failed", err.Error())
 		return
 	}
@@ -209,7 +217,16 @@ func (r *inboundBlockedNumberPatternResource) Update(ctx context.Context, req re
 		"Description": cfg.Description,
 		"Pattern":     cfg.Pattern,
 	}, getString)
+	if !cfg.Enabled.IsUnknown() && !cfg.Enabled.IsNull() && !cfg.Enabled.Equal(state.Enabled) {
+		prev, want := reflected, cfg.Enabled.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["Enabled"] == nil || getBool(obj, "Enabled") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

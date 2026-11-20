@@ -112,7 +112,7 @@ func (r *appPermissionPolicyResource) Create(ctx context.Context, req resource.C
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsAppPermissionPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsAppPermissionPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-AppPermissionPolicy failed", err.Error())
 			return
 		}
@@ -154,7 +154,7 @@ func (r *appPermissionPolicyResource) Create(ctx context.Context, req resource.C
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsAppPermissionPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsAppPermissionPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-AppPermissionPolicy failed", err.Error())
 		return
@@ -201,8 +201,10 @@ func (r *appPermissionPolicyResource) Update(ctx context.Context, req resource.U
 	id := r.identityOf(state)
 	sp := cs.SetCsTeamsAppPermissionPolicyParams{}
 	sp.Identity = id
-	if v := plan.DefaultCatalogApps.ValueString(); v != "" {
-		sp.DefaultCatalogApps = objectParam(v)
+	if !plan.DefaultCatalogApps.Equal(state.DefaultCatalogApps) {
+		if v := plan.DefaultCatalogApps.ValueString(); v != "" {
+			sp.DefaultCatalogApps = objectParam(v)
+		}
 	}
 	if !plan.DefaultCatalogAppsType.Equal(state.DefaultCatalogAppsType) {
 		sp.DefaultCatalogAppsType = plan.DefaultCatalogAppsType.ValueString()
@@ -210,14 +212,18 @@ func (r *appPermissionPolicyResource) Update(ctx context.Context, req resource.U
 	if !plan.Description.Equal(state.Description) {
 		sp.Description = plan.Description.ValueString()
 	}
-	if v := plan.GlobalCatalogApps.ValueString(); v != "" {
-		sp.GlobalCatalogApps = objectParam(v)
+	if !plan.GlobalCatalogApps.Equal(state.GlobalCatalogApps) {
+		if v := plan.GlobalCatalogApps.ValueString(); v != "" {
+			sp.GlobalCatalogApps = objectParam(v)
+		}
 	}
 	if !plan.GlobalCatalogAppsType.Equal(state.GlobalCatalogAppsType) {
 		sp.GlobalCatalogAppsType = plan.GlobalCatalogAppsType.ValueString()
 	}
-	if v := plan.PrivateCatalogApps.ValueString(); v != "" {
-		sp.PrivateCatalogApps = objectParam(v)
+	if !plan.PrivateCatalogApps.Equal(state.PrivateCatalogApps) {
+		if v := plan.PrivateCatalogApps.ValueString(); v != "" {
+			sp.PrivateCatalogApps = objectParam(v)
+		}
 	}
 	if !plan.PrivateCatalogAppsType.Equal(state.PrivateCatalogAppsType) {
 		sp.PrivateCatalogAppsType = plan.PrivateCatalogAppsType.ValueString()
@@ -225,7 +231,7 @@ func (r *appPermissionPolicyResource) Update(ctx context.Context, req resource.U
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsAppPermissionPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsAppPermissionPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-AppPermissionPolicy failed", err.Error())
 		return
 	}
@@ -237,6 +243,9 @@ func (r *appPermissionPolicyResource) Update(ctx context.Context, req resource.U
 		"PrivateCatalogAppsType": cfg.PrivateCatalogAppsType,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

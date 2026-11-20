@@ -314,34 +314,52 @@ func (r *meetingPolicyResource) Create(ctx context.Context, req resource.CreateR
 			sp.AIInterpreter = plan.AIInterpreter.ValueString()
 		}
 		if !config.AllowAnnotations.IsNull() {
-			sp.AllowAnnotations = plan.AllowAnnotations.ValueBoolPointer()
+			if !plan.AllowAnnotations.IsUnknown() {
+				sp.AllowAnnotations = plan.AllowAnnotations.ValueBoolPointer()
+			}
 		}
 		if !config.AllowAnonymousUsersToDialOut.IsNull() {
-			sp.AllowAnonymousUsersToDialOut = plan.AllowAnonymousUsersToDialOut.ValueBoolPointer()
+			if !plan.AllowAnonymousUsersToDialOut.IsUnknown() {
+				sp.AllowAnonymousUsersToDialOut = plan.AllowAnonymousUsersToDialOut.ValueBoolPointer()
+			}
 		}
 		if !config.AllowAnonymousUsersToJoinMeeting.IsNull() {
-			sp.AllowAnonymousUsersToJoinMeeting = plan.AllowAnonymousUsersToJoinMeeting.ValueBoolPointer()
+			if !plan.AllowAnonymousUsersToJoinMeeting.IsUnknown() {
+				sp.AllowAnonymousUsersToJoinMeeting = plan.AllowAnonymousUsersToJoinMeeting.ValueBoolPointer()
+			}
 		}
 		if !config.AllowAnonymousUsersToStartMeeting.IsNull() {
-			sp.AllowAnonymousUsersToStartMeeting = plan.AllowAnonymousUsersToStartMeeting.ValueBoolPointer()
+			if !plan.AllowAnonymousUsersToStartMeeting.IsUnknown() {
+				sp.AllowAnonymousUsersToStartMeeting = plan.AllowAnonymousUsersToStartMeeting.ValueBoolPointer()
+			}
 		}
 		if !config.AllowAvatarsInGallery.IsNull() {
-			sp.AllowAvatarsInGallery = plan.AllowAvatarsInGallery.ValueBoolPointer()
+			if !plan.AllowAvatarsInGallery.IsUnknown() {
+				sp.AllowAvatarsInGallery = plan.AllowAvatarsInGallery.ValueBoolPointer()
+			}
 		}
 		if !config.AllowBreakoutRooms.IsNull() {
-			sp.AllowBreakoutRooms = plan.AllowBreakoutRooms.ValueBoolPointer()
+			if !plan.AllowBreakoutRooms.IsUnknown() {
+				sp.AllowBreakoutRooms = plan.AllowBreakoutRooms.ValueBoolPointer()
+			}
 		}
 		if !config.AllowCarbonSummary.IsNull() {
-			sp.AllowCarbonSummary = plan.AllowCarbonSummary.ValueBoolPointer()
+			if !plan.AllowCarbonSummary.IsUnknown() {
+				sp.AllowCarbonSummary = plan.AllowCarbonSummary.ValueBoolPointer()
+			}
 		}
 		if !config.AllowCartCaptionsScheduling.IsNull() {
 			sp.AllowCartCaptionsScheduling = plan.AllowCartCaptionsScheduling.ValueString()
 		}
 		if !config.AllowChannelMeetingScheduling.IsNull() {
-			sp.AllowChannelMeetingScheduling = plan.AllowChannelMeetingScheduling.ValueBoolPointer()
+			if !plan.AllowChannelMeetingScheduling.IsUnknown() {
+				sp.AllowChannelMeetingScheduling = plan.AllowChannelMeetingScheduling.ValueBoolPointer()
+			}
 		}
 		if !config.AllowCloudRecording.IsNull() {
-			sp.AllowCloudRecording = plan.AllowCloudRecording.ValueBoolPointer()
+			if !plan.AllowCloudRecording.IsUnknown() {
+				sp.AllowCloudRecording = plan.AllowCloudRecording.ValueBoolPointer()
+			}
 		}
 		if !config.AllowDocumentCollaboration.IsNull() {
 			sp.AllowDocumentCollaboration = plan.AllowDocumentCollaboration.ValueString()
@@ -350,76 +368,122 @@ func (r *meetingPolicyResource) Create(ctx context.Context, req resource.CreateR
 			sp.AllowEngagementReport = plan.AllowEngagementReport.ValueString()
 		}
 		if !config.AllowExternalNonTrustedMeetingChat.IsNull() {
-			sp.AllowExternalNonTrustedMeetingChat = plan.AllowExternalNonTrustedMeetingChat.ValueBoolPointer()
+			if !plan.AllowExternalNonTrustedMeetingChat.IsUnknown() {
+				sp.AllowExternalNonTrustedMeetingChat = plan.AllowExternalNonTrustedMeetingChat.ValueBoolPointer()
+			}
 		}
 		if !config.AllowExternalParticipantGiveRequestControl.IsNull() {
-			sp.AllowExternalParticipantGiveRequestControl = plan.AllowExternalParticipantGiveRequestControl.ValueBoolPointer()
+			if !plan.AllowExternalParticipantGiveRequestControl.IsUnknown() {
+				sp.AllowExternalParticipantGiveRequestControl = plan.AllowExternalParticipantGiveRequestControl.ValueBoolPointer()
+			}
 		}
 		if !config.AllowIPAudio.IsNull() {
-			sp.AllowIPAudio = plan.AllowIPAudio.ValueBoolPointer()
+			if !plan.AllowIPAudio.IsUnknown() {
+				sp.AllowIPAudio = plan.AllowIPAudio.ValueBoolPointer()
+			}
 		}
 		if !config.AllowIPVideo.IsNull() {
-			sp.AllowIPVideo = plan.AllowIPVideo.ValueBoolPointer()
+			if !plan.AllowIPVideo.IsUnknown() {
+				sp.AllowIPVideo = plan.AllowIPVideo.ValueBoolPointer()
+			}
 		}
 		if !config.AllowImmersiveView.IsNull() {
-			sp.AllowImmersiveView = plan.AllowImmersiveView.ValueBoolPointer()
+			if !plan.AllowImmersiveView.IsUnknown() {
+				sp.AllowImmersiveView = plan.AllowImmersiveView.ValueBoolPointer()
+			}
 		}
 		if !config.AllowLocalRecording.IsNull() {
-			sp.AllowLocalRecording = plan.AllowLocalRecording.ValueBoolPointer()
+			if !plan.AllowLocalRecording.IsUnknown() {
+				sp.AllowLocalRecording = plan.AllowLocalRecording.ValueBoolPointer()
+			}
 		}
 		if !config.AllowMeetNow.IsNull() {
-			sp.AllowMeetNow = plan.AllowMeetNow.ValueBoolPointer()
+			if !plan.AllowMeetNow.IsUnknown() {
+				sp.AllowMeetNow = plan.AllowMeetNow.ValueBoolPointer()
+			}
 		}
 		if !config.AllowMeetingCoach.IsNull() {
-			sp.AllowMeetingCoach = plan.AllowMeetingCoach.ValueBoolPointer()
+			if !plan.AllowMeetingCoach.IsUnknown() {
+				sp.AllowMeetingCoach = plan.AllowMeetingCoach.ValueBoolPointer()
+			}
 		}
 		if !config.AllowMeetingKnowledgeGeneration.IsNull() {
-			sp.AllowMeetingKnowledgeGeneration = plan.AllowMeetingKnowledgeGeneration.ValueBoolPointer()
+			if !plan.AllowMeetingKnowledgeGeneration.IsUnknown() {
+				sp.AllowMeetingKnowledgeGeneration = plan.AllowMeetingKnowledgeGeneration.ValueBoolPointer()
+			}
 		}
 		if !config.AllowMeetingReactions.IsNull() {
-			sp.AllowMeetingReactions = plan.AllowMeetingReactions.ValueBoolPointer()
+			if !plan.AllowMeetingReactions.IsUnknown() {
+				sp.AllowMeetingReactions = plan.AllowMeetingReactions.ValueBoolPointer()
+			}
 		}
 		if !config.AllowMeetingRegistration.IsNull() {
-			sp.AllowMeetingRegistration = plan.AllowMeetingRegistration.ValueBoolPointer()
+			if !plan.AllowMeetingRegistration.IsUnknown() {
+				sp.AllowMeetingRegistration = plan.AllowMeetingRegistration.ValueBoolPointer()
+			}
 		}
 		if !config.AllowMultipleScreenshare.IsNull() {
-			sp.AllowMultipleScreenshare = plan.AllowMultipleScreenshare.ValueBoolPointer()
+			if !plan.AllowMultipleScreenshare.IsUnknown() {
+				sp.AllowMultipleScreenshare = plan.AllowMultipleScreenshare.ValueBoolPointer()
+			}
 		}
 		if !config.AllowNDIStreaming.IsNull() {
-			sp.AllowNDIStreaming = plan.AllowNDIStreaming.ValueBoolPointer()
+			if !plan.AllowNDIStreaming.IsUnknown() {
+				sp.AllowNDIStreaming = plan.AllowNDIStreaming.ValueBoolPointer()
+			}
 		}
 		if !config.AllowNetworkConfigurationSettingsLookup.IsNull() {
-			sp.AllowNetworkConfigurationSettingsLookup = plan.AllowNetworkConfigurationSettingsLookup.ValueBoolPointer()
+			if !plan.AllowNetworkConfigurationSettingsLookup.IsUnknown() {
+				sp.AllowNetworkConfigurationSettingsLookup = plan.AllowNetworkConfigurationSettingsLookup.ValueBoolPointer()
+			}
 		}
 		if !config.AllowOrganizersToOverrideLobbySettings.IsNull() {
-			sp.AllowOrganizersToOverrideLobbySettings = plan.AllowOrganizersToOverrideLobbySettings.ValueBoolPointer()
+			if !plan.AllowOrganizersToOverrideLobbySettings.IsUnknown() {
+				sp.AllowOrganizersToOverrideLobbySettings = plan.AllowOrganizersToOverrideLobbySettings.ValueBoolPointer()
+			}
 		}
 		if !config.AllowOutlookAddIn.IsNull() {
-			sp.AllowOutlookAddIn = plan.AllowOutlookAddIn.ValueBoolPointer()
+			if !plan.AllowOutlookAddIn.IsUnknown() {
+				sp.AllowOutlookAddIn = plan.AllowOutlookAddIn.ValueBoolPointer()
+			}
 		}
 		if !config.AllowPSTNUsersToBypassLobby.IsNull() {
-			sp.AllowPSTNUsersToBypassLobby = plan.AllowPSTNUsersToBypassLobby.ValueBoolPointer()
+			if !plan.AllowPSTNUsersToBypassLobby.IsUnknown() {
+				sp.AllowPSTNUsersToBypassLobby = plan.AllowPSTNUsersToBypassLobby.ValueBoolPointer()
+			}
 		}
 		if !config.AllowParticipantGiveRequestControl.IsNull() {
-			sp.AllowParticipantGiveRequestControl = plan.AllowParticipantGiveRequestControl.ValueBoolPointer()
+			if !plan.AllowParticipantGiveRequestControl.IsUnknown() {
+				sp.AllowParticipantGiveRequestControl = plan.AllowParticipantGiveRequestControl.ValueBoolPointer()
+			}
 		}
 		if !config.AllowPowerPointSharing.IsNull() {
-			sp.AllowPowerPointSharing = plan.AllowPowerPointSharing.ValueBoolPointer()
+			if !plan.AllowPowerPointSharing.IsUnknown() {
+				sp.AllowPowerPointSharing = plan.AllowPowerPointSharing.ValueBoolPointer()
+			}
 		}
 		if !config.AllowPrivateMeetNow.IsNull() {
-			sp.AllowPrivateMeetNow = plan.AllowPrivateMeetNow.ValueBoolPointer()
+			if !plan.AllowPrivateMeetNow.IsUnknown() {
+				sp.AllowPrivateMeetNow = plan.AllowPrivateMeetNow.ValueBoolPointer()
+			}
 		}
 		if !config.AllowPrivateMeetingScheduling.IsNull() {
-			sp.AllowPrivateMeetingScheduling = plan.AllowPrivateMeetingScheduling.ValueBoolPointer()
+			if !plan.AllowPrivateMeetingScheduling.IsUnknown() {
+				sp.AllowPrivateMeetingScheduling = plan.AllowPrivateMeetingScheduling.ValueBoolPointer()
+			}
 		}
 		if !config.AllowRecordingStorageOutsideRegion.IsNull() {
-			sp.AllowRecordingStorageOutsideRegion = plan.AllowRecordingStorageOutsideRegion.ValueBoolPointer()
+			if !plan.AllowRecordingStorageOutsideRegion.IsUnknown() {
+				sp.AllowRecordingStorageOutsideRegion = plan.AllowRecordingStorageOutsideRegion.ValueBoolPointer()
+			}
 		}
 		if !config.AllowScreenContentDigitization.IsNull() {
 			sp.AllowScreenContentDigitization = plan.AllowScreenContentDigitization.ValueString()
 		}
 		if !config.AllowSharedNotes.IsNull() {
-			sp.AllowSharedNotes = plan.AllowSharedNotes.ValueBoolPointer()
+			if !plan.AllowSharedNotes.IsUnknown() {
+				sp.AllowSharedNotes = plan.AllowSharedNotes.ValueBoolPointer()
+			}
 		}
 		if !config.AllowTasksFromTranscript.IsNull() {
 			sp.AllowTasksFromTranscript = plan.AllowTasksFromTranscript.ValueString()
@@ -428,22 +492,34 @@ func (r *meetingPolicyResource) Create(ctx context.Context, req resource.CreateR
 			sp.AllowTrackingInReport = plan.AllowTrackingInReport.ValueString()
 		}
 		if !config.AllowTranscription.IsNull() {
-			sp.AllowTranscription = plan.AllowTranscription.ValueBoolPointer()
+			if !plan.AllowTranscription.IsUnknown() {
+				sp.AllowTranscription = plan.AllowTranscription.ValueBoolPointer()
+			}
 		}
 		if !config.AllowWatermarkCustomizationForCameraVideo.IsNull() {
-			sp.AllowWatermarkCustomizationForCameraVideo = plan.AllowWatermarkCustomizationForCameraVideo.ValueBoolPointer()
+			if !plan.AllowWatermarkCustomizationForCameraVideo.IsUnknown() {
+				sp.AllowWatermarkCustomizationForCameraVideo = plan.AllowWatermarkCustomizationForCameraVideo.ValueBoolPointer()
+			}
 		}
 		if !config.AllowWatermarkCustomizationForScreenSharing.IsNull() {
-			sp.AllowWatermarkCustomizationForScreenSharing = plan.AllowWatermarkCustomizationForScreenSharing.ValueBoolPointer()
+			if !plan.AllowWatermarkCustomizationForScreenSharing.IsUnknown() {
+				sp.AllowWatermarkCustomizationForScreenSharing = plan.AllowWatermarkCustomizationForScreenSharing.ValueBoolPointer()
+			}
 		}
 		if !config.AllowWatermarkForCameraVideo.IsNull() {
-			sp.AllowWatermarkForCameraVideo = plan.AllowWatermarkForCameraVideo.ValueBoolPointer()
+			if !plan.AllowWatermarkForCameraVideo.IsUnknown() {
+				sp.AllowWatermarkForCameraVideo = plan.AllowWatermarkForCameraVideo.ValueBoolPointer()
+			}
 		}
 		if !config.AllowWatermarkForScreenSharing.IsNull() {
-			sp.AllowWatermarkForScreenSharing = plan.AllowWatermarkForScreenSharing.ValueBoolPointer()
+			if !plan.AllowWatermarkForScreenSharing.IsUnknown() {
+				sp.AllowWatermarkForScreenSharing = plan.AllowWatermarkForScreenSharing.ValueBoolPointer()
+			}
 		}
 		if !config.AllowWhiteboard.IsNull() {
-			sp.AllowWhiteboard = plan.AllowWhiteboard.ValueBoolPointer()
+			if !plan.AllowWhiteboard.IsUnknown() {
+				sp.AllowWhiteboard = plan.AllowWhiteboard.ValueBoolPointer()
+			}
 		}
 		if !config.AllowedStreamingMediaInput.IsNull() {
 			sp.AllowedStreamingMediaInput = plan.AllowedStreamingMediaInput.ValueString()
@@ -482,7 +558,9 @@ func (r *meetingPolicyResource) Create(ctx context.Context, req resource.CreateR
 			sp.ChannelRecordingDownload = plan.ChannelRecordingDownload.ValueString()
 		}
 		if !config.ConditionalAccessAttendeeVerification.IsNull() {
-			sp.ConditionalAccessAttendeeVerification = plan.ConditionalAccessAttendeeVerification.ValueBoolPointer()
+			if !plan.ConditionalAccessAttendeeVerification.IsUnknown() {
+				sp.ConditionalAccessAttendeeVerification = plan.ConditionalAccessAttendeeVerification.ValueBoolPointer()
+			}
 		}
 		if !config.ConnectToMeetingControls.IsNull() {
 			sp.ConnectToMeetingControls = plan.ConnectToMeetingControls.ValueString()
@@ -494,7 +572,9 @@ func (r *meetingPolicyResource) Create(ctx context.Context, req resource.CreateR
 			sp.Copilot = plan.Copilot.ValueString()
 		}
 		if !config.CopyRestriction.IsNull() {
-			sp.CopyRestriction = plan.CopyRestriction.ValueBoolPointer()
+			if !plan.CopyRestriction.IsUnknown() {
+				sp.CopyRestriction = plan.CopyRestriction.ValueBoolPointer()
+			}
 		}
 		if !config.Description.IsNull() {
 			sp.Description = plan.Description.ValueString()
@@ -503,16 +583,24 @@ func (r *meetingPolicyResource) Create(ctx context.Context, req resource.CreateR
 			sp.DesignatedPresenterRoleMode = plan.DesignatedPresenterRoleMode.ValueString()
 		}
 		if !config.DetectSensitiveContentDuringScreenSharing.IsNull() {
-			sp.DetectSensitiveContentDuringScreenSharing = plan.DetectSensitiveContentDuringScreenSharing.ValueBoolPointer()
+			if !plan.DetectSensitiveContentDuringScreenSharing.IsUnknown() {
+				sp.DetectSensitiveContentDuringScreenSharing = plan.DetectSensitiveContentDuringScreenSharing.ValueBoolPointer()
+			}
 		}
 		if !config.DisableAudioAnnouncementsForResourceAccounts.IsNull() {
-			sp.DisableAudioAnnouncementsForResourceAccounts = plan.DisableAudioAnnouncementsForResourceAccounts.ValueBoolPointer()
+			if !plan.DisableAudioAnnouncementsForResourceAccounts.IsUnknown() {
+				sp.DisableAudioAnnouncementsForResourceAccounts = plan.DisableAudioAnnouncementsForResourceAccounts.ValueBoolPointer()
+			}
 		}
 		if !config.EnablePreMeetingConsent.IsNull() {
-			sp.EnablePreMeetingConsent = plan.EnablePreMeetingConsent.ValueBoolPointer()
+			if !plan.EnablePreMeetingConsent.IsUnknown() {
+				sp.EnablePreMeetingConsent = plan.EnablePreMeetingConsent.ValueBoolPointer()
+			}
 		}
 		if !config.EnableRecordingAndTranscriptionCustomMessage.IsNull() {
-			sp.EnableRecordingAndTranscriptionCustomMessage = plan.EnableRecordingAndTranscriptionCustomMessage.ValueBoolPointer()
+			if !plan.EnableRecordingAndTranscriptionCustomMessage.IsUnknown() {
+				sp.EnableRecordingAndTranscriptionCustomMessage = plan.EnableRecordingAndTranscriptionCustomMessage.ValueBoolPointer()
+			}
 		}
 		if !config.EnrollUserOverride.IsNull() {
 			sp.EnrollUserOverride = plan.EnrollUserOverride.ValueString()
@@ -551,7 +639,9 @@ func (r *meetingPolicyResource) Create(ctx context.Context, req resource.CreateR
 			sp.LobbyChat = plan.LobbyChat.ValueString()
 		}
 		if !config.MediaBitRateKb.IsNull() {
-			sp.MediaBitRateKb = plan.MediaBitRateKb.ValueInt64Pointer()
+			if !plan.MediaBitRateKb.IsUnknown() {
+				sp.MediaBitRateKb = plan.MediaBitRateKb.ValueInt64Pointer()
+			}
 		}
 		if !config.MeetingChatEnabledType.IsNull() {
 			sp.MeetingChatEnabledType = plan.MeetingChatEnabledType.ValueString()
@@ -560,10 +650,14 @@ func (r *meetingPolicyResource) Create(ctx context.Context, req resource.CreateR
 			sp.MeetingInviteLanguages = plan.MeetingInviteLanguages.ValueString()
 		}
 		if !config.MeetingKnowledgeExpirationDays.IsNull() {
-			sp.MeetingKnowledgeExpirationDays = plan.MeetingKnowledgeExpirationDays.ValueInt64Pointer()
+			if !plan.MeetingKnowledgeExpirationDays.IsUnknown() {
+				sp.MeetingKnowledgeExpirationDays = plan.MeetingKnowledgeExpirationDays.ValueInt64Pointer()
+			}
 		}
 		if !config.NewMeetingRecordingExpirationDays.IsNull() {
-			sp.NewMeetingRecordingExpirationDays = plan.NewMeetingRecordingExpirationDays.ValueInt64Pointer()
+			if !plan.NewMeetingRecordingExpirationDays.IsUnknown() {
+				sp.NewMeetingRecordingExpirationDays = plan.NewMeetingRecordingExpirationDays.ValueInt64Pointer()
+			}
 		}
 		if !config.NoiseSuppressionForDialInParticipants.IsNull() {
 			sp.NoiseSuppressionForDialInParticipants = plan.NoiseSuppressionForDialInParticipants.ValueString()
@@ -647,13 +741,17 @@ func (r *meetingPolicyResource) Create(ctx context.Context, req resource.CreateR
 			sp.WatermarkForAnonymousUsers = plan.WatermarkForAnonymousUsers.ValueString()
 		}
 		if !config.WatermarkForCameraVideoOpacity.IsNull() {
-			sp.WatermarkForCameraVideoOpacity = plan.WatermarkForCameraVideoOpacity.ValueInt64Pointer()
+			if !plan.WatermarkForCameraVideoOpacity.IsUnknown() {
+				sp.WatermarkForCameraVideoOpacity = plan.WatermarkForCameraVideoOpacity.ValueInt64Pointer()
+			}
 		}
 		if !config.WatermarkForCameraVideoPattern.IsNull() {
 			sp.WatermarkForCameraVideoPattern = plan.WatermarkForCameraVideoPattern.ValueString()
 		}
 		if !config.WatermarkForScreenSharingOpacity.IsNull() {
-			sp.WatermarkForScreenSharingOpacity = plan.WatermarkForScreenSharingOpacity.ValueInt64Pointer()
+			if !plan.WatermarkForScreenSharingOpacity.IsUnknown() {
+				sp.WatermarkForScreenSharingOpacity = plan.WatermarkForScreenSharingOpacity.ValueInt64Pointer()
+			}
 		}
 		if !config.WatermarkForScreenSharingPattern.IsNull() {
 			sp.WatermarkForScreenSharingPattern = plan.WatermarkForScreenSharingPattern.ValueString()
@@ -664,7 +762,7 @@ func (r *meetingPolicyResource) Create(ctx context.Context, req resource.CreateR
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsMeetingPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-MeetingPolicy failed", err.Error())
 			return
 		}
@@ -685,34 +783,52 @@ func (r *meetingPolicyResource) Create(ctx context.Context, req resource.CreateR
 		p.AIInterpreter = plan.AIInterpreter.ValueString()
 	}
 	if !config.AllowAnnotations.IsNull() {
-		p.AllowAnnotations = plan.AllowAnnotations.ValueBoolPointer()
+		if !plan.AllowAnnotations.IsUnknown() {
+			p.AllowAnnotations = plan.AllowAnnotations.ValueBoolPointer()
+		}
 	}
 	if !config.AllowAnonymousUsersToDialOut.IsNull() {
-		p.AllowAnonymousUsersToDialOut = plan.AllowAnonymousUsersToDialOut.ValueBoolPointer()
+		if !plan.AllowAnonymousUsersToDialOut.IsUnknown() {
+			p.AllowAnonymousUsersToDialOut = plan.AllowAnonymousUsersToDialOut.ValueBoolPointer()
+		}
 	}
 	if !config.AllowAnonymousUsersToJoinMeeting.IsNull() {
-		p.AllowAnonymousUsersToJoinMeeting = plan.AllowAnonymousUsersToJoinMeeting.ValueBoolPointer()
+		if !plan.AllowAnonymousUsersToJoinMeeting.IsUnknown() {
+			p.AllowAnonymousUsersToJoinMeeting = plan.AllowAnonymousUsersToJoinMeeting.ValueBoolPointer()
+		}
 	}
 	if !config.AllowAnonymousUsersToStartMeeting.IsNull() {
-		p.AllowAnonymousUsersToStartMeeting = plan.AllowAnonymousUsersToStartMeeting.ValueBoolPointer()
+		if !plan.AllowAnonymousUsersToStartMeeting.IsUnknown() {
+			p.AllowAnonymousUsersToStartMeeting = plan.AllowAnonymousUsersToStartMeeting.ValueBoolPointer()
+		}
 	}
 	if !config.AllowAvatarsInGallery.IsNull() {
-		p.AllowAvatarsInGallery = plan.AllowAvatarsInGallery.ValueBoolPointer()
+		if !plan.AllowAvatarsInGallery.IsUnknown() {
+			p.AllowAvatarsInGallery = plan.AllowAvatarsInGallery.ValueBoolPointer()
+		}
 	}
 	if !config.AllowBreakoutRooms.IsNull() {
-		p.AllowBreakoutRooms = plan.AllowBreakoutRooms.ValueBoolPointer()
+		if !plan.AllowBreakoutRooms.IsUnknown() {
+			p.AllowBreakoutRooms = plan.AllowBreakoutRooms.ValueBoolPointer()
+		}
 	}
 	if !config.AllowCarbonSummary.IsNull() {
-		p.AllowCarbonSummary = plan.AllowCarbonSummary.ValueBoolPointer()
+		if !plan.AllowCarbonSummary.IsUnknown() {
+			p.AllowCarbonSummary = plan.AllowCarbonSummary.ValueBoolPointer()
+		}
 	}
 	if !config.AllowCartCaptionsScheduling.IsNull() {
 		p.AllowCartCaptionsScheduling = plan.AllowCartCaptionsScheduling.ValueString()
 	}
 	if !config.AllowChannelMeetingScheduling.IsNull() {
-		p.AllowChannelMeetingScheduling = plan.AllowChannelMeetingScheduling.ValueBoolPointer()
+		if !plan.AllowChannelMeetingScheduling.IsUnknown() {
+			p.AllowChannelMeetingScheduling = plan.AllowChannelMeetingScheduling.ValueBoolPointer()
+		}
 	}
 	if !config.AllowCloudRecording.IsNull() {
-		p.AllowCloudRecording = plan.AllowCloudRecording.ValueBoolPointer()
+		if !plan.AllowCloudRecording.IsUnknown() {
+			p.AllowCloudRecording = plan.AllowCloudRecording.ValueBoolPointer()
+		}
 	}
 	if !config.AllowDocumentCollaboration.IsNull() {
 		p.AllowDocumentCollaboration = plan.AllowDocumentCollaboration.ValueString()
@@ -721,76 +837,122 @@ func (r *meetingPolicyResource) Create(ctx context.Context, req resource.CreateR
 		p.AllowEngagementReport = plan.AllowEngagementReport.ValueString()
 	}
 	if !config.AllowExternalNonTrustedMeetingChat.IsNull() {
-		p.AllowExternalNonTrustedMeetingChat = plan.AllowExternalNonTrustedMeetingChat.ValueBoolPointer()
+		if !plan.AllowExternalNonTrustedMeetingChat.IsUnknown() {
+			p.AllowExternalNonTrustedMeetingChat = plan.AllowExternalNonTrustedMeetingChat.ValueBoolPointer()
+		}
 	}
 	if !config.AllowExternalParticipantGiveRequestControl.IsNull() {
-		p.AllowExternalParticipantGiveRequestControl = plan.AllowExternalParticipantGiveRequestControl.ValueBoolPointer()
+		if !plan.AllowExternalParticipantGiveRequestControl.IsUnknown() {
+			p.AllowExternalParticipantGiveRequestControl = plan.AllowExternalParticipantGiveRequestControl.ValueBoolPointer()
+		}
 	}
 	if !config.AllowIPAudio.IsNull() {
-		p.AllowIPAudio = plan.AllowIPAudio.ValueBoolPointer()
+		if !plan.AllowIPAudio.IsUnknown() {
+			p.AllowIPAudio = plan.AllowIPAudio.ValueBoolPointer()
+		}
 	}
 	if !config.AllowIPVideo.IsNull() {
-		p.AllowIPVideo = plan.AllowIPVideo.ValueBoolPointer()
+		if !plan.AllowIPVideo.IsUnknown() {
+			p.AllowIPVideo = plan.AllowIPVideo.ValueBoolPointer()
+		}
 	}
 	if !config.AllowImmersiveView.IsNull() {
-		p.AllowImmersiveView = plan.AllowImmersiveView.ValueBoolPointer()
+		if !plan.AllowImmersiveView.IsUnknown() {
+			p.AllowImmersiveView = plan.AllowImmersiveView.ValueBoolPointer()
+		}
 	}
 	if !config.AllowLocalRecording.IsNull() {
-		p.AllowLocalRecording = plan.AllowLocalRecording.ValueBoolPointer()
+		if !plan.AllowLocalRecording.IsUnknown() {
+			p.AllowLocalRecording = plan.AllowLocalRecording.ValueBoolPointer()
+		}
 	}
 	if !config.AllowMeetNow.IsNull() {
-		p.AllowMeetNow = plan.AllowMeetNow.ValueBoolPointer()
+		if !plan.AllowMeetNow.IsUnknown() {
+			p.AllowMeetNow = plan.AllowMeetNow.ValueBoolPointer()
+		}
 	}
 	if !config.AllowMeetingCoach.IsNull() {
-		p.AllowMeetingCoach = plan.AllowMeetingCoach.ValueBoolPointer()
+		if !plan.AllowMeetingCoach.IsUnknown() {
+			p.AllowMeetingCoach = plan.AllowMeetingCoach.ValueBoolPointer()
+		}
 	}
 	if !config.AllowMeetingKnowledgeGeneration.IsNull() {
-		p.AllowMeetingKnowledgeGeneration = plan.AllowMeetingKnowledgeGeneration.ValueBoolPointer()
+		if !plan.AllowMeetingKnowledgeGeneration.IsUnknown() {
+			p.AllowMeetingKnowledgeGeneration = plan.AllowMeetingKnowledgeGeneration.ValueBoolPointer()
+		}
 	}
 	if !config.AllowMeetingReactions.IsNull() {
-		p.AllowMeetingReactions = plan.AllowMeetingReactions.ValueBoolPointer()
+		if !plan.AllowMeetingReactions.IsUnknown() {
+			p.AllowMeetingReactions = plan.AllowMeetingReactions.ValueBoolPointer()
+		}
 	}
 	if !config.AllowMeetingRegistration.IsNull() {
-		p.AllowMeetingRegistration = plan.AllowMeetingRegistration.ValueBoolPointer()
+		if !plan.AllowMeetingRegistration.IsUnknown() {
+			p.AllowMeetingRegistration = plan.AllowMeetingRegistration.ValueBoolPointer()
+		}
 	}
 	if !config.AllowMultipleScreenshare.IsNull() {
-		p.AllowMultipleScreenshare = plan.AllowMultipleScreenshare.ValueBoolPointer()
+		if !plan.AllowMultipleScreenshare.IsUnknown() {
+			p.AllowMultipleScreenshare = plan.AllowMultipleScreenshare.ValueBoolPointer()
+		}
 	}
 	if !config.AllowNDIStreaming.IsNull() {
-		p.AllowNDIStreaming = plan.AllowNDIStreaming.ValueBoolPointer()
+		if !plan.AllowNDIStreaming.IsUnknown() {
+			p.AllowNDIStreaming = plan.AllowNDIStreaming.ValueBoolPointer()
+		}
 	}
 	if !config.AllowNetworkConfigurationSettingsLookup.IsNull() {
-		p.AllowNetworkConfigurationSettingsLookup = plan.AllowNetworkConfigurationSettingsLookup.ValueBoolPointer()
+		if !plan.AllowNetworkConfigurationSettingsLookup.IsUnknown() {
+			p.AllowNetworkConfigurationSettingsLookup = plan.AllowNetworkConfigurationSettingsLookup.ValueBoolPointer()
+		}
 	}
 	if !config.AllowOrganizersToOverrideLobbySettings.IsNull() {
-		p.AllowOrganizersToOverrideLobbySettings = plan.AllowOrganizersToOverrideLobbySettings.ValueBoolPointer()
+		if !plan.AllowOrganizersToOverrideLobbySettings.IsUnknown() {
+			p.AllowOrganizersToOverrideLobbySettings = plan.AllowOrganizersToOverrideLobbySettings.ValueBoolPointer()
+		}
 	}
 	if !config.AllowOutlookAddIn.IsNull() {
-		p.AllowOutlookAddIn = plan.AllowOutlookAddIn.ValueBoolPointer()
+		if !plan.AllowOutlookAddIn.IsUnknown() {
+			p.AllowOutlookAddIn = plan.AllowOutlookAddIn.ValueBoolPointer()
+		}
 	}
 	if !config.AllowPSTNUsersToBypassLobby.IsNull() {
-		p.AllowPSTNUsersToBypassLobby = plan.AllowPSTNUsersToBypassLobby.ValueBoolPointer()
+		if !plan.AllowPSTNUsersToBypassLobby.IsUnknown() {
+			p.AllowPSTNUsersToBypassLobby = plan.AllowPSTNUsersToBypassLobby.ValueBoolPointer()
+		}
 	}
 	if !config.AllowParticipantGiveRequestControl.IsNull() {
-		p.AllowParticipantGiveRequestControl = plan.AllowParticipantGiveRequestControl.ValueBoolPointer()
+		if !plan.AllowParticipantGiveRequestControl.IsUnknown() {
+			p.AllowParticipantGiveRequestControl = plan.AllowParticipantGiveRequestControl.ValueBoolPointer()
+		}
 	}
 	if !config.AllowPowerPointSharing.IsNull() {
-		p.AllowPowerPointSharing = plan.AllowPowerPointSharing.ValueBoolPointer()
+		if !plan.AllowPowerPointSharing.IsUnknown() {
+			p.AllowPowerPointSharing = plan.AllowPowerPointSharing.ValueBoolPointer()
+		}
 	}
 	if !config.AllowPrivateMeetNow.IsNull() {
-		p.AllowPrivateMeetNow = plan.AllowPrivateMeetNow.ValueBoolPointer()
+		if !plan.AllowPrivateMeetNow.IsUnknown() {
+			p.AllowPrivateMeetNow = plan.AllowPrivateMeetNow.ValueBoolPointer()
+		}
 	}
 	if !config.AllowPrivateMeetingScheduling.IsNull() {
-		p.AllowPrivateMeetingScheduling = plan.AllowPrivateMeetingScheduling.ValueBoolPointer()
+		if !plan.AllowPrivateMeetingScheduling.IsUnknown() {
+			p.AllowPrivateMeetingScheduling = plan.AllowPrivateMeetingScheduling.ValueBoolPointer()
+		}
 	}
 	if !config.AllowRecordingStorageOutsideRegion.IsNull() {
-		p.AllowRecordingStorageOutsideRegion = plan.AllowRecordingStorageOutsideRegion.ValueBoolPointer()
+		if !plan.AllowRecordingStorageOutsideRegion.IsUnknown() {
+			p.AllowRecordingStorageOutsideRegion = plan.AllowRecordingStorageOutsideRegion.ValueBoolPointer()
+		}
 	}
 	if !config.AllowScreenContentDigitization.IsNull() {
 		p.AllowScreenContentDigitization = plan.AllowScreenContentDigitization.ValueString()
 	}
 	if !config.AllowSharedNotes.IsNull() {
-		p.AllowSharedNotes = plan.AllowSharedNotes.ValueBoolPointer()
+		if !plan.AllowSharedNotes.IsUnknown() {
+			p.AllowSharedNotes = plan.AllowSharedNotes.ValueBoolPointer()
+		}
 	}
 	if !config.AllowTasksFromTranscript.IsNull() {
 		p.AllowTasksFromTranscript = plan.AllowTasksFromTranscript.ValueString()
@@ -799,22 +961,34 @@ func (r *meetingPolicyResource) Create(ctx context.Context, req resource.CreateR
 		p.AllowTrackingInReport = plan.AllowTrackingInReport.ValueString()
 	}
 	if !config.AllowTranscription.IsNull() {
-		p.AllowTranscription = plan.AllowTranscription.ValueBoolPointer()
+		if !plan.AllowTranscription.IsUnknown() {
+			p.AllowTranscription = plan.AllowTranscription.ValueBoolPointer()
+		}
 	}
 	if !config.AllowWatermarkCustomizationForCameraVideo.IsNull() {
-		p.AllowWatermarkCustomizationForCameraVideo = plan.AllowWatermarkCustomizationForCameraVideo.ValueBoolPointer()
+		if !plan.AllowWatermarkCustomizationForCameraVideo.IsUnknown() {
+			p.AllowWatermarkCustomizationForCameraVideo = plan.AllowWatermarkCustomizationForCameraVideo.ValueBoolPointer()
+		}
 	}
 	if !config.AllowWatermarkCustomizationForScreenSharing.IsNull() {
-		p.AllowWatermarkCustomizationForScreenSharing = plan.AllowWatermarkCustomizationForScreenSharing.ValueBoolPointer()
+		if !plan.AllowWatermarkCustomizationForScreenSharing.IsUnknown() {
+			p.AllowWatermarkCustomizationForScreenSharing = plan.AllowWatermarkCustomizationForScreenSharing.ValueBoolPointer()
+		}
 	}
 	if !config.AllowWatermarkForCameraVideo.IsNull() {
-		p.AllowWatermarkForCameraVideo = plan.AllowWatermarkForCameraVideo.ValueBoolPointer()
+		if !plan.AllowWatermarkForCameraVideo.IsUnknown() {
+			p.AllowWatermarkForCameraVideo = plan.AllowWatermarkForCameraVideo.ValueBoolPointer()
+		}
 	}
 	if !config.AllowWatermarkForScreenSharing.IsNull() {
-		p.AllowWatermarkForScreenSharing = plan.AllowWatermarkForScreenSharing.ValueBoolPointer()
+		if !plan.AllowWatermarkForScreenSharing.IsUnknown() {
+			p.AllowWatermarkForScreenSharing = plan.AllowWatermarkForScreenSharing.ValueBoolPointer()
+		}
 	}
 	if !config.AllowWhiteboard.IsNull() {
-		p.AllowWhiteboard = plan.AllowWhiteboard.ValueBoolPointer()
+		if !plan.AllowWhiteboard.IsUnknown() {
+			p.AllowWhiteboard = plan.AllowWhiteboard.ValueBoolPointer()
+		}
 	}
 	if !config.AllowedStreamingMediaInput.IsNull() {
 		p.AllowedStreamingMediaInput = plan.AllowedStreamingMediaInput.ValueString()
@@ -853,7 +1027,9 @@ func (r *meetingPolicyResource) Create(ctx context.Context, req resource.CreateR
 		p.ChannelRecordingDownload = plan.ChannelRecordingDownload.ValueString()
 	}
 	if !config.ConditionalAccessAttendeeVerification.IsNull() {
-		p.ConditionalAccessAttendeeVerification = plan.ConditionalAccessAttendeeVerification.ValueBoolPointer()
+		if !plan.ConditionalAccessAttendeeVerification.IsUnknown() {
+			p.ConditionalAccessAttendeeVerification = plan.ConditionalAccessAttendeeVerification.ValueBoolPointer()
+		}
 	}
 	if !config.ConnectToMeetingControls.IsNull() {
 		p.ConnectToMeetingControls = plan.ConnectToMeetingControls.ValueString()
@@ -865,7 +1041,9 @@ func (r *meetingPolicyResource) Create(ctx context.Context, req resource.CreateR
 		p.Copilot = plan.Copilot.ValueString()
 	}
 	if !config.CopyRestriction.IsNull() {
-		p.CopyRestriction = plan.CopyRestriction.ValueBoolPointer()
+		if !plan.CopyRestriction.IsUnknown() {
+			p.CopyRestriction = plan.CopyRestriction.ValueBoolPointer()
+		}
 	}
 	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
@@ -874,16 +1052,24 @@ func (r *meetingPolicyResource) Create(ctx context.Context, req resource.CreateR
 		p.DesignatedPresenterRoleMode = plan.DesignatedPresenterRoleMode.ValueString()
 	}
 	if !config.DetectSensitiveContentDuringScreenSharing.IsNull() {
-		p.DetectSensitiveContentDuringScreenSharing = plan.DetectSensitiveContentDuringScreenSharing.ValueBoolPointer()
+		if !plan.DetectSensitiveContentDuringScreenSharing.IsUnknown() {
+			p.DetectSensitiveContentDuringScreenSharing = plan.DetectSensitiveContentDuringScreenSharing.ValueBoolPointer()
+		}
 	}
 	if !config.DisableAudioAnnouncementsForResourceAccounts.IsNull() {
-		p.DisableAudioAnnouncementsForResourceAccounts = plan.DisableAudioAnnouncementsForResourceAccounts.ValueBoolPointer()
+		if !plan.DisableAudioAnnouncementsForResourceAccounts.IsUnknown() {
+			p.DisableAudioAnnouncementsForResourceAccounts = plan.DisableAudioAnnouncementsForResourceAccounts.ValueBoolPointer()
+		}
 	}
 	if !config.EnablePreMeetingConsent.IsNull() {
-		p.EnablePreMeetingConsent = plan.EnablePreMeetingConsent.ValueBoolPointer()
+		if !plan.EnablePreMeetingConsent.IsUnknown() {
+			p.EnablePreMeetingConsent = plan.EnablePreMeetingConsent.ValueBoolPointer()
+		}
 	}
 	if !config.EnableRecordingAndTranscriptionCustomMessage.IsNull() {
-		p.EnableRecordingAndTranscriptionCustomMessage = plan.EnableRecordingAndTranscriptionCustomMessage.ValueBoolPointer()
+		if !plan.EnableRecordingAndTranscriptionCustomMessage.IsUnknown() {
+			p.EnableRecordingAndTranscriptionCustomMessage = plan.EnableRecordingAndTranscriptionCustomMessage.ValueBoolPointer()
+		}
 	}
 	if !config.EnrollUserOverride.IsNull() {
 		p.EnrollUserOverride = plan.EnrollUserOverride.ValueString()
@@ -922,7 +1108,9 @@ func (r *meetingPolicyResource) Create(ctx context.Context, req resource.CreateR
 		p.LobbyChat = plan.LobbyChat.ValueString()
 	}
 	if !config.MediaBitRateKb.IsNull() {
-		p.MediaBitRateKb = plan.MediaBitRateKb.ValueInt64Pointer()
+		if !plan.MediaBitRateKb.IsUnknown() {
+			p.MediaBitRateKb = plan.MediaBitRateKb.ValueInt64Pointer()
+		}
 	}
 	if !config.MeetingChatEnabledType.IsNull() {
 		p.MeetingChatEnabledType = plan.MeetingChatEnabledType.ValueString()
@@ -931,10 +1119,14 @@ func (r *meetingPolicyResource) Create(ctx context.Context, req resource.CreateR
 		p.MeetingInviteLanguages = plan.MeetingInviteLanguages.ValueString()
 	}
 	if !config.MeetingKnowledgeExpirationDays.IsNull() {
-		p.MeetingKnowledgeExpirationDays = plan.MeetingKnowledgeExpirationDays.ValueInt64Pointer()
+		if !plan.MeetingKnowledgeExpirationDays.IsUnknown() {
+			p.MeetingKnowledgeExpirationDays = plan.MeetingKnowledgeExpirationDays.ValueInt64Pointer()
+		}
 	}
 	if !config.NewMeetingRecordingExpirationDays.IsNull() {
-		p.NewMeetingRecordingExpirationDays = plan.NewMeetingRecordingExpirationDays.ValueInt64Pointer()
+		if !plan.NewMeetingRecordingExpirationDays.IsUnknown() {
+			p.NewMeetingRecordingExpirationDays = plan.NewMeetingRecordingExpirationDays.ValueInt64Pointer()
+		}
 	}
 	if !config.NoiseSuppressionForDialInParticipants.IsNull() {
 		p.NoiseSuppressionForDialInParticipants = plan.NoiseSuppressionForDialInParticipants.ValueString()
@@ -1018,13 +1210,17 @@ func (r *meetingPolicyResource) Create(ctx context.Context, req resource.CreateR
 		p.WatermarkForAnonymousUsers = plan.WatermarkForAnonymousUsers.ValueString()
 	}
 	if !config.WatermarkForCameraVideoOpacity.IsNull() {
-		p.WatermarkForCameraVideoOpacity = plan.WatermarkForCameraVideoOpacity.ValueInt64Pointer()
+		if !plan.WatermarkForCameraVideoOpacity.IsUnknown() {
+			p.WatermarkForCameraVideoOpacity = plan.WatermarkForCameraVideoOpacity.ValueInt64Pointer()
+		}
 	}
 	if !config.WatermarkForCameraVideoPattern.IsNull() {
 		p.WatermarkForCameraVideoPattern = plan.WatermarkForCameraVideoPattern.ValueString()
 	}
 	if !config.WatermarkForScreenSharingOpacity.IsNull() {
-		p.WatermarkForScreenSharingOpacity = plan.WatermarkForScreenSharingOpacity.ValueInt64Pointer()
+		if !plan.WatermarkForScreenSharingOpacity.IsUnknown() {
+			p.WatermarkForScreenSharingOpacity = plan.WatermarkForScreenSharingOpacity.ValueInt64Pointer()
+		}
 	}
 	if !config.WatermarkForScreenSharingPattern.IsNull() {
 		p.WatermarkForScreenSharingPattern = plan.WatermarkForScreenSharingPattern.ValueString()
@@ -1036,7 +1232,7 @@ func (r *meetingPolicyResource) Create(ctx context.Context, req resource.CreateR
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsMeetingPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsMeetingPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-MeetingPolicy failed", err.Error())
 		return
@@ -1087,34 +1283,52 @@ func (r *meetingPolicyResource) Update(ctx context.Context, req resource.UpdateR
 		sp.AIInterpreter = plan.AIInterpreter.ValueString()
 	}
 	if !plan.AllowAnnotations.Equal(state.AllowAnnotations) {
-		sp.AllowAnnotations = plan.AllowAnnotations.ValueBoolPointer()
+		if !plan.AllowAnnotations.IsUnknown() {
+			sp.AllowAnnotations = plan.AllowAnnotations.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowAnonymousUsersToDialOut.Equal(state.AllowAnonymousUsersToDialOut) {
-		sp.AllowAnonymousUsersToDialOut = plan.AllowAnonymousUsersToDialOut.ValueBoolPointer()
+		if !plan.AllowAnonymousUsersToDialOut.IsUnknown() {
+			sp.AllowAnonymousUsersToDialOut = plan.AllowAnonymousUsersToDialOut.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowAnonymousUsersToJoinMeeting.Equal(state.AllowAnonymousUsersToJoinMeeting) {
-		sp.AllowAnonymousUsersToJoinMeeting = plan.AllowAnonymousUsersToJoinMeeting.ValueBoolPointer()
+		if !plan.AllowAnonymousUsersToJoinMeeting.IsUnknown() {
+			sp.AllowAnonymousUsersToJoinMeeting = plan.AllowAnonymousUsersToJoinMeeting.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowAnonymousUsersToStartMeeting.Equal(state.AllowAnonymousUsersToStartMeeting) {
-		sp.AllowAnonymousUsersToStartMeeting = plan.AllowAnonymousUsersToStartMeeting.ValueBoolPointer()
+		if !plan.AllowAnonymousUsersToStartMeeting.IsUnknown() {
+			sp.AllowAnonymousUsersToStartMeeting = plan.AllowAnonymousUsersToStartMeeting.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowAvatarsInGallery.Equal(state.AllowAvatarsInGallery) {
-		sp.AllowAvatarsInGallery = plan.AllowAvatarsInGallery.ValueBoolPointer()
+		if !plan.AllowAvatarsInGallery.IsUnknown() {
+			sp.AllowAvatarsInGallery = plan.AllowAvatarsInGallery.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowBreakoutRooms.Equal(state.AllowBreakoutRooms) {
-		sp.AllowBreakoutRooms = plan.AllowBreakoutRooms.ValueBoolPointer()
+		if !plan.AllowBreakoutRooms.IsUnknown() {
+			sp.AllowBreakoutRooms = plan.AllowBreakoutRooms.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowCarbonSummary.Equal(state.AllowCarbonSummary) {
-		sp.AllowCarbonSummary = plan.AllowCarbonSummary.ValueBoolPointer()
+		if !plan.AllowCarbonSummary.IsUnknown() {
+			sp.AllowCarbonSummary = plan.AllowCarbonSummary.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowCartCaptionsScheduling.Equal(state.AllowCartCaptionsScheduling) {
 		sp.AllowCartCaptionsScheduling = plan.AllowCartCaptionsScheduling.ValueString()
 	}
 	if !plan.AllowChannelMeetingScheduling.Equal(state.AllowChannelMeetingScheduling) {
-		sp.AllowChannelMeetingScheduling = plan.AllowChannelMeetingScheduling.ValueBoolPointer()
+		if !plan.AllowChannelMeetingScheduling.IsUnknown() {
+			sp.AllowChannelMeetingScheduling = plan.AllowChannelMeetingScheduling.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowCloudRecording.Equal(state.AllowCloudRecording) {
-		sp.AllowCloudRecording = plan.AllowCloudRecording.ValueBoolPointer()
+		if !plan.AllowCloudRecording.IsUnknown() {
+			sp.AllowCloudRecording = plan.AllowCloudRecording.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowDocumentCollaboration.Equal(state.AllowDocumentCollaboration) {
 		sp.AllowDocumentCollaboration = plan.AllowDocumentCollaboration.ValueString()
@@ -1123,76 +1337,122 @@ func (r *meetingPolicyResource) Update(ctx context.Context, req resource.UpdateR
 		sp.AllowEngagementReport = plan.AllowEngagementReport.ValueString()
 	}
 	if !plan.AllowExternalNonTrustedMeetingChat.Equal(state.AllowExternalNonTrustedMeetingChat) {
-		sp.AllowExternalNonTrustedMeetingChat = plan.AllowExternalNonTrustedMeetingChat.ValueBoolPointer()
+		if !plan.AllowExternalNonTrustedMeetingChat.IsUnknown() {
+			sp.AllowExternalNonTrustedMeetingChat = plan.AllowExternalNonTrustedMeetingChat.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowExternalParticipantGiveRequestControl.Equal(state.AllowExternalParticipantGiveRequestControl) {
-		sp.AllowExternalParticipantGiveRequestControl = plan.AllowExternalParticipantGiveRequestControl.ValueBoolPointer()
+		if !plan.AllowExternalParticipantGiveRequestControl.IsUnknown() {
+			sp.AllowExternalParticipantGiveRequestControl = plan.AllowExternalParticipantGiveRequestControl.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowIPAudio.Equal(state.AllowIPAudio) {
-		sp.AllowIPAudio = plan.AllowIPAudio.ValueBoolPointer()
+		if !plan.AllowIPAudio.IsUnknown() {
+			sp.AllowIPAudio = plan.AllowIPAudio.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowIPVideo.Equal(state.AllowIPVideo) {
-		sp.AllowIPVideo = plan.AllowIPVideo.ValueBoolPointer()
+		if !plan.AllowIPVideo.IsUnknown() {
+			sp.AllowIPVideo = plan.AllowIPVideo.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowImmersiveView.Equal(state.AllowImmersiveView) {
-		sp.AllowImmersiveView = plan.AllowImmersiveView.ValueBoolPointer()
+		if !plan.AllowImmersiveView.IsUnknown() {
+			sp.AllowImmersiveView = plan.AllowImmersiveView.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowLocalRecording.Equal(state.AllowLocalRecording) {
-		sp.AllowLocalRecording = plan.AllowLocalRecording.ValueBoolPointer()
+		if !plan.AllowLocalRecording.IsUnknown() {
+			sp.AllowLocalRecording = plan.AllowLocalRecording.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowMeetNow.Equal(state.AllowMeetNow) {
-		sp.AllowMeetNow = plan.AllowMeetNow.ValueBoolPointer()
+		if !plan.AllowMeetNow.IsUnknown() {
+			sp.AllowMeetNow = plan.AllowMeetNow.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowMeetingCoach.Equal(state.AllowMeetingCoach) {
-		sp.AllowMeetingCoach = plan.AllowMeetingCoach.ValueBoolPointer()
+		if !plan.AllowMeetingCoach.IsUnknown() {
+			sp.AllowMeetingCoach = plan.AllowMeetingCoach.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowMeetingKnowledgeGeneration.Equal(state.AllowMeetingKnowledgeGeneration) {
-		sp.AllowMeetingKnowledgeGeneration = plan.AllowMeetingKnowledgeGeneration.ValueBoolPointer()
+		if !plan.AllowMeetingKnowledgeGeneration.IsUnknown() {
+			sp.AllowMeetingKnowledgeGeneration = plan.AllowMeetingKnowledgeGeneration.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowMeetingReactions.Equal(state.AllowMeetingReactions) {
-		sp.AllowMeetingReactions = plan.AllowMeetingReactions.ValueBoolPointer()
+		if !plan.AllowMeetingReactions.IsUnknown() {
+			sp.AllowMeetingReactions = plan.AllowMeetingReactions.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowMeetingRegistration.Equal(state.AllowMeetingRegistration) {
-		sp.AllowMeetingRegistration = plan.AllowMeetingRegistration.ValueBoolPointer()
+		if !plan.AllowMeetingRegistration.IsUnknown() {
+			sp.AllowMeetingRegistration = plan.AllowMeetingRegistration.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowMultipleScreenshare.Equal(state.AllowMultipleScreenshare) {
-		sp.AllowMultipleScreenshare = plan.AllowMultipleScreenshare.ValueBoolPointer()
+		if !plan.AllowMultipleScreenshare.IsUnknown() {
+			sp.AllowMultipleScreenshare = plan.AllowMultipleScreenshare.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowNDIStreaming.Equal(state.AllowNDIStreaming) {
-		sp.AllowNDIStreaming = plan.AllowNDIStreaming.ValueBoolPointer()
+		if !plan.AllowNDIStreaming.IsUnknown() {
+			sp.AllowNDIStreaming = plan.AllowNDIStreaming.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowNetworkConfigurationSettingsLookup.Equal(state.AllowNetworkConfigurationSettingsLookup) {
-		sp.AllowNetworkConfigurationSettingsLookup = plan.AllowNetworkConfigurationSettingsLookup.ValueBoolPointer()
+		if !plan.AllowNetworkConfigurationSettingsLookup.IsUnknown() {
+			sp.AllowNetworkConfigurationSettingsLookup = plan.AllowNetworkConfigurationSettingsLookup.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowOrganizersToOverrideLobbySettings.Equal(state.AllowOrganizersToOverrideLobbySettings) {
-		sp.AllowOrganizersToOverrideLobbySettings = plan.AllowOrganizersToOverrideLobbySettings.ValueBoolPointer()
+		if !plan.AllowOrganizersToOverrideLobbySettings.IsUnknown() {
+			sp.AllowOrganizersToOverrideLobbySettings = plan.AllowOrganizersToOverrideLobbySettings.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowOutlookAddIn.Equal(state.AllowOutlookAddIn) {
-		sp.AllowOutlookAddIn = plan.AllowOutlookAddIn.ValueBoolPointer()
+		if !plan.AllowOutlookAddIn.IsUnknown() {
+			sp.AllowOutlookAddIn = plan.AllowOutlookAddIn.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowPSTNUsersToBypassLobby.Equal(state.AllowPSTNUsersToBypassLobby) {
-		sp.AllowPSTNUsersToBypassLobby = plan.AllowPSTNUsersToBypassLobby.ValueBoolPointer()
+		if !plan.AllowPSTNUsersToBypassLobby.IsUnknown() {
+			sp.AllowPSTNUsersToBypassLobby = plan.AllowPSTNUsersToBypassLobby.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowParticipantGiveRequestControl.Equal(state.AllowParticipantGiveRequestControl) {
-		sp.AllowParticipantGiveRequestControl = plan.AllowParticipantGiveRequestControl.ValueBoolPointer()
+		if !plan.AllowParticipantGiveRequestControl.IsUnknown() {
+			sp.AllowParticipantGiveRequestControl = plan.AllowParticipantGiveRequestControl.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowPowerPointSharing.Equal(state.AllowPowerPointSharing) {
-		sp.AllowPowerPointSharing = plan.AllowPowerPointSharing.ValueBoolPointer()
+		if !plan.AllowPowerPointSharing.IsUnknown() {
+			sp.AllowPowerPointSharing = plan.AllowPowerPointSharing.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowPrivateMeetNow.Equal(state.AllowPrivateMeetNow) {
-		sp.AllowPrivateMeetNow = plan.AllowPrivateMeetNow.ValueBoolPointer()
+		if !plan.AllowPrivateMeetNow.IsUnknown() {
+			sp.AllowPrivateMeetNow = plan.AllowPrivateMeetNow.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowPrivateMeetingScheduling.Equal(state.AllowPrivateMeetingScheduling) {
-		sp.AllowPrivateMeetingScheduling = plan.AllowPrivateMeetingScheduling.ValueBoolPointer()
+		if !plan.AllowPrivateMeetingScheduling.IsUnknown() {
+			sp.AllowPrivateMeetingScheduling = plan.AllowPrivateMeetingScheduling.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowRecordingStorageOutsideRegion.Equal(state.AllowRecordingStorageOutsideRegion) {
-		sp.AllowRecordingStorageOutsideRegion = plan.AllowRecordingStorageOutsideRegion.ValueBoolPointer()
+		if !plan.AllowRecordingStorageOutsideRegion.IsUnknown() {
+			sp.AllowRecordingStorageOutsideRegion = plan.AllowRecordingStorageOutsideRegion.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowScreenContentDigitization.Equal(state.AllowScreenContentDigitization) {
 		sp.AllowScreenContentDigitization = plan.AllowScreenContentDigitization.ValueString()
 	}
 	if !plan.AllowSharedNotes.Equal(state.AllowSharedNotes) {
-		sp.AllowSharedNotes = plan.AllowSharedNotes.ValueBoolPointer()
+		if !plan.AllowSharedNotes.IsUnknown() {
+			sp.AllowSharedNotes = plan.AllowSharedNotes.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowTasksFromTranscript.Equal(state.AllowTasksFromTranscript) {
 		sp.AllowTasksFromTranscript = plan.AllowTasksFromTranscript.ValueString()
@@ -1201,22 +1461,34 @@ func (r *meetingPolicyResource) Update(ctx context.Context, req resource.UpdateR
 		sp.AllowTrackingInReport = plan.AllowTrackingInReport.ValueString()
 	}
 	if !plan.AllowTranscription.Equal(state.AllowTranscription) {
-		sp.AllowTranscription = plan.AllowTranscription.ValueBoolPointer()
+		if !plan.AllowTranscription.IsUnknown() {
+			sp.AllowTranscription = plan.AllowTranscription.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowWatermarkCustomizationForCameraVideo.Equal(state.AllowWatermarkCustomizationForCameraVideo) {
-		sp.AllowWatermarkCustomizationForCameraVideo = plan.AllowWatermarkCustomizationForCameraVideo.ValueBoolPointer()
+		if !plan.AllowWatermarkCustomizationForCameraVideo.IsUnknown() {
+			sp.AllowWatermarkCustomizationForCameraVideo = plan.AllowWatermarkCustomizationForCameraVideo.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowWatermarkCustomizationForScreenSharing.Equal(state.AllowWatermarkCustomizationForScreenSharing) {
-		sp.AllowWatermarkCustomizationForScreenSharing = plan.AllowWatermarkCustomizationForScreenSharing.ValueBoolPointer()
+		if !plan.AllowWatermarkCustomizationForScreenSharing.IsUnknown() {
+			sp.AllowWatermarkCustomizationForScreenSharing = plan.AllowWatermarkCustomizationForScreenSharing.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowWatermarkForCameraVideo.Equal(state.AllowWatermarkForCameraVideo) {
-		sp.AllowWatermarkForCameraVideo = plan.AllowWatermarkForCameraVideo.ValueBoolPointer()
+		if !plan.AllowWatermarkForCameraVideo.IsUnknown() {
+			sp.AllowWatermarkForCameraVideo = plan.AllowWatermarkForCameraVideo.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowWatermarkForScreenSharing.Equal(state.AllowWatermarkForScreenSharing) {
-		sp.AllowWatermarkForScreenSharing = plan.AllowWatermarkForScreenSharing.ValueBoolPointer()
+		if !plan.AllowWatermarkForScreenSharing.IsUnknown() {
+			sp.AllowWatermarkForScreenSharing = plan.AllowWatermarkForScreenSharing.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowWhiteboard.Equal(state.AllowWhiteboard) {
-		sp.AllowWhiteboard = plan.AllowWhiteboard.ValueBoolPointer()
+		if !plan.AllowWhiteboard.IsUnknown() {
+			sp.AllowWhiteboard = plan.AllowWhiteboard.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowedStreamingMediaInput.Equal(state.AllowedStreamingMediaInput) {
 		sp.AllowedStreamingMediaInput = plan.AllowedStreamingMediaInput.ValueString()
@@ -1255,7 +1527,9 @@ func (r *meetingPolicyResource) Update(ctx context.Context, req resource.UpdateR
 		sp.ChannelRecordingDownload = plan.ChannelRecordingDownload.ValueString()
 	}
 	if !plan.ConditionalAccessAttendeeVerification.Equal(state.ConditionalAccessAttendeeVerification) {
-		sp.ConditionalAccessAttendeeVerification = plan.ConditionalAccessAttendeeVerification.ValueBoolPointer()
+		if !plan.ConditionalAccessAttendeeVerification.IsUnknown() {
+			sp.ConditionalAccessAttendeeVerification = plan.ConditionalAccessAttendeeVerification.ValueBoolPointer()
+		}
 	}
 	if !plan.ConnectToMeetingControls.Equal(state.ConnectToMeetingControls) {
 		sp.ConnectToMeetingControls = plan.ConnectToMeetingControls.ValueString()
@@ -1267,7 +1541,9 @@ func (r *meetingPolicyResource) Update(ctx context.Context, req resource.UpdateR
 		sp.Copilot = plan.Copilot.ValueString()
 	}
 	if !plan.CopyRestriction.Equal(state.CopyRestriction) {
-		sp.CopyRestriction = plan.CopyRestriction.ValueBoolPointer()
+		if !plan.CopyRestriction.IsUnknown() {
+			sp.CopyRestriction = plan.CopyRestriction.ValueBoolPointer()
+		}
 	}
 	if !plan.Description.Equal(state.Description) {
 		sp.Description = plan.Description.ValueString()
@@ -1276,16 +1552,24 @@ func (r *meetingPolicyResource) Update(ctx context.Context, req resource.UpdateR
 		sp.DesignatedPresenterRoleMode = plan.DesignatedPresenterRoleMode.ValueString()
 	}
 	if !plan.DetectSensitiveContentDuringScreenSharing.Equal(state.DetectSensitiveContentDuringScreenSharing) {
-		sp.DetectSensitiveContentDuringScreenSharing = plan.DetectSensitiveContentDuringScreenSharing.ValueBoolPointer()
+		if !plan.DetectSensitiveContentDuringScreenSharing.IsUnknown() {
+			sp.DetectSensitiveContentDuringScreenSharing = plan.DetectSensitiveContentDuringScreenSharing.ValueBoolPointer()
+		}
 	}
 	if !plan.DisableAudioAnnouncementsForResourceAccounts.Equal(state.DisableAudioAnnouncementsForResourceAccounts) {
-		sp.DisableAudioAnnouncementsForResourceAccounts = plan.DisableAudioAnnouncementsForResourceAccounts.ValueBoolPointer()
+		if !plan.DisableAudioAnnouncementsForResourceAccounts.IsUnknown() {
+			sp.DisableAudioAnnouncementsForResourceAccounts = plan.DisableAudioAnnouncementsForResourceAccounts.ValueBoolPointer()
+		}
 	}
 	if !plan.EnablePreMeetingConsent.Equal(state.EnablePreMeetingConsent) {
-		sp.EnablePreMeetingConsent = plan.EnablePreMeetingConsent.ValueBoolPointer()
+		if !plan.EnablePreMeetingConsent.IsUnknown() {
+			sp.EnablePreMeetingConsent = plan.EnablePreMeetingConsent.ValueBoolPointer()
+		}
 	}
 	if !plan.EnableRecordingAndTranscriptionCustomMessage.Equal(state.EnableRecordingAndTranscriptionCustomMessage) {
-		sp.EnableRecordingAndTranscriptionCustomMessage = plan.EnableRecordingAndTranscriptionCustomMessage.ValueBoolPointer()
+		if !plan.EnableRecordingAndTranscriptionCustomMessage.IsUnknown() {
+			sp.EnableRecordingAndTranscriptionCustomMessage = plan.EnableRecordingAndTranscriptionCustomMessage.ValueBoolPointer()
+		}
 	}
 	if !plan.EnrollUserOverride.Equal(state.EnrollUserOverride) {
 		sp.EnrollUserOverride = plan.EnrollUserOverride.ValueString()
@@ -1324,7 +1608,9 @@ func (r *meetingPolicyResource) Update(ctx context.Context, req resource.UpdateR
 		sp.LobbyChat = plan.LobbyChat.ValueString()
 	}
 	if !plan.MediaBitRateKb.Equal(state.MediaBitRateKb) {
-		sp.MediaBitRateKb = plan.MediaBitRateKb.ValueInt64Pointer()
+		if !plan.MediaBitRateKb.IsUnknown() {
+			sp.MediaBitRateKb = plan.MediaBitRateKb.ValueInt64Pointer()
+		}
 	}
 	if !plan.MeetingChatEnabledType.Equal(state.MeetingChatEnabledType) {
 		sp.MeetingChatEnabledType = plan.MeetingChatEnabledType.ValueString()
@@ -1333,10 +1619,14 @@ func (r *meetingPolicyResource) Update(ctx context.Context, req resource.UpdateR
 		sp.MeetingInviteLanguages = plan.MeetingInviteLanguages.ValueString()
 	}
 	if !plan.MeetingKnowledgeExpirationDays.Equal(state.MeetingKnowledgeExpirationDays) {
-		sp.MeetingKnowledgeExpirationDays = plan.MeetingKnowledgeExpirationDays.ValueInt64Pointer()
+		if !plan.MeetingKnowledgeExpirationDays.IsUnknown() {
+			sp.MeetingKnowledgeExpirationDays = plan.MeetingKnowledgeExpirationDays.ValueInt64Pointer()
+		}
 	}
 	if !plan.NewMeetingRecordingExpirationDays.Equal(state.NewMeetingRecordingExpirationDays) {
-		sp.NewMeetingRecordingExpirationDays = plan.NewMeetingRecordingExpirationDays.ValueInt64Pointer()
+		if !plan.NewMeetingRecordingExpirationDays.IsUnknown() {
+			sp.NewMeetingRecordingExpirationDays = plan.NewMeetingRecordingExpirationDays.ValueInt64Pointer()
+		}
 	}
 	if !plan.NoiseSuppressionForDialInParticipants.Equal(state.NoiseSuppressionForDialInParticipants) {
 		sp.NoiseSuppressionForDialInParticipants = plan.NoiseSuppressionForDialInParticipants.ValueString()
@@ -1420,13 +1710,17 @@ func (r *meetingPolicyResource) Update(ctx context.Context, req resource.UpdateR
 		sp.WatermarkForAnonymousUsers = plan.WatermarkForAnonymousUsers.ValueString()
 	}
 	if !plan.WatermarkForCameraVideoOpacity.Equal(state.WatermarkForCameraVideoOpacity) {
-		sp.WatermarkForCameraVideoOpacity = plan.WatermarkForCameraVideoOpacity.ValueInt64Pointer()
+		if !plan.WatermarkForCameraVideoOpacity.IsUnknown() {
+			sp.WatermarkForCameraVideoOpacity = plan.WatermarkForCameraVideoOpacity.ValueInt64Pointer()
+		}
 	}
 	if !plan.WatermarkForCameraVideoPattern.Equal(state.WatermarkForCameraVideoPattern) {
 		sp.WatermarkForCameraVideoPattern = plan.WatermarkForCameraVideoPattern.ValueString()
 	}
 	if !plan.WatermarkForScreenSharingOpacity.Equal(state.WatermarkForScreenSharingOpacity) {
-		sp.WatermarkForScreenSharingOpacity = plan.WatermarkForScreenSharingOpacity.ValueInt64Pointer()
+		if !plan.WatermarkForScreenSharingOpacity.IsUnknown() {
+			sp.WatermarkForScreenSharingOpacity = plan.WatermarkForScreenSharingOpacity.ValueInt64Pointer()
+		}
 	}
 	if !plan.WatermarkForScreenSharingPattern.Equal(state.WatermarkForScreenSharingPattern) {
 		sp.WatermarkForScreenSharingPattern = plan.WatermarkForScreenSharingPattern.ValueString()
@@ -1437,7 +1731,7 @@ func (r *meetingPolicyResource) Update(ctx context.Context, req resource.UpdateR
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsMeetingPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-MeetingPolicy failed", err.Error())
 		return
 	}
@@ -1512,7 +1806,304 @@ func (r *meetingPolicyResource) Update(ctx context.Context, req resource.UpdateR
 		"WatermarkForScreenSharingPattern":                 cfg.WatermarkForScreenSharingPattern,
 		"WhoCanRegister":                                   cfg.WhoCanRegister,
 	}, getString)
+	if !cfg.AllowAnnotations.IsUnknown() && !cfg.AllowAnnotations.IsNull() && !cfg.AllowAnnotations.Equal(state.AllowAnnotations) {
+		prev, want := reflected, cfg.AllowAnnotations.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowAnnotations"] == nil || getBool(obj, "AllowAnnotations") == want)
+		}
+	}
+	if !cfg.AllowAnonymousUsersToDialOut.IsUnknown() && !cfg.AllowAnonymousUsersToDialOut.IsNull() && !cfg.AllowAnonymousUsersToDialOut.Equal(state.AllowAnonymousUsersToDialOut) {
+		prev, want := reflected, cfg.AllowAnonymousUsersToDialOut.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowAnonymousUsersToDialOut"] == nil || getBool(obj, "AllowAnonymousUsersToDialOut") == want)
+		}
+	}
+	if !cfg.AllowAnonymousUsersToJoinMeeting.IsUnknown() && !cfg.AllowAnonymousUsersToJoinMeeting.IsNull() && !cfg.AllowAnonymousUsersToJoinMeeting.Equal(state.AllowAnonymousUsersToJoinMeeting) {
+		prev, want := reflected, cfg.AllowAnonymousUsersToJoinMeeting.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowAnonymousUsersToJoinMeeting"] == nil || getBool(obj, "AllowAnonymousUsersToJoinMeeting") == want)
+		}
+	}
+	if !cfg.AllowAnonymousUsersToStartMeeting.IsUnknown() && !cfg.AllowAnonymousUsersToStartMeeting.IsNull() && !cfg.AllowAnonymousUsersToStartMeeting.Equal(state.AllowAnonymousUsersToStartMeeting) {
+		prev, want := reflected, cfg.AllowAnonymousUsersToStartMeeting.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowAnonymousUsersToStartMeeting"] == nil || getBool(obj, "AllowAnonymousUsersToStartMeeting") == want)
+		}
+	}
+	if !cfg.AllowAvatarsInGallery.IsUnknown() && !cfg.AllowAvatarsInGallery.IsNull() && !cfg.AllowAvatarsInGallery.Equal(state.AllowAvatarsInGallery) {
+		prev, want := reflected, cfg.AllowAvatarsInGallery.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowAvatarsInGallery"] == nil || getBool(obj, "AllowAvatarsInGallery") == want)
+		}
+	}
+	if !cfg.AllowBreakoutRooms.IsUnknown() && !cfg.AllowBreakoutRooms.IsNull() && !cfg.AllowBreakoutRooms.Equal(state.AllowBreakoutRooms) {
+		prev, want := reflected, cfg.AllowBreakoutRooms.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowBreakoutRooms"] == nil || getBool(obj, "AllowBreakoutRooms") == want)
+		}
+	}
+	if !cfg.AllowCarbonSummary.IsUnknown() && !cfg.AllowCarbonSummary.IsNull() && !cfg.AllowCarbonSummary.Equal(state.AllowCarbonSummary) {
+		prev, want := reflected, cfg.AllowCarbonSummary.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowCarbonSummary"] == nil || getBool(obj, "AllowCarbonSummary") == want)
+		}
+	}
+	if !cfg.AllowChannelMeetingScheduling.IsUnknown() && !cfg.AllowChannelMeetingScheduling.IsNull() && !cfg.AllowChannelMeetingScheduling.Equal(state.AllowChannelMeetingScheduling) {
+		prev, want := reflected, cfg.AllowChannelMeetingScheduling.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowChannelMeetingScheduling"] == nil || getBool(obj, "AllowChannelMeetingScheduling") == want)
+		}
+	}
+	if !cfg.AllowCloudRecording.IsUnknown() && !cfg.AllowCloudRecording.IsNull() && !cfg.AllowCloudRecording.Equal(state.AllowCloudRecording) {
+		prev, want := reflected, cfg.AllowCloudRecording.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowCloudRecording"] == nil || getBool(obj, "AllowCloudRecording") == want)
+		}
+	}
+	if !cfg.AllowExternalNonTrustedMeetingChat.IsUnknown() && !cfg.AllowExternalNonTrustedMeetingChat.IsNull() && !cfg.AllowExternalNonTrustedMeetingChat.Equal(state.AllowExternalNonTrustedMeetingChat) {
+		prev, want := reflected, cfg.AllowExternalNonTrustedMeetingChat.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowExternalNonTrustedMeetingChat"] == nil || getBool(obj, "AllowExternalNonTrustedMeetingChat") == want)
+		}
+	}
+	if !cfg.AllowExternalParticipantGiveRequestControl.IsUnknown() && !cfg.AllowExternalParticipantGiveRequestControl.IsNull() && !cfg.AllowExternalParticipantGiveRequestControl.Equal(state.AllowExternalParticipantGiveRequestControl) {
+		prev, want := reflected, cfg.AllowExternalParticipantGiveRequestControl.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowExternalParticipantGiveRequestControl"] == nil || getBool(obj, "AllowExternalParticipantGiveRequestControl") == want)
+		}
+	}
+	if !cfg.AllowIPAudio.IsUnknown() && !cfg.AllowIPAudio.IsNull() && !cfg.AllowIPAudio.Equal(state.AllowIPAudio) {
+		prev, want := reflected, cfg.AllowIPAudio.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowIPAudio"] == nil || getBool(obj, "AllowIPAudio") == want)
+		}
+	}
+	if !cfg.AllowIPVideo.IsUnknown() && !cfg.AllowIPVideo.IsNull() && !cfg.AllowIPVideo.Equal(state.AllowIPVideo) {
+		prev, want := reflected, cfg.AllowIPVideo.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowIPVideo"] == nil || getBool(obj, "AllowIPVideo") == want)
+		}
+	}
+	if !cfg.AllowImmersiveView.IsUnknown() && !cfg.AllowImmersiveView.IsNull() && !cfg.AllowImmersiveView.Equal(state.AllowImmersiveView) {
+		prev, want := reflected, cfg.AllowImmersiveView.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowImmersiveView"] == nil || getBool(obj, "AllowImmersiveView") == want)
+		}
+	}
+	if !cfg.AllowLocalRecording.IsUnknown() && !cfg.AllowLocalRecording.IsNull() && !cfg.AllowLocalRecording.Equal(state.AllowLocalRecording) {
+		prev, want := reflected, cfg.AllowLocalRecording.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowLocalRecording"] == nil || getBool(obj, "AllowLocalRecording") == want)
+		}
+	}
+	if !cfg.AllowMeetNow.IsUnknown() && !cfg.AllowMeetNow.IsNull() && !cfg.AllowMeetNow.Equal(state.AllowMeetNow) {
+		prev, want := reflected, cfg.AllowMeetNow.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowMeetNow"] == nil || getBool(obj, "AllowMeetNow") == want)
+		}
+	}
+	if !cfg.AllowMeetingCoach.IsUnknown() && !cfg.AllowMeetingCoach.IsNull() && !cfg.AllowMeetingCoach.Equal(state.AllowMeetingCoach) {
+		prev, want := reflected, cfg.AllowMeetingCoach.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowMeetingCoach"] == nil || getBool(obj, "AllowMeetingCoach") == want)
+		}
+	}
+	if !cfg.AllowMeetingKnowledgeGeneration.IsUnknown() && !cfg.AllowMeetingKnowledgeGeneration.IsNull() && !cfg.AllowMeetingKnowledgeGeneration.Equal(state.AllowMeetingKnowledgeGeneration) {
+		prev, want := reflected, cfg.AllowMeetingKnowledgeGeneration.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowMeetingKnowledgeGeneration"] == nil || getBool(obj, "AllowMeetingKnowledgeGeneration") == want)
+		}
+	}
+	if !cfg.AllowMeetingReactions.IsUnknown() && !cfg.AllowMeetingReactions.IsNull() && !cfg.AllowMeetingReactions.Equal(state.AllowMeetingReactions) {
+		prev, want := reflected, cfg.AllowMeetingReactions.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowMeetingReactions"] == nil || getBool(obj, "AllowMeetingReactions") == want)
+		}
+	}
+	if !cfg.AllowMeetingRegistration.IsUnknown() && !cfg.AllowMeetingRegistration.IsNull() && !cfg.AllowMeetingRegistration.Equal(state.AllowMeetingRegistration) {
+		prev, want := reflected, cfg.AllowMeetingRegistration.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowMeetingRegistration"] == nil || getBool(obj, "AllowMeetingRegistration") == want)
+		}
+	}
+	if !cfg.AllowMultipleScreenshare.IsUnknown() && !cfg.AllowMultipleScreenshare.IsNull() && !cfg.AllowMultipleScreenshare.Equal(state.AllowMultipleScreenshare) {
+		prev, want := reflected, cfg.AllowMultipleScreenshare.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowMultipleScreenshare"] == nil || getBool(obj, "AllowMultipleScreenshare") == want)
+		}
+	}
+	if !cfg.AllowNDIStreaming.IsUnknown() && !cfg.AllowNDIStreaming.IsNull() && !cfg.AllowNDIStreaming.Equal(state.AllowNDIStreaming) {
+		prev, want := reflected, cfg.AllowNDIStreaming.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowNDIStreaming"] == nil || getBool(obj, "AllowNDIStreaming") == want)
+		}
+	}
+	if !cfg.AllowNetworkConfigurationSettingsLookup.IsUnknown() && !cfg.AllowNetworkConfigurationSettingsLookup.IsNull() && !cfg.AllowNetworkConfigurationSettingsLookup.Equal(state.AllowNetworkConfigurationSettingsLookup) {
+		prev, want := reflected, cfg.AllowNetworkConfigurationSettingsLookup.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowNetworkConfigurationSettingsLookup"] == nil || getBool(obj, "AllowNetworkConfigurationSettingsLookup") == want)
+		}
+	}
+	if !cfg.AllowOrganizersToOverrideLobbySettings.IsUnknown() && !cfg.AllowOrganizersToOverrideLobbySettings.IsNull() && !cfg.AllowOrganizersToOverrideLobbySettings.Equal(state.AllowOrganizersToOverrideLobbySettings) {
+		prev, want := reflected, cfg.AllowOrganizersToOverrideLobbySettings.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowOrganizersToOverrideLobbySettings"] == nil || getBool(obj, "AllowOrganizersToOverrideLobbySettings") == want)
+		}
+	}
+	if !cfg.AllowOutlookAddIn.IsUnknown() && !cfg.AllowOutlookAddIn.IsNull() && !cfg.AllowOutlookAddIn.Equal(state.AllowOutlookAddIn) {
+		prev, want := reflected, cfg.AllowOutlookAddIn.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowOutlookAddIn"] == nil || getBool(obj, "AllowOutlookAddIn") == want)
+		}
+	}
+	if !cfg.AllowPSTNUsersToBypassLobby.IsUnknown() && !cfg.AllowPSTNUsersToBypassLobby.IsNull() && !cfg.AllowPSTNUsersToBypassLobby.Equal(state.AllowPSTNUsersToBypassLobby) {
+		prev, want := reflected, cfg.AllowPSTNUsersToBypassLobby.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowPSTNUsersToBypassLobby"] == nil || getBool(obj, "AllowPSTNUsersToBypassLobby") == want)
+		}
+	}
+	if !cfg.AllowParticipantGiveRequestControl.IsUnknown() && !cfg.AllowParticipantGiveRequestControl.IsNull() && !cfg.AllowParticipantGiveRequestControl.Equal(state.AllowParticipantGiveRequestControl) {
+		prev, want := reflected, cfg.AllowParticipantGiveRequestControl.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowParticipantGiveRequestControl"] == nil || getBool(obj, "AllowParticipantGiveRequestControl") == want)
+		}
+	}
+	if !cfg.AllowPowerPointSharing.IsUnknown() && !cfg.AllowPowerPointSharing.IsNull() && !cfg.AllowPowerPointSharing.Equal(state.AllowPowerPointSharing) {
+		prev, want := reflected, cfg.AllowPowerPointSharing.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowPowerPointSharing"] == nil || getBool(obj, "AllowPowerPointSharing") == want)
+		}
+	}
+	if !cfg.AllowPrivateMeetNow.IsUnknown() && !cfg.AllowPrivateMeetNow.IsNull() && !cfg.AllowPrivateMeetNow.Equal(state.AllowPrivateMeetNow) {
+		prev, want := reflected, cfg.AllowPrivateMeetNow.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowPrivateMeetNow"] == nil || getBool(obj, "AllowPrivateMeetNow") == want)
+		}
+	}
+	if !cfg.AllowPrivateMeetingScheduling.IsUnknown() && !cfg.AllowPrivateMeetingScheduling.IsNull() && !cfg.AllowPrivateMeetingScheduling.Equal(state.AllowPrivateMeetingScheduling) {
+		prev, want := reflected, cfg.AllowPrivateMeetingScheduling.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowPrivateMeetingScheduling"] == nil || getBool(obj, "AllowPrivateMeetingScheduling") == want)
+		}
+	}
+	if !cfg.AllowRecordingStorageOutsideRegion.IsUnknown() && !cfg.AllowRecordingStorageOutsideRegion.IsNull() && !cfg.AllowRecordingStorageOutsideRegion.Equal(state.AllowRecordingStorageOutsideRegion) {
+		prev, want := reflected, cfg.AllowRecordingStorageOutsideRegion.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowRecordingStorageOutsideRegion"] == nil || getBool(obj, "AllowRecordingStorageOutsideRegion") == want)
+		}
+	}
+	if !cfg.AllowSharedNotes.IsUnknown() && !cfg.AllowSharedNotes.IsNull() && !cfg.AllowSharedNotes.Equal(state.AllowSharedNotes) {
+		prev, want := reflected, cfg.AllowSharedNotes.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowSharedNotes"] == nil || getBool(obj, "AllowSharedNotes") == want)
+		}
+	}
+	if !cfg.AllowTranscription.IsUnknown() && !cfg.AllowTranscription.IsNull() && !cfg.AllowTranscription.Equal(state.AllowTranscription) {
+		prev, want := reflected, cfg.AllowTranscription.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowTranscription"] == nil || getBool(obj, "AllowTranscription") == want)
+		}
+	}
+	if !cfg.AllowWatermarkCustomizationForCameraVideo.IsUnknown() && !cfg.AllowWatermarkCustomizationForCameraVideo.IsNull() && !cfg.AllowWatermarkCustomizationForCameraVideo.Equal(state.AllowWatermarkCustomizationForCameraVideo) {
+		prev, want := reflected, cfg.AllowWatermarkCustomizationForCameraVideo.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowWatermarkCustomizationForCameraVideo"] == nil || getBool(obj, "AllowWatermarkCustomizationForCameraVideo") == want)
+		}
+	}
+	if !cfg.AllowWatermarkCustomizationForScreenSharing.IsUnknown() && !cfg.AllowWatermarkCustomizationForScreenSharing.IsNull() && !cfg.AllowWatermarkCustomizationForScreenSharing.Equal(state.AllowWatermarkCustomizationForScreenSharing) {
+		prev, want := reflected, cfg.AllowWatermarkCustomizationForScreenSharing.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowWatermarkCustomizationForScreenSharing"] == nil || getBool(obj, "AllowWatermarkCustomizationForScreenSharing") == want)
+		}
+	}
+	if !cfg.AllowWatermarkForCameraVideo.IsUnknown() && !cfg.AllowWatermarkForCameraVideo.IsNull() && !cfg.AllowWatermarkForCameraVideo.Equal(state.AllowWatermarkForCameraVideo) {
+		prev, want := reflected, cfg.AllowWatermarkForCameraVideo.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowWatermarkForCameraVideo"] == nil || getBool(obj, "AllowWatermarkForCameraVideo") == want)
+		}
+	}
+	if !cfg.AllowWatermarkForScreenSharing.IsUnknown() && !cfg.AllowWatermarkForScreenSharing.IsNull() && !cfg.AllowWatermarkForScreenSharing.Equal(state.AllowWatermarkForScreenSharing) {
+		prev, want := reflected, cfg.AllowWatermarkForScreenSharing.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowWatermarkForScreenSharing"] == nil || getBool(obj, "AllowWatermarkForScreenSharing") == want)
+		}
+	}
+	if !cfg.AllowWhiteboard.IsUnknown() && !cfg.AllowWhiteboard.IsNull() && !cfg.AllowWhiteboard.Equal(state.AllowWhiteboard) {
+		prev, want := reflected, cfg.AllowWhiteboard.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowWhiteboard"] == nil || getBool(obj, "AllowWhiteboard") == want)
+		}
+	}
+	if !cfg.ConditionalAccessAttendeeVerification.IsUnknown() && !cfg.ConditionalAccessAttendeeVerification.IsNull() && !cfg.ConditionalAccessAttendeeVerification.Equal(state.ConditionalAccessAttendeeVerification) {
+		prev, want := reflected, cfg.ConditionalAccessAttendeeVerification.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["ConditionalAccessAttendeeVerification"] == nil || getBool(obj, "ConditionalAccessAttendeeVerification") == want)
+		}
+	}
+	if !cfg.CopyRestriction.IsUnknown() && !cfg.CopyRestriction.IsNull() && !cfg.CopyRestriction.Equal(state.CopyRestriction) {
+		prev, want := reflected, cfg.CopyRestriction.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["CopyRestriction"] == nil || getBool(obj, "CopyRestriction") == want)
+		}
+	}
+	if !cfg.DetectSensitiveContentDuringScreenSharing.IsUnknown() && !cfg.DetectSensitiveContentDuringScreenSharing.IsNull() && !cfg.DetectSensitiveContentDuringScreenSharing.Equal(state.DetectSensitiveContentDuringScreenSharing) {
+		prev, want := reflected, cfg.DetectSensitiveContentDuringScreenSharing.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["DetectSensitiveContentDuringScreenSharing"] == nil || getBool(obj, "DetectSensitiveContentDuringScreenSharing") == want)
+		}
+	}
+	if !cfg.DisableAudioAnnouncementsForResourceAccounts.IsUnknown() && !cfg.DisableAudioAnnouncementsForResourceAccounts.IsNull() && !cfg.DisableAudioAnnouncementsForResourceAccounts.Equal(state.DisableAudioAnnouncementsForResourceAccounts) {
+		prev, want := reflected, cfg.DisableAudioAnnouncementsForResourceAccounts.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["DisableAudioAnnouncementsForResourceAccounts"] == nil || getBool(obj, "DisableAudioAnnouncementsForResourceAccounts") == want)
+		}
+	}
+	if !cfg.EnablePreMeetingConsent.IsUnknown() && !cfg.EnablePreMeetingConsent.IsNull() && !cfg.EnablePreMeetingConsent.Equal(state.EnablePreMeetingConsent) {
+		prev, want := reflected, cfg.EnablePreMeetingConsent.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnablePreMeetingConsent"] == nil || getBool(obj, "EnablePreMeetingConsent") == want)
+		}
+	}
+	if !cfg.EnableRecordingAndTranscriptionCustomMessage.IsUnknown() && !cfg.EnableRecordingAndTranscriptionCustomMessage.IsNull() && !cfg.EnableRecordingAndTranscriptionCustomMessage.Equal(state.EnableRecordingAndTranscriptionCustomMessage) {
+		prev, want := reflected, cfg.EnableRecordingAndTranscriptionCustomMessage.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableRecordingAndTranscriptionCustomMessage"] == nil || getBool(obj, "EnableRecordingAndTranscriptionCustomMessage") == want)
+		}
+	}
+	if !cfg.MediaBitRateKb.IsUnknown() && !cfg.MediaBitRateKb.IsNull() && !cfg.MediaBitRateKb.Equal(state.MediaBitRateKb) {
+		prev, want := reflected, cfg.MediaBitRateKb.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["MediaBitRateKb"] == nil || getInt(obj, "MediaBitRateKb") == want)
+		}
+	}
+	if !cfg.MeetingKnowledgeExpirationDays.IsUnknown() && !cfg.MeetingKnowledgeExpirationDays.IsNull() && !cfg.MeetingKnowledgeExpirationDays.Equal(state.MeetingKnowledgeExpirationDays) {
+		prev, want := reflected, cfg.MeetingKnowledgeExpirationDays.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["MeetingKnowledgeExpirationDays"] == nil || getInt(obj, "MeetingKnowledgeExpirationDays") == want)
+		}
+	}
+	if !cfg.NewMeetingRecordingExpirationDays.IsUnknown() && !cfg.NewMeetingRecordingExpirationDays.IsNull() && !cfg.NewMeetingRecordingExpirationDays.Equal(state.NewMeetingRecordingExpirationDays) {
+		prev, want := reflected, cfg.NewMeetingRecordingExpirationDays.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["NewMeetingRecordingExpirationDays"] == nil || getInt(obj, "NewMeetingRecordingExpirationDays") == want)
+		}
+	}
+	if !cfg.WatermarkForCameraVideoOpacity.IsUnknown() && !cfg.WatermarkForCameraVideoOpacity.IsNull() && !cfg.WatermarkForCameraVideoOpacity.Equal(state.WatermarkForCameraVideoOpacity) {
+		prev, want := reflected, cfg.WatermarkForCameraVideoOpacity.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["WatermarkForCameraVideoOpacity"] == nil || getInt(obj, "WatermarkForCameraVideoOpacity") == want)
+		}
+	}
+	if !cfg.WatermarkForScreenSharingOpacity.IsUnknown() && !cfg.WatermarkForScreenSharingOpacity.IsNull() && !cfg.WatermarkForScreenSharingOpacity.Equal(state.WatermarkForScreenSharingOpacity) {
+		prev, want := reflected, cfg.WatermarkForScreenSharingOpacity.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["WatermarkForScreenSharingOpacity"] == nil || getInt(obj, "WatermarkForScreenSharingOpacity") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

@@ -99,13 +99,19 @@ func (r *messagingConfigurationResource) Create(ctx context.Context, req resourc
 		sp.ContentBasedPhishingCheck = plan.ContentBasedPhishingCheck.ValueString()
 	}
 	if !config.CustomEmojis.IsNull() {
-		sp.CustomEmojis = plan.CustomEmojis.ValueBoolPointer()
+		if !plan.CustomEmojis.IsUnknown() {
+			sp.CustomEmojis = plan.CustomEmojis.ValueBoolPointer()
+		}
 	}
 	if !config.EnableInOrganizationChatControl.IsNull() {
-		sp.EnableInOrganizationChatControl = plan.EnableInOrganizationChatControl.ValueBoolPointer()
+		if !plan.EnableInOrganizationChatControl.IsUnknown() {
+			sp.EnableInOrganizationChatControl = plan.EnableInOrganizationChatControl.ValueBoolPointer()
+		}
 	}
 	if !config.EnableVideoMessageCaptions.IsNull() {
-		sp.EnableVideoMessageCaptions = plan.EnableVideoMessageCaptions.ValueBoolPointer()
+		if !plan.EnableVideoMessageCaptions.IsUnknown() {
+			sp.EnableVideoMessageCaptions = plan.EnableVideoMessageCaptions.ValueBoolPointer()
+		}
 	}
 	if !config.FileTypeCheck.IsNull() {
 		sp.FileTypeCheck = plan.FileTypeCheck.ValueString()
@@ -125,7 +131,7 @@ func (r *messagingConfigurationResource) Create(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsMessagingConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMessagingConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-MessagingConfiguration failed", err.Error())
 		return
 	}
@@ -168,13 +174,19 @@ func (r *messagingConfigurationResource) Update(ctx context.Context, req resourc
 		sp.ContentBasedPhishingCheck = plan.ContentBasedPhishingCheck.ValueString()
 	}
 	if !plan.CustomEmojis.Equal(state.CustomEmojis) {
-		sp.CustomEmojis = plan.CustomEmojis.ValueBoolPointer()
+		if !plan.CustomEmojis.IsUnknown() {
+			sp.CustomEmojis = plan.CustomEmojis.ValueBoolPointer()
+		}
 	}
 	if !plan.EnableInOrganizationChatControl.Equal(state.EnableInOrganizationChatControl) {
-		sp.EnableInOrganizationChatControl = plan.EnableInOrganizationChatControl.ValueBoolPointer()
+		if !plan.EnableInOrganizationChatControl.IsUnknown() {
+			sp.EnableInOrganizationChatControl = plan.EnableInOrganizationChatControl.ValueBoolPointer()
+		}
 	}
 	if !plan.EnableVideoMessageCaptions.Equal(state.EnableVideoMessageCaptions) {
-		sp.EnableVideoMessageCaptions = plan.EnableVideoMessageCaptions.ValueBoolPointer()
+		if !plan.EnableVideoMessageCaptions.IsUnknown() {
+			sp.EnableVideoMessageCaptions = plan.EnableVideoMessageCaptions.ValueBoolPointer()
+		}
 	}
 	if !plan.FileTypeCheck.Equal(state.FileTypeCheck) {
 		sp.FileTypeCheck = plan.FileTypeCheck.ValueString()
@@ -185,8 +197,10 @@ func (r *messagingConfigurationResource) Update(ctx context.Context, req resourc
 	if !plan.ReportIncorrectSecurityDetections.Equal(state.ReportIncorrectSecurityDetections) {
 		sp.ReportIncorrectSecurityDetections = plan.ReportIncorrectSecurityDetections.ValueString()
 	}
-	if v := plan.Storyline.ValueString(); v != "" {
-		sp.Storyline = objectParam(v)
+	if !plan.Storyline.Equal(state.Storyline) {
+		if v := plan.Storyline.ValueString(); v != "" {
+			sp.Storyline = objectParam(v)
+		}
 	}
 	if !plan.UrlReputationCheck.Equal(state.UrlReputationCheck) {
 		sp.UrlReputationCheck = plan.UrlReputationCheck.ValueString()
@@ -194,7 +208,7 @@ func (r *messagingConfigurationResource) Update(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsMessagingConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMessagingConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-MessagingConfiguration failed", err.Error())
 		return
 	}
@@ -207,7 +221,28 @@ func (r *messagingConfigurationResource) Update(ctx context.Context, req resourc
 		"ReportIncorrectSecurityDetections": cfg.ReportIncorrectSecurityDetections,
 		"UrlReputationCheck":                cfg.UrlReputationCheck,
 	}, getString)
+	if !cfg.CustomEmojis.IsUnknown() && !cfg.CustomEmojis.IsNull() && !cfg.CustomEmojis.Equal(state.CustomEmojis) {
+		prev, want := reflected, cfg.CustomEmojis.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["CustomEmojis"] == nil || getBool(obj, "CustomEmojis") == want)
+		}
+	}
+	if !cfg.EnableInOrganizationChatControl.IsUnknown() && !cfg.EnableInOrganizationChatControl.IsNull() && !cfg.EnableInOrganizationChatControl.Equal(state.EnableInOrganizationChatControl) {
+		prev, want := reflected, cfg.EnableInOrganizationChatControl.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableInOrganizationChatControl"] == nil || getBool(obj, "EnableInOrganizationChatControl") == want)
+		}
+	}
+	if !cfg.EnableVideoMessageCaptions.IsUnknown() && !cfg.EnableVideoMessageCaptions.IsNull() && !cfg.EnableVideoMessageCaptions.Equal(state.EnableVideoMessageCaptions) {
+		prev, want := reflected, cfg.EnableVideoMessageCaptions.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableVideoMessageCaptions"] == nil || getBool(obj, "EnableVideoMessageCaptions") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

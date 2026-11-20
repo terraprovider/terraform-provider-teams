@@ -89,7 +89,9 @@ func (r *meetingBroadcastConfigurationResource) Create(ctx context.Context, req 
 	sp := cs.SetCsTeamsMeetingBroadcastConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
 	if !config.AllowSdnProviderForBroadcastMeeting.IsNull() {
-		sp.AllowSdnProviderForBroadcastMeeting = plan.AllowSdnProviderForBroadcastMeeting.ValueBoolPointer()
+		if !plan.AllowSdnProviderForBroadcastMeeting.IsUnknown() {
+			sp.AllowSdnProviderForBroadcastMeeting = plan.AllowSdnProviderForBroadcastMeeting.ValueBoolPointer()
+		}
 	}
 	if !config.SdnApiTemplateUrl.IsNull() {
 		sp.SdnApiTemplateUrl = plan.SdnApiTemplateUrl.ValueString()
@@ -112,7 +114,7 @@ func (r *meetingBroadcastConfigurationResource) Create(ctx context.Context, req 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsMeetingBroadcastConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingBroadcastConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-MeetingBroadcastConfiguration failed", err.Error())
 		return
 	}
@@ -149,7 +151,9 @@ func (r *meetingBroadcastConfigurationResource) Update(ctx context.Context, req 
 	sp := cs.SetCsTeamsMeetingBroadcastConfigurationParams{}
 	sp.Identity = id
 	if !plan.AllowSdnProviderForBroadcastMeeting.Equal(state.AllowSdnProviderForBroadcastMeeting) {
-		sp.AllowSdnProviderForBroadcastMeeting = plan.AllowSdnProviderForBroadcastMeeting.ValueBoolPointer()
+		if !plan.AllowSdnProviderForBroadcastMeeting.IsUnknown() {
+			sp.AllowSdnProviderForBroadcastMeeting = plan.AllowSdnProviderForBroadcastMeeting.ValueBoolPointer()
+		}
 	}
 	if !plan.SdnApiTemplateUrl.Equal(state.SdnApiTemplateUrl) {
 		sp.SdnApiTemplateUrl = plan.SdnApiTemplateUrl.ValueString()
@@ -172,7 +176,7 @@ func (r *meetingBroadcastConfigurationResource) Update(ctx context.Context, req 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsMeetingBroadcastConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingBroadcastConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-MeetingBroadcastConfiguration failed", err.Error())
 		return
 	}
@@ -185,7 +189,16 @@ func (r *meetingBroadcastConfigurationResource) Update(ctx context.Context, req 
 		"SdnRuntimeConfiguration": cfg.SdnRuntimeConfiguration,
 		"SupportURL":              cfg.SupportURL,
 	}, getString)
+	if !cfg.AllowSdnProviderForBroadcastMeeting.IsUnknown() && !cfg.AllowSdnProviderForBroadcastMeeting.IsNull() && !cfg.AllowSdnProviderForBroadcastMeeting.Equal(state.AllowSdnProviderForBroadcastMeeting) {
+		prev, want := reflected, cfg.AllowSdnProviderForBroadcastMeeting.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowSdnProviderForBroadcastMeeting"] == nil || getBool(obj, "AllowSdnProviderForBroadcastMeeting") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

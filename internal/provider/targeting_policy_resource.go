@@ -104,7 +104,7 @@ func (r *targetingPolicyResource) Create(ctx context.Context, req resource.Creat
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsTargetingPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsTargetingPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-TargetingPolicy failed", err.Error())
 		return
 	}
@@ -161,7 +161,7 @@ func (r *targetingPolicyResource) Update(ctx context.Context, req resource.Updat
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsTargetingPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsTargetingPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-TargetingPolicy failed", err.Error())
 		return
 	}
@@ -175,6 +175,9 @@ func (r *targetingPolicyResource) Update(ctx context.Context, req resource.Updat
 		"TeamOwnersEditWhoCanManageTagsMode": cfg.TeamOwnersEditWhoCanManageTagsMode,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

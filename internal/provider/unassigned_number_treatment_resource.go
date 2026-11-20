@@ -102,12 +102,14 @@ func (r *unassignedNumberTreatmentResource) Create(ctx context.Context, req reso
 			sp.TargetType = plan.TargetType.ValueString()
 		}
 		if !config.TreatmentPriority.IsNull() {
-			sp.TreatmentPriority = plan.TreatmentPriority.ValueInt64Pointer()
+			if !plan.TreatmentPriority.IsUnknown() {
+				sp.TreatmentPriority = plan.TreatmentPriority.ValueInt64Pointer()
+			}
 		}
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsUnassignedNumberTreatment(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsUnassignedNumberTreatment, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-UnassignedNumberTreatment failed", err.Error())
 			return
 		}
@@ -140,13 +142,15 @@ func (r *unassignedNumberTreatmentResource) Create(ctx context.Context, req reso
 		p.TreatmentId = plan.TreatmentId.ValueString()
 	}
 	if !config.TreatmentPriority.IsNull() {
-		p.TreatmentPriority = plan.TreatmentPriority.ValueInt64Pointer()
+		if !plan.TreatmentPriority.IsUnknown() {
+			p.TreatmentPriority = plan.TreatmentPriority.ValueInt64Pointer()
+		}
 	}
 	p.Identity = plan.Identity.ValueString()
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsUnassignedNumberTreatment(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsUnassignedNumberTreatment, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-UnassignedNumberTreatment failed", err.Error())
 		return
@@ -206,12 +210,14 @@ func (r *unassignedNumberTreatmentResource) Update(ctx context.Context, req reso
 		sp.TargetType = plan.TargetType.ValueString()
 	}
 	if !plan.TreatmentPriority.Equal(state.TreatmentPriority) {
-		sp.TreatmentPriority = plan.TreatmentPriority.ValueInt64Pointer()
+		if !plan.TreatmentPriority.IsUnknown() {
+			sp.TreatmentPriority = plan.TreatmentPriority.ValueInt64Pointer()
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsUnassignedNumberTreatment(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsUnassignedNumberTreatment, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-UnassignedNumberTreatment failed", err.Error())
 		return
 	}
@@ -222,7 +228,16 @@ func (r *unassignedNumberTreatmentResource) Update(ctx context.Context, req reso
 		"Target":      cfg.Target,
 		"TargetType":  cfg.TargetType,
 	}, getString)
+	if !cfg.TreatmentPriority.IsUnknown() && !cfg.TreatmentPriority.IsNull() && !cfg.TreatmentPriority.Equal(state.TreatmentPriority) {
+		prev, want := reflected, cfg.TreatmentPriority.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["TreatmentPriority"] == nil || getInt(obj, "TreatmentPriority") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

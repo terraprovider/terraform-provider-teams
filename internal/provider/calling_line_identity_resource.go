@@ -90,7 +90,9 @@ func (r *callingLineIdentityResource) Create(ctx context.Context, req resource.C
 		sp := cs.SetCsCallingLineIdentityParams{}
 		sp.Identity = plan.Identity.ValueString()
 		if !config.BlockIncomingPstnCallerID.IsNull() {
-			sp.BlockIncomingPstnCallerID = plan.BlockIncomingPstnCallerID.ValueBoolPointer()
+			if !plan.BlockIncomingPstnCallerID.IsUnknown() {
+				sp.BlockIncomingPstnCallerID = plan.BlockIncomingPstnCallerID.ValueBoolPointer()
+			}
 		}
 		if !config.CallingIDSubstitute.IsNull() {
 			sp.CallingIDSubstitute = plan.CallingIDSubstitute.ValueString()
@@ -102,7 +104,9 @@ func (r *callingLineIdentityResource) Create(ctx context.Context, req resource.C
 			sp.Description = plan.Description.ValueString()
 		}
 		if !config.EnableUserOverride.IsNull() {
-			sp.EnableUserOverride = plan.EnableUserOverride.ValueBoolPointer()
+			if !plan.EnableUserOverride.IsUnknown() {
+				sp.EnableUserOverride = plan.EnableUserOverride.ValueBoolPointer()
+			}
 		}
 		if !config.ResourceAccount.IsNull() {
 			sp.ResourceAccount = plan.ResourceAccount.ValueString()
@@ -113,7 +117,7 @@ func (r *callingLineIdentityResource) Create(ctx context.Context, req resource.C
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsCallingLineIdentity(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsCallingLineIdentity, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-CallingLineIdentity failed", err.Error())
 			return
 		}
@@ -131,7 +135,9 @@ func (r *callingLineIdentityResource) Create(ctx context.Context, req resource.C
 	}
 	p := cs.NewCsCallingLineIdentityParams{}
 	if !config.BlockIncomingPstnCallerID.IsNull() {
-		p.BlockIncomingPstnCallerID = plan.BlockIncomingPstnCallerID.ValueBoolPointer()
+		if !plan.BlockIncomingPstnCallerID.IsUnknown() {
+			p.BlockIncomingPstnCallerID = plan.BlockIncomingPstnCallerID.ValueBoolPointer()
+		}
 	}
 	if !config.CallingIDSubstitute.IsNull() {
 		p.CallingIDSubstitute = plan.CallingIDSubstitute.ValueString()
@@ -143,7 +149,9 @@ func (r *callingLineIdentityResource) Create(ctx context.Context, req resource.C
 		p.Description = plan.Description.ValueString()
 	}
 	if !config.EnableUserOverride.IsNull() {
-		p.EnableUserOverride = plan.EnableUserOverride.ValueBoolPointer()
+		if !plan.EnableUserOverride.IsUnknown() {
+			p.EnableUserOverride = plan.EnableUserOverride.ValueBoolPointer()
+		}
 	}
 	if !config.ResourceAccount.IsNull() {
 		p.ResourceAccount = plan.ResourceAccount.ValueString()
@@ -155,7 +163,7 @@ func (r *callingLineIdentityResource) Create(ctx context.Context, req resource.C
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsCallingLineIdentity(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsCallingLineIdentity, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-CallingLineIdentity failed", err.Error())
 		return
@@ -203,7 +211,9 @@ func (r *callingLineIdentityResource) Update(ctx context.Context, req resource.U
 	sp := cs.SetCsCallingLineIdentityParams{}
 	sp.Identity = id
 	if !plan.BlockIncomingPstnCallerID.Equal(state.BlockIncomingPstnCallerID) {
-		sp.BlockIncomingPstnCallerID = plan.BlockIncomingPstnCallerID.ValueBoolPointer()
+		if !plan.BlockIncomingPstnCallerID.IsUnknown() {
+			sp.BlockIncomingPstnCallerID = plan.BlockIncomingPstnCallerID.ValueBoolPointer()
+		}
 	}
 	if !plan.CallingIDSubstitute.Equal(state.CallingIDSubstitute) {
 		sp.CallingIDSubstitute = plan.CallingIDSubstitute.ValueString()
@@ -215,7 +225,9 @@ func (r *callingLineIdentityResource) Update(ctx context.Context, req resource.U
 		sp.Description = plan.Description.ValueString()
 	}
 	if !plan.EnableUserOverride.Equal(state.EnableUserOverride) {
-		sp.EnableUserOverride = plan.EnableUserOverride.ValueBoolPointer()
+		if !plan.EnableUserOverride.IsUnknown() {
+			sp.EnableUserOverride = plan.EnableUserOverride.ValueBoolPointer()
+		}
 	}
 	if !plan.ResourceAccount.Equal(state.ResourceAccount) {
 		sp.ResourceAccount = plan.ResourceAccount.ValueString()
@@ -226,7 +238,7 @@ func (r *callingLineIdentityResource) Update(ctx context.Context, req resource.U
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsCallingLineIdentity(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsCallingLineIdentity, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-CallingLineIdentity failed", err.Error())
 		return
 	}
@@ -238,7 +250,22 @@ func (r *callingLineIdentityResource) Update(ctx context.Context, req resource.U
 		"ResourceAccount":     cfg.ResourceAccount,
 		"ServiceNumber":       cfg.ServiceNumber,
 	}, getString)
+	if !cfg.BlockIncomingPstnCallerID.IsUnknown() && !cfg.BlockIncomingPstnCallerID.IsNull() && !cfg.BlockIncomingPstnCallerID.Equal(state.BlockIncomingPstnCallerID) {
+		prev, want := reflected, cfg.BlockIncomingPstnCallerID.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["BlockIncomingPstnCallerID"] == nil || getBool(obj, "BlockIncomingPstnCallerID") == want)
+		}
+	}
+	if !cfg.EnableUserOverride.IsUnknown() && !cfg.EnableUserOverride.IsNull() && !cfg.EnableUserOverride.Equal(state.EnableUserOverride) {
+		prev, want := reflected, cfg.EnableUserOverride.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableUserOverride"] == nil || getBool(obj, "EnableUserOverride") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

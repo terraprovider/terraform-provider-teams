@@ -97,10 +97,14 @@ func (r *appSetupPolicyResource) Create(ctx context.Context, req resource.Create
 			sp.AdditionalCustomizationApps = objectParam(v)
 		}
 		if !config.AllowSideLoading.IsNull() {
-			sp.AllowSideLoading = plan.AllowSideLoading.ValueBoolPointer()
+			if !plan.AllowSideLoading.IsUnknown() {
+				sp.AllowSideLoading = plan.AllowSideLoading.ValueBoolPointer()
+			}
 		}
 		if !config.AllowUserPinning.IsNull() {
-			sp.AllowUserPinning = plan.AllowUserPinning.ValueBoolPointer()
+			if !plan.AllowUserPinning.IsUnknown() {
+				sp.AllowUserPinning = plan.AllowUserPinning.ValueBoolPointer()
+			}
 		}
 		if v := config.AppPresetList.ValueString(); v != "" {
 			sp.AppPresetList = objectParam(v)
@@ -123,7 +127,7 @@ func (r *appSetupPolicyResource) Create(ctx context.Context, req resource.Create
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsAppSetupPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsAppSetupPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-AppSetupPolicy failed", err.Error())
 			return
 		}
@@ -144,10 +148,14 @@ func (r *appSetupPolicyResource) Create(ctx context.Context, req resource.Create
 		p.AdditionalCustomizationApps = objectParam(v)
 	}
 	if !config.AllowSideLoading.IsNull() {
-		p.AllowSideLoading = plan.AllowSideLoading.ValueBoolPointer()
+		if !plan.AllowSideLoading.IsUnknown() {
+			p.AllowSideLoading = plan.AllowSideLoading.ValueBoolPointer()
+		}
 	}
 	if !config.AllowUserPinning.IsNull() {
-		p.AllowUserPinning = plan.AllowUserPinning.ValueBoolPointer()
+		if !plan.AllowUserPinning.IsUnknown() {
+			p.AllowUserPinning = plan.AllowUserPinning.ValueBoolPointer()
+		}
 	}
 	if v := config.AppPresetList.ValueString(); v != "" {
 		p.AppPresetList = objectParam(v)
@@ -171,7 +179,7 @@ func (r *appSetupPolicyResource) Create(ctx context.Context, req resource.Create
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsAppSetupPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsAppSetupPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-AppSetupPolicy failed", err.Error())
 		return
@@ -218,37 +226,53 @@ func (r *appSetupPolicyResource) Update(ctx context.Context, req resource.Update
 	id := r.identityOf(state)
 	sp := cs.SetCsTeamsAppSetupPolicyParams{}
 	sp.Identity = id
-	if v := plan.AdditionalCustomizationApps.ValueString(); v != "" {
-		sp.AdditionalCustomizationApps = objectParam(v)
+	if !plan.AdditionalCustomizationApps.Equal(state.AdditionalCustomizationApps) {
+		if v := plan.AdditionalCustomizationApps.ValueString(); v != "" {
+			sp.AdditionalCustomizationApps = objectParam(v)
+		}
 	}
 	if !plan.AllowSideLoading.Equal(state.AllowSideLoading) {
-		sp.AllowSideLoading = plan.AllowSideLoading.ValueBoolPointer()
+		if !plan.AllowSideLoading.IsUnknown() {
+			sp.AllowSideLoading = plan.AllowSideLoading.ValueBoolPointer()
+		}
 	}
 	if !plan.AllowUserPinning.Equal(state.AllowUserPinning) {
-		sp.AllowUserPinning = plan.AllowUserPinning.ValueBoolPointer()
+		if !plan.AllowUserPinning.IsUnknown() {
+			sp.AllowUserPinning = plan.AllowUserPinning.ValueBoolPointer()
+		}
 	}
-	if v := plan.AppPresetList.ValueString(); v != "" {
-		sp.AppPresetList = objectParam(v)
+	if !plan.AppPresetList.Equal(state.AppPresetList) {
+		if v := plan.AppPresetList.ValueString(); v != "" {
+			sp.AppPresetList = objectParam(v)
+		}
 	}
-	if v := plan.AppPresetMeetingList.ValueString(); v != "" {
-		sp.AppPresetMeetingList = objectParam(v)
+	if !plan.AppPresetMeetingList.Equal(state.AppPresetMeetingList) {
+		if v := plan.AppPresetMeetingList.ValueString(); v != "" {
+			sp.AppPresetMeetingList = objectParam(v)
+		}
 	}
 	if !plan.Description.Equal(state.Description) {
 		sp.Description = plan.Description.ValueString()
 	}
-	if v := plan.PinnedAppBarApps.ValueString(); v != "" {
-		sp.PinnedAppBarApps = objectParam(v)
+	if !plan.PinnedAppBarApps.Equal(state.PinnedAppBarApps) {
+		if v := plan.PinnedAppBarApps.ValueString(); v != "" {
+			sp.PinnedAppBarApps = objectParam(v)
+		}
 	}
-	if v := plan.PinnedCallingBarApps.ValueString(); v != "" {
-		sp.PinnedCallingBarApps = objectParam(v)
+	if !plan.PinnedCallingBarApps.Equal(state.PinnedCallingBarApps) {
+		if v := plan.PinnedCallingBarApps.ValueString(); v != "" {
+			sp.PinnedCallingBarApps = objectParam(v)
+		}
 	}
-	if v := plan.PinnedMessageBarApps.ValueString(); v != "" {
-		sp.PinnedMessageBarApps = objectParam(v)
+	if !plan.PinnedMessageBarApps.Equal(state.PinnedMessageBarApps) {
+		if v := plan.PinnedMessageBarApps.ValueString(); v != "" {
+			sp.PinnedMessageBarApps = objectParam(v)
+		}
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsAppSetupPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsAppSetupPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-AppSetupPolicy failed", err.Error())
 		return
 	}
@@ -256,7 +280,22 @@ func (r *appSetupPolicyResource) Update(ctx context.Context, req resource.Update
 	reflected := reconcile.ReflectsFields(map[string]types.String{
 		"Description": cfg.Description,
 	}, getString)
+	if !cfg.AllowSideLoading.IsUnknown() && !cfg.AllowSideLoading.IsNull() && !cfg.AllowSideLoading.Equal(state.AllowSideLoading) {
+		prev, want := reflected, cfg.AllowSideLoading.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowSideLoading"] == nil || getBool(obj, "AllowSideLoading") == want)
+		}
+	}
+	if !cfg.AllowUserPinning.IsUnknown() && !cfg.AllowUserPinning.IsNull() && !cfg.AllowUserPinning.Equal(state.AllowUserPinning) {
+		prev, want := reflected, cfg.AllowUserPinning.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowUserPinning"] == nil || getBool(obj, "AllowUserPinning") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

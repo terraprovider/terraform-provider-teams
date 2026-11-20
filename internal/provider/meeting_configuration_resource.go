@@ -114,43 +114,67 @@ func (r *meetingConfigurationResource) Create(ctx context.Context, req resource.
 	sp := cs.SetCsTeamsMeetingConfigurationParams{}
 	sp.Identity = plan.Identity.ValueString()
 	if !config.ClientAppSharingPort.IsNull() {
-		sp.ClientAppSharingPort = plan.ClientAppSharingPort.ValueInt64Pointer()
+		if !plan.ClientAppSharingPort.IsUnknown() {
+			sp.ClientAppSharingPort = plan.ClientAppSharingPort.ValueInt64Pointer()
+		}
 	}
 	if !config.ClientAppSharingPortRange.IsNull() {
-		sp.ClientAppSharingPortRange = plan.ClientAppSharingPortRange.ValueInt64Pointer()
+		if !plan.ClientAppSharingPortRange.IsUnknown() {
+			sp.ClientAppSharingPortRange = plan.ClientAppSharingPortRange.ValueInt64Pointer()
+		}
 	}
 	if !config.ClientAudioPort.IsNull() {
-		sp.ClientAudioPort = plan.ClientAudioPort.ValueInt64Pointer()
+		if !plan.ClientAudioPort.IsUnknown() {
+			sp.ClientAudioPort = plan.ClientAudioPort.ValueInt64Pointer()
+		}
 	}
 	if !config.ClientAudioPortRange.IsNull() {
-		sp.ClientAudioPortRange = plan.ClientAudioPortRange.ValueInt64Pointer()
+		if !plan.ClientAudioPortRange.IsUnknown() {
+			sp.ClientAudioPortRange = plan.ClientAudioPortRange.ValueInt64Pointer()
+		}
 	}
 	if !config.ClientMediaPortRangeEnabled.IsNull() {
-		sp.ClientMediaPortRangeEnabled = plan.ClientMediaPortRangeEnabled.ValueBoolPointer()
+		if !plan.ClientMediaPortRangeEnabled.IsUnknown() {
+			sp.ClientMediaPortRangeEnabled = plan.ClientMediaPortRangeEnabled.ValueBoolPointer()
+		}
 	}
 	if !config.ClientVideoPort.IsNull() {
-		sp.ClientVideoPort = plan.ClientVideoPort.ValueInt64Pointer()
+		if !plan.ClientVideoPort.IsUnknown() {
+			sp.ClientVideoPort = plan.ClientVideoPort.ValueInt64Pointer()
+		}
 	}
 	if !config.ClientVideoPortRange.IsNull() {
-		sp.ClientVideoPortRange = plan.ClientVideoPortRange.ValueInt64Pointer()
+		if !plan.ClientVideoPortRange.IsUnknown() {
+			sp.ClientVideoPortRange = plan.ClientVideoPortRange.ValueInt64Pointer()
+		}
 	}
 	if !config.CustomFooterText.IsNull() {
 		sp.CustomFooterText = plan.CustomFooterText.ValueString()
 	}
 	if !config.DisableAnonymousJoin.IsNull() {
-		sp.DisableAnonymousJoin = plan.DisableAnonymousJoin.ValueBoolPointer()
+		if !plan.DisableAnonymousJoin.IsUnknown() {
+			sp.DisableAnonymousJoin = plan.DisableAnonymousJoin.ValueBoolPointer()
+		}
 	}
 	if !config.DisableAppInteractionForAnonymousUsers.IsNull() {
-		sp.DisableAppInteractionForAnonymousUsers = plan.DisableAppInteractionForAnonymousUsers.ValueBoolPointer()
+		if !plan.DisableAppInteractionForAnonymousUsers.IsUnknown() {
+			sp.DisableAppInteractionForAnonymousUsers = plan.DisableAppInteractionForAnonymousUsers.ValueBoolPointer()
+		}
 	}
 	if !config.EnableAttributedTranscripts.IsNull() {
-		sp.EnableAttributedTranscripts = plan.EnableAttributedTranscripts.ValueBoolPointer()
+		if !plan.EnableAttributedTranscripts.IsUnknown() {
+			sp.EnableAttributedTranscripts = plan.EnableAttributedTranscripts.ValueBoolPointer()
+		}
 	}
 	if !config.EnableGraphTranscriptAccess.IsNull() {
-		sp.EnableGraphTranscriptAccess = plan.EnableGraphTranscriptAccess.ValueBoolPointer()
+		if !plan.EnableGraphTranscriptAccess.IsUnknown() {
+			sp.EnableGraphTranscriptAccess = plan.EnableGraphTranscriptAccess.ValueBoolPointer()
+		}
 	}
 	if !config.EnableQoS.IsNull() {
-		sp.EnableQoS = plan.EnableQoS.ValueBoolPointer()
+		if !plan.EnableQoS.IsUnknown() {
+			sp.EnableQoS = plan.EnableQoS.ValueBoolPointer()
+		}
 	}
 	if !config.FeedbackSurveyForAnonymousUsers.IsNull() {
 		sp.FeedbackSurveyForAnonymousUsers = plan.FeedbackSurveyForAnonymousUsers.ValueString()
@@ -162,7 +186,9 @@ func (r *meetingConfigurationResource) Create(ctx context.Context, req resource.
 		sp.LegalURL = plan.LegalURL.ValueString()
 	}
 	if !config.LimitPresenterRolePermissions.IsNull() {
-		sp.LimitPresenterRolePermissions = plan.LimitPresenterRolePermissions.ValueBoolPointer()
+		if !plan.LimitPresenterRolePermissions.IsUnknown() {
+			sp.LimitPresenterRolePermissions = plan.LimitPresenterRolePermissions.ValueBoolPointer()
+		}
 	}
 	if !config.LogoURL.IsNull() {
 		sp.LogoURL = plan.LogoURL.ValueString()
@@ -176,7 +202,7 @@ func (r *meetingConfigurationResource) Create(ctx context.Context, req resource.
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsMeetingConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-MeetingConfiguration failed", err.Error())
 		return
 	}
@@ -213,43 +239,67 @@ func (r *meetingConfigurationResource) Update(ctx context.Context, req resource.
 	sp := cs.SetCsTeamsMeetingConfigurationParams{}
 	sp.Identity = id
 	if !plan.ClientAppSharingPort.Equal(state.ClientAppSharingPort) {
-		sp.ClientAppSharingPort = plan.ClientAppSharingPort.ValueInt64Pointer()
+		if !plan.ClientAppSharingPort.IsUnknown() {
+			sp.ClientAppSharingPort = plan.ClientAppSharingPort.ValueInt64Pointer()
+		}
 	}
 	if !plan.ClientAppSharingPortRange.Equal(state.ClientAppSharingPortRange) {
-		sp.ClientAppSharingPortRange = plan.ClientAppSharingPortRange.ValueInt64Pointer()
+		if !plan.ClientAppSharingPortRange.IsUnknown() {
+			sp.ClientAppSharingPortRange = plan.ClientAppSharingPortRange.ValueInt64Pointer()
+		}
 	}
 	if !plan.ClientAudioPort.Equal(state.ClientAudioPort) {
-		sp.ClientAudioPort = plan.ClientAudioPort.ValueInt64Pointer()
+		if !plan.ClientAudioPort.IsUnknown() {
+			sp.ClientAudioPort = plan.ClientAudioPort.ValueInt64Pointer()
+		}
 	}
 	if !plan.ClientAudioPortRange.Equal(state.ClientAudioPortRange) {
-		sp.ClientAudioPortRange = plan.ClientAudioPortRange.ValueInt64Pointer()
+		if !plan.ClientAudioPortRange.IsUnknown() {
+			sp.ClientAudioPortRange = plan.ClientAudioPortRange.ValueInt64Pointer()
+		}
 	}
 	if !plan.ClientMediaPortRangeEnabled.Equal(state.ClientMediaPortRangeEnabled) {
-		sp.ClientMediaPortRangeEnabled = plan.ClientMediaPortRangeEnabled.ValueBoolPointer()
+		if !plan.ClientMediaPortRangeEnabled.IsUnknown() {
+			sp.ClientMediaPortRangeEnabled = plan.ClientMediaPortRangeEnabled.ValueBoolPointer()
+		}
 	}
 	if !plan.ClientVideoPort.Equal(state.ClientVideoPort) {
-		sp.ClientVideoPort = plan.ClientVideoPort.ValueInt64Pointer()
+		if !plan.ClientVideoPort.IsUnknown() {
+			sp.ClientVideoPort = plan.ClientVideoPort.ValueInt64Pointer()
+		}
 	}
 	if !plan.ClientVideoPortRange.Equal(state.ClientVideoPortRange) {
-		sp.ClientVideoPortRange = plan.ClientVideoPortRange.ValueInt64Pointer()
+		if !plan.ClientVideoPortRange.IsUnknown() {
+			sp.ClientVideoPortRange = plan.ClientVideoPortRange.ValueInt64Pointer()
+		}
 	}
 	if !plan.CustomFooterText.Equal(state.CustomFooterText) {
 		sp.CustomFooterText = plan.CustomFooterText.ValueString()
 	}
 	if !plan.DisableAnonymousJoin.Equal(state.DisableAnonymousJoin) {
-		sp.DisableAnonymousJoin = plan.DisableAnonymousJoin.ValueBoolPointer()
+		if !plan.DisableAnonymousJoin.IsUnknown() {
+			sp.DisableAnonymousJoin = plan.DisableAnonymousJoin.ValueBoolPointer()
+		}
 	}
 	if !plan.DisableAppInteractionForAnonymousUsers.Equal(state.DisableAppInteractionForAnonymousUsers) {
-		sp.DisableAppInteractionForAnonymousUsers = plan.DisableAppInteractionForAnonymousUsers.ValueBoolPointer()
+		if !plan.DisableAppInteractionForAnonymousUsers.IsUnknown() {
+			sp.DisableAppInteractionForAnonymousUsers = plan.DisableAppInteractionForAnonymousUsers.ValueBoolPointer()
+		}
 	}
 	if !plan.EnableAttributedTranscripts.Equal(state.EnableAttributedTranscripts) {
-		sp.EnableAttributedTranscripts = plan.EnableAttributedTranscripts.ValueBoolPointer()
+		if !plan.EnableAttributedTranscripts.IsUnknown() {
+			sp.EnableAttributedTranscripts = plan.EnableAttributedTranscripts.ValueBoolPointer()
+		}
 	}
 	if !plan.EnableGraphTranscriptAccess.Equal(state.EnableGraphTranscriptAccess) {
-		sp.EnableGraphTranscriptAccess = plan.EnableGraphTranscriptAccess.ValueBoolPointer()
+		if !plan.EnableGraphTranscriptAccess.IsUnknown() {
+			sp.EnableGraphTranscriptAccess = plan.EnableGraphTranscriptAccess.ValueBoolPointer()
+		}
 	}
 	if !plan.EnableQoS.Equal(state.EnableQoS) {
-		sp.EnableQoS = plan.EnableQoS.ValueBoolPointer()
+		if !plan.EnableQoS.IsUnknown() {
+			sp.EnableQoS = plan.EnableQoS.ValueBoolPointer()
+		}
 	}
 	if !plan.FeedbackSurveyForAnonymousUsers.Equal(state.FeedbackSurveyForAnonymousUsers) {
 		sp.FeedbackSurveyForAnonymousUsers = plan.FeedbackSurveyForAnonymousUsers.ValueString()
@@ -261,13 +311,17 @@ func (r *meetingConfigurationResource) Update(ctx context.Context, req resource.
 		sp.LegalURL = plan.LegalURL.ValueString()
 	}
 	if !plan.LimitPresenterRolePermissions.Equal(state.LimitPresenterRolePermissions) {
-		sp.LimitPresenterRolePermissions = plan.LimitPresenterRolePermissions.ValueBoolPointer()
+		if !plan.LimitPresenterRolePermissions.IsUnknown() {
+			sp.LimitPresenterRolePermissions = plan.LimitPresenterRolePermissions.ValueBoolPointer()
+		}
 	}
 	if !plan.LogoURL.Equal(state.LogoURL) {
 		sp.LogoURL = plan.LogoURL.ValueString()
 	}
-	if v := plan.PublishedEntraAuthenticationContexts.ValueString(); v != "" {
-		sp.PublishedEntraAuthenticationContexts = objectParam(v)
+	if !plan.PublishedEntraAuthenticationContexts.Equal(state.PublishedEntraAuthenticationContexts) {
+		if v := plan.PublishedEntraAuthenticationContexts.ValueString(); v != "" {
+			sp.PublishedEntraAuthenticationContexts = objectParam(v)
+		}
 	}
 	if !plan.ReportMeeting.Equal(state.ReportMeeting) {
 		sp.ReportMeeting = plan.ReportMeeting.ValueString()
@@ -275,7 +329,7 @@ func (r *meetingConfigurationResource) Update(ctx context.Context, req resource.
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsMeetingConfiguration(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingConfiguration, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-MeetingConfiguration failed", err.Error())
 		return
 	}
@@ -288,7 +342,88 @@ func (r *meetingConfigurationResource) Update(ctx context.Context, req resource.
 		"LogoURL":                         cfg.LogoURL,
 		"ReportMeeting":                   cfg.ReportMeeting,
 	}, getString)
+	if !cfg.ClientAppSharingPort.IsUnknown() && !cfg.ClientAppSharingPort.IsNull() && !cfg.ClientAppSharingPort.Equal(state.ClientAppSharingPort) {
+		prev, want := reflected, cfg.ClientAppSharingPort.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["ClientAppSharingPort"] == nil || getInt(obj, "ClientAppSharingPort") == want)
+		}
+	}
+	if !cfg.ClientAppSharingPortRange.IsUnknown() && !cfg.ClientAppSharingPortRange.IsNull() && !cfg.ClientAppSharingPortRange.Equal(state.ClientAppSharingPortRange) {
+		prev, want := reflected, cfg.ClientAppSharingPortRange.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["ClientAppSharingPortRange"] == nil || getInt(obj, "ClientAppSharingPortRange") == want)
+		}
+	}
+	if !cfg.ClientAudioPort.IsUnknown() && !cfg.ClientAudioPort.IsNull() && !cfg.ClientAudioPort.Equal(state.ClientAudioPort) {
+		prev, want := reflected, cfg.ClientAudioPort.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["ClientAudioPort"] == nil || getInt(obj, "ClientAudioPort") == want)
+		}
+	}
+	if !cfg.ClientAudioPortRange.IsUnknown() && !cfg.ClientAudioPortRange.IsNull() && !cfg.ClientAudioPortRange.Equal(state.ClientAudioPortRange) {
+		prev, want := reflected, cfg.ClientAudioPortRange.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["ClientAudioPortRange"] == nil || getInt(obj, "ClientAudioPortRange") == want)
+		}
+	}
+	if !cfg.ClientMediaPortRangeEnabled.IsUnknown() && !cfg.ClientMediaPortRangeEnabled.IsNull() && !cfg.ClientMediaPortRangeEnabled.Equal(state.ClientMediaPortRangeEnabled) {
+		prev, want := reflected, cfg.ClientMediaPortRangeEnabled.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["ClientMediaPortRangeEnabled"] == nil || getBool(obj, "ClientMediaPortRangeEnabled") == want)
+		}
+	}
+	if !cfg.ClientVideoPort.IsUnknown() && !cfg.ClientVideoPort.IsNull() && !cfg.ClientVideoPort.Equal(state.ClientVideoPort) {
+		prev, want := reflected, cfg.ClientVideoPort.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["ClientVideoPort"] == nil || getInt(obj, "ClientVideoPort") == want)
+		}
+	}
+	if !cfg.ClientVideoPortRange.IsUnknown() && !cfg.ClientVideoPortRange.IsNull() && !cfg.ClientVideoPortRange.Equal(state.ClientVideoPortRange) {
+		prev, want := reflected, cfg.ClientVideoPortRange.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["ClientVideoPortRange"] == nil || getInt(obj, "ClientVideoPortRange") == want)
+		}
+	}
+	if !cfg.DisableAnonymousJoin.IsUnknown() && !cfg.DisableAnonymousJoin.IsNull() && !cfg.DisableAnonymousJoin.Equal(state.DisableAnonymousJoin) {
+		prev, want := reflected, cfg.DisableAnonymousJoin.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["DisableAnonymousJoin"] == nil || getBool(obj, "DisableAnonymousJoin") == want)
+		}
+	}
+	if !cfg.DisableAppInteractionForAnonymousUsers.IsUnknown() && !cfg.DisableAppInteractionForAnonymousUsers.IsNull() && !cfg.DisableAppInteractionForAnonymousUsers.Equal(state.DisableAppInteractionForAnonymousUsers) {
+		prev, want := reflected, cfg.DisableAppInteractionForAnonymousUsers.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["DisableAppInteractionForAnonymousUsers"] == nil || getBool(obj, "DisableAppInteractionForAnonymousUsers") == want)
+		}
+	}
+	if !cfg.EnableAttributedTranscripts.IsUnknown() && !cfg.EnableAttributedTranscripts.IsNull() && !cfg.EnableAttributedTranscripts.Equal(state.EnableAttributedTranscripts) {
+		prev, want := reflected, cfg.EnableAttributedTranscripts.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableAttributedTranscripts"] == nil || getBool(obj, "EnableAttributedTranscripts") == want)
+		}
+	}
+	if !cfg.EnableGraphTranscriptAccess.IsUnknown() && !cfg.EnableGraphTranscriptAccess.IsNull() && !cfg.EnableGraphTranscriptAccess.Equal(state.EnableGraphTranscriptAccess) {
+		prev, want := reflected, cfg.EnableGraphTranscriptAccess.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableGraphTranscriptAccess"] == nil || getBool(obj, "EnableGraphTranscriptAccess") == want)
+		}
+	}
+	if !cfg.EnableQoS.IsUnknown() && !cfg.EnableQoS.IsNull() && !cfg.EnableQoS.Equal(state.EnableQoS) {
+		prev, want := reflected, cfg.EnableQoS.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["EnableQoS"] == nil || getBool(obj, "EnableQoS") == want)
+		}
+	}
+	if !cfg.LimitPresenterRolePermissions.IsUnknown() && !cfg.LimitPresenterRolePermissions.IsNull() && !cfg.LimitPresenterRolePermissions.Equal(state.LimitPresenterRolePermissions) {
+		prev, want := reflected, cfg.LimitPresenterRolePermissions.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["LimitPresenterRolePermissions"] == nil || getBool(obj, "LimitPresenterRolePermissions") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

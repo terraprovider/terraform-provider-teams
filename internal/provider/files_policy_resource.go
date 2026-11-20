@@ -97,7 +97,7 @@ func (r *filesPolicyResource) Create(ctx context.Context, req resource.CreateReq
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsFilesPolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsFilesPolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-FilesPolicy failed", err.Error())
 			return
 		}
@@ -130,7 +130,7 @@ func (r *filesPolicyResource) Create(ctx context.Context, req resource.CreateReq
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsFilesPolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsFilesPolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-FilesPolicy failed", err.Error())
 		return
@@ -192,7 +192,7 @@ func (r *filesPolicyResource) Update(ctx context.Context, req resource.UpdateReq
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsFilesPolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsFilesPolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-FilesPolicy failed", err.Error())
 		return
 	}
@@ -204,6 +204,9 @@ func (r *filesPolicyResource) Update(ctx context.Context, req resource.UpdateReq
 		"SPChannelFilesTab":                   cfg.SPChannelFilesTab,
 	}, getString)
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

@@ -83,7 +83,9 @@ func (r *tenantBlockedCallingNumbersResource) Create(ctx context.Context, req re
 	sp := cs.SetCsTenantBlockedCallingNumbersParams{}
 	sp.Identity = plan.Identity.ValueString()
 	if !config.Enabled.IsNull() {
-		sp.Enabled = plan.Enabled.ValueBoolPointer()
+		if !plan.Enabled.IsUnknown() {
+			sp.Enabled = plan.Enabled.ValueBoolPointer()
+		}
 	}
 	if v := config.InboundBlockedNumberPatterns.ValueString(); v != "" {
 		sp.InboundBlockedNumberPatterns = objectParam(v)
@@ -97,7 +99,7 @@ func (r *tenantBlockedCallingNumbersResource) Create(ctx context.Context, req re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTenantBlockedCallingNumbers(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantBlockedCallingNumbers, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-TenantBlockedCallingNumbers failed", err.Error())
 		return
 	}
@@ -134,13 +136,19 @@ func (r *tenantBlockedCallingNumbersResource) Update(ctx context.Context, req re
 	sp := cs.SetCsTenantBlockedCallingNumbersParams{}
 	sp.Identity = id
 	if !plan.Enabled.Equal(state.Enabled) {
-		sp.Enabled = plan.Enabled.ValueBoolPointer()
+		if !plan.Enabled.IsUnknown() {
+			sp.Enabled = plan.Enabled.ValueBoolPointer()
+		}
 	}
-	if v := plan.InboundBlockedNumberPatterns.ValueString(); v != "" {
-		sp.InboundBlockedNumberPatterns = objectParam(v)
+	if !plan.InboundBlockedNumberPatterns.Equal(state.InboundBlockedNumberPatterns) {
+		if v := plan.InboundBlockedNumberPatterns.ValueString(); v != "" {
+			sp.InboundBlockedNumberPatterns = objectParam(v)
+		}
 	}
-	if v := plan.InboundExemptNumberPatterns.ValueString(); v != "" {
-		sp.InboundExemptNumberPatterns = objectParam(v)
+	if !plan.InboundExemptNumberPatterns.Equal(state.InboundExemptNumberPatterns) {
+		if v := plan.InboundExemptNumberPatterns.ValueString(); v != "" {
+			sp.InboundExemptNumberPatterns = objectParam(v)
+		}
 	}
 	if !plan.Name.Equal(state.Name) {
 		sp.Name = plan.Name.ValueString()
@@ -148,7 +156,7 @@ func (r *tenantBlockedCallingNumbersResource) Update(ctx context.Context, req re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTenantBlockedCallingNumbers(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantBlockedCallingNumbers, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-TenantBlockedCallingNumbers failed", err.Error())
 		return
 	}
@@ -156,7 +164,16 @@ func (r *tenantBlockedCallingNumbersResource) Update(ctx context.Context, req re
 	reflected := reconcile.ReflectsFields(map[string]types.String{
 		"Name": cfg.Name,
 	}, getString)
+	if !cfg.Enabled.IsUnknown() && !cfg.Enabled.IsNull() && !cfg.Enabled.Equal(state.Enabled) {
+		prev, want := reflected, cfg.Enabled.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["Enabled"] == nil || getBool(obj, "Enabled") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

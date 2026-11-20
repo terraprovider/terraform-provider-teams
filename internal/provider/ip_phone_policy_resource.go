@@ -97,13 +97,17 @@ func (r *iPPhonePolicyResource) Create(ctx context.Context, req resource.CreateR
 			sp.AllowHomeScreen = plan.AllowHomeScreen.ValueString()
 		}
 		if !config.AllowHotDesking.IsNull() {
-			sp.AllowHotDesking = plan.AllowHotDesking.ValueBoolPointer()
+			if !plan.AllowHotDesking.IsUnknown() {
+				sp.AllowHotDesking = plan.AllowHotDesking.ValueBoolPointer()
+			}
 		}
 		if !config.Description.IsNull() {
 			sp.Description = plan.Description.ValueString()
 		}
 		if !config.HotDeskingIdleTimeoutInMinutes.IsNull() {
-			sp.HotDeskingIdleTimeoutInMinutes = plan.HotDeskingIdleTimeoutInMinutes.ValueInt64Pointer()
+			if !plan.HotDeskingIdleTimeoutInMinutes.IsUnknown() {
+				sp.HotDeskingIdleTimeoutInMinutes = plan.HotDeskingIdleTimeoutInMinutes.ValueInt64Pointer()
+			}
 		}
 		if !config.SearchOnCommonAreaPhoneMode.IsNull() {
 			sp.SearchOnCommonAreaPhoneMode = plan.SearchOnCommonAreaPhoneMode.ValueString()
@@ -114,7 +118,7 @@ func (r *iPPhonePolicyResource) Create(ctx context.Context, req resource.CreateR
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := r.client.CS.SetCsTeamsIPPhonePolicy(ctx, sp); err != nil {
+		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsIPPhonePolicy, sp, isNotFound); err != nil {
 			resp.Diagnostics.AddError("Set-IPPhonePolicy failed", err.Error())
 			return
 		}
@@ -138,13 +142,17 @@ func (r *iPPhonePolicyResource) Create(ctx context.Context, req resource.CreateR
 		p.AllowHomeScreen = plan.AllowHomeScreen.ValueString()
 	}
 	if !config.AllowHotDesking.IsNull() {
-		p.AllowHotDesking = plan.AllowHotDesking.ValueBoolPointer()
+		if !plan.AllowHotDesking.IsUnknown() {
+			p.AllowHotDesking = plan.AllowHotDesking.ValueBoolPointer()
+		}
 	}
 	if !config.Description.IsNull() {
 		p.Description = plan.Description.ValueString()
 	}
 	if !config.HotDeskingIdleTimeoutInMinutes.IsNull() {
-		p.HotDeskingIdleTimeoutInMinutes = plan.HotDeskingIdleTimeoutInMinutes.ValueInt64Pointer()
+		if !plan.HotDeskingIdleTimeoutInMinutes.IsUnknown() {
+			p.HotDeskingIdleTimeoutInMinutes = plan.HotDeskingIdleTimeoutInMinutes.ValueInt64Pointer()
+		}
 	}
 	if !config.SearchOnCommonAreaPhoneMode.IsNull() {
 		p.SearchOnCommonAreaPhoneMode = plan.SearchOnCommonAreaPhoneMode.ValueString()
@@ -156,7 +164,7 @@ func (r *iPPhonePolicyResource) Create(ctx context.Context, req resource.CreateR
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := r.client.CS.NewCsTeamsIPPhonePolicy(ctx, p)
+	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsIPPhonePolicy, p, isNotFound)
 	if err != nil {
 		resp.Diagnostics.AddError("New-IPPhonePolicy failed", err.Error())
 		return
@@ -210,13 +218,17 @@ func (r *iPPhonePolicyResource) Update(ctx context.Context, req resource.UpdateR
 		sp.AllowHomeScreen = plan.AllowHomeScreen.ValueString()
 	}
 	if !plan.AllowHotDesking.Equal(state.AllowHotDesking) {
-		sp.AllowHotDesking = plan.AllowHotDesking.ValueBoolPointer()
+		if !plan.AllowHotDesking.IsUnknown() {
+			sp.AllowHotDesking = plan.AllowHotDesking.ValueBoolPointer()
+		}
 	}
 	if !plan.Description.Equal(state.Description) {
 		sp.Description = plan.Description.ValueString()
 	}
 	if !plan.HotDeskingIdleTimeoutInMinutes.Equal(state.HotDeskingIdleTimeoutInMinutes) {
-		sp.HotDeskingIdleTimeoutInMinutes = plan.HotDeskingIdleTimeoutInMinutes.ValueInt64Pointer()
+		if !plan.HotDeskingIdleTimeoutInMinutes.IsUnknown() {
+			sp.HotDeskingIdleTimeoutInMinutes = plan.HotDeskingIdleTimeoutInMinutes.ValueInt64Pointer()
+		}
 	}
 	if !plan.SearchOnCommonAreaPhoneMode.Equal(state.SearchOnCommonAreaPhoneMode) {
 		sp.SearchOnCommonAreaPhoneMode = plan.SearchOnCommonAreaPhoneMode.ValueString()
@@ -227,7 +239,7 @@ func (r *iPPhonePolicyResource) Update(ctx context.Context, req resource.UpdateR
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := r.client.CS.SetCsTeamsIPPhonePolicy(ctx, sp); err != nil {
+	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsIPPhonePolicy, sp, isNotFound); err != nil {
 		resp.Diagnostics.AddError("Set-IPPhonePolicy failed", err.Error())
 		return
 	}
@@ -239,7 +251,22 @@ func (r *iPPhonePolicyResource) Update(ctx context.Context, req resource.UpdateR
 		"SearchOnCommonAreaPhoneMode": cfg.SearchOnCommonAreaPhoneMode,
 		"SignInMode":                  cfg.SignInMode,
 	}, getString)
+	if !cfg.AllowHotDesking.IsUnknown() && !cfg.AllowHotDesking.IsNull() && !cfg.AllowHotDesking.Equal(state.AllowHotDesking) {
+		prev, want := reflected, cfg.AllowHotDesking.ValueBool()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["AllowHotDesking"] == nil || getBool(obj, "AllowHotDesking") == want)
+		}
+	}
+	if !cfg.HotDeskingIdleTimeoutInMinutes.IsUnknown() && !cfg.HotDeskingIdleTimeoutInMinutes.IsNull() && !cfg.HotDeskingIdleTimeoutInMinutes.Equal(state.HotDeskingIdleTimeoutInMinutes) {
+		prev, want := reflected, cfg.HotDeskingIdleTimeoutInMinutes.ValueInt64()
+		reflected = func(obj map[string]any) bool {
+			return prev(obj) && (obj["HotDeskingIdleTimeoutInMinutes"] == nil || getInt(obj, "HotDeskingIdleTimeoutInMinutes") == want)
+		}
+	}
 	r.refresh(ctx, id, &plan, &resp.Diagnostics, reflected)
+	if !cfg.ID.IsUnknown() && !cfg.ID.IsNull() {
+		plan.ID = cfg.ID
+	}
 	r.reconcileState(&cfg, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
