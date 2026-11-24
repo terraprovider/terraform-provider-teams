@@ -81,7 +81,7 @@ func (r *multiTenantOrganizationConfigurationResource) Create(ctx context.Contex
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMultiTenantOrganizationConfiguration, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMultiTenantOrganizationConfiguration, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-MultiTenantOrganizationConfiguration failed", err.Error())
 		return
 	}
@@ -123,7 +123,7 @@ func (r *multiTenantOrganizationConfigurationResource) Update(ctx context.Contex
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMultiTenantOrganizationConfiguration, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMultiTenantOrganizationConfiguration, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-MultiTenantOrganizationConfiguration failed", err.Error())
 		return
 	}

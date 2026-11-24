@@ -92,7 +92,7 @@ func (r *workLocationDetectionPolicyResource) Create(ctx context.Context, req re
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsWorkLocationDetectionPolicy, sp, isNotFound); err != nil {
+		if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsWorkLocationDetectionPolicy, sp, isNotFound, isWriteConflict); err != nil {
 			resp.Diagnostics.AddError("Set-WorkLocationDetectionPolicy failed", err.Error())
 			return
 		}
@@ -121,7 +121,7 @@ func (r *workLocationDetectionPolicyResource) Create(ctx context.Context, req re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsWorkLocationDetectionPolicy, p, isNotFound)
+	res, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsWorkLocationDetectionPolicy, p, isNotFound, isWriteConflict)
 	if err != nil {
 		resp.Diagnostics.AddError("New-WorkLocationDetectionPolicy failed", err.Error())
 		return
@@ -179,7 +179,7 @@ func (r *workLocationDetectionPolicyResource) Update(ctx context.Context, req re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsWorkLocationDetectionPolicy, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsWorkLocationDetectionPolicy, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-WorkLocationDetectionPolicy failed", err.Error())
 		return
 	}
@@ -211,7 +211,10 @@ func (r *workLocationDetectionPolicyResource) Delete(ctx context.Context, req re
 		resp.Diagnostics.AddWarning("WorkLocationDetectionPolicy Global not deleted", "The Global WorkLocationDetectionPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
 		return
 	}
-	if _, err := r.client.CS.RemoveCsTeamsWorkLocationDetectionPolicy(ctx, cs.RemoveCsTeamsWorkLocationDetectionPolicyParams{Identity: r.identityOf(state)}); err != nil {
+	if err := resourcex.RetryConflict(ctx, resourcex.ConflictConfig{}, func(ctx context.Context) error {
+		_, err := r.client.CS.RemoveCsTeamsWorkLocationDetectionPolicy(ctx, cs.RemoveCsTeamsWorkLocationDetectionPolicyParams{Identity: r.identityOf(state)})
+		return err
+	}, isWriteConflict); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-WorkLocationDetectionPolicy failed", err.Error())
 		}

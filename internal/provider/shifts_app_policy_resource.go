@@ -82,7 +82,7 @@ func (r *shiftsAppPolicyResource) Create(ctx context.Context, req resource.Creat
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsShiftsAppPolicy, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsShiftsAppPolicy, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-ShiftsAppPolicy failed", err.Error())
 		return
 	}
@@ -126,7 +126,7 @@ func (r *shiftsAppPolicyResource) Update(ctx context.Context, req resource.Updat
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsShiftsAppPolicy, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsShiftsAppPolicy, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-ShiftsAppPolicy failed", err.Error())
 		return
 	}

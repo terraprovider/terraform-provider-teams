@@ -94,7 +94,7 @@ func (r *upgradeConfigurationResource) Create(ctx context.Context, req resource.
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsUpgradeConfiguration, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsUpgradeConfiguration, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-UpgradeConfiguration failed", err.Error())
 		return
 	}
@@ -146,7 +146,7 @@ func (r *upgradeConfigurationResource) Update(ctx context.Context, req resource.
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsUpgradeConfiguration, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsUpgradeConfiguration, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-UpgradeConfiguration failed", err.Error())
 		return
 	}

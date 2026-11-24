@@ -2,6 +2,9 @@ package provider
 
 import (
 	"encoding/json"
+	"errors"
+	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/terraprovider/go-teams/teamsapi"
@@ -107,4 +110,23 @@ func getObjectJSON(m map[string]any, key string) string {
 		return ""
 	}
 	return string(b)
+}
+
+// writeConflictCode matches the errorCode of a lost parallel write in a 409
+// body: 40904 (create), 40902 (update) or 40903 (delete conflict). It is a pattern
+// rather than a JSON decode so that it still matches when the body is truncated
+// (APIError.Body may be cut; errorCode comes early, before the long innerError).
+var writeConflictCode = regexp.MustCompile(`"errorCode"\s*:\s*(40904|40902|40903)\b`)
+
+// isWriteConflict reports a write Teams rejected only because a parallel write
+// to the same policy type won (one storage document per type and tenant, with an
+// etag check): HTTP 409 with errorCode 40904, 40902 or 40903. 40901 (already exists)
+// and every other error are not conflicts. genframework retries these
+// (Config.WriteConflict).
+func isWriteConflict(err error) bool {
+	var ae *teamsapi.APIError
+	if !errors.As(err, &ae) || ae.Status != http.StatusConflict {
+		return false
+	}
+	return writeConflictCode.MatchString(ae.Body)
 }

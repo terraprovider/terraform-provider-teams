@@ -129,7 +129,7 @@ func (r *guestMeetingConfigurationResource) Create(ctx context.Context, req reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsGuestMeetingConfiguration, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsGuestMeetingConfiguration, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-GuestMeetingConfiguration failed", err.Error())
 		return
 	}
@@ -204,7 +204,7 @@ func (r *guestMeetingConfigurationResource) Update(ctx context.Context, req reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsGuestMeetingConfiguration, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsGuestMeetingConfiguration, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-GuestMeetingConfiguration failed", err.Error())
 		return
 	}

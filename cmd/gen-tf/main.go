@@ -45,6 +45,7 @@ func main() {
 		BindingsImport: "github.com/terraprovider/go-teams/cs",
 		BindingsPkg:    "cs",
 		TenantField:    "TenantID",
+		WriteConflict:  "isWriteConflict",
 	}
 
 	byNoun := cat.ByNoun()

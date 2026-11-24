@@ -98,7 +98,7 @@ func (r *networkRoamingPolicyResource) Create(ctx context.Context, req resource.
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsNetworkRoamingPolicy, sp, isNotFound); err != nil {
+		if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsNetworkRoamingPolicy, sp, isNotFound, isWriteConflict); err != nil {
 			resp.Diagnostics.AddError("Set-NetworkRoamingPolicy failed", err.Error())
 			return
 		}
@@ -132,7 +132,7 @@ func (r *networkRoamingPolicyResource) Create(ctx context.Context, req resource.
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsNetworkRoamingPolicy, p, isNotFound)
+	res, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsNetworkRoamingPolicy, p, isNotFound, isWriteConflict)
 	if err != nil {
 		resp.Diagnostics.AddError("New-NetworkRoamingPolicy failed", err.Error())
 		return
@@ -195,7 +195,7 @@ func (r *networkRoamingPolicyResource) Update(ctx context.Context, req resource.
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsNetworkRoamingPolicy, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsNetworkRoamingPolicy, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-NetworkRoamingPolicy failed", err.Error())
 		return
 	}
@@ -233,7 +233,10 @@ func (r *networkRoamingPolicyResource) Delete(ctx context.Context, req resource.
 		resp.Diagnostics.AddWarning("NetworkRoamingPolicy Global not deleted", "The Global NetworkRoamingPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
 		return
 	}
-	if _, err := r.client.CS.RemoveCsTeamsNetworkRoamingPolicy(ctx, cs.RemoveCsTeamsNetworkRoamingPolicyParams{Identity: r.identityOf(state)}); err != nil {
+	if err := resourcex.RetryConflict(ctx, resourcex.ConflictConfig{}, func(ctx context.Context) error {
+		_, err := r.client.CS.RemoveCsTeamsNetworkRoamingPolicy(ctx, cs.RemoveCsTeamsNetworkRoamingPolicyParams{Identity: r.identityOf(state)})
+		return err
+	}, isWriteConflict); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-NetworkRoamingPolicy failed", err.Error())
 		}

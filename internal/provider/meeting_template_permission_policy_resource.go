@@ -94,7 +94,7 @@ func (r *meetingTemplatePermissionPolicyResource) Create(ctx context.Context, re
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingTemplatePermissionPolicy, sp, isNotFound); err != nil {
+		if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingTemplatePermissionPolicy, sp, isNotFound, isWriteConflict); err != nil {
 			resp.Diagnostics.AddError("Set-MeetingTemplatePermissionPolicy failed", err.Error())
 			return
 		}
@@ -124,7 +124,7 @@ func (r *meetingTemplatePermissionPolicyResource) Create(ctx context.Context, re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsMeetingTemplatePermissionPolicy, p, isNotFound)
+	res, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsMeetingTemplatePermissionPolicy, p, isNotFound, isWriteConflict)
 	if err != nil {
 		resp.Diagnostics.AddError("New-MeetingTemplatePermissionPolicy failed", err.Error())
 		return
@@ -185,7 +185,7 @@ func (r *meetingTemplatePermissionPolicyResource) Update(ctx context.Context, re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingTemplatePermissionPolicy, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingTemplatePermissionPolicy, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-MeetingTemplatePermissionPolicy failed", err.Error())
 		return
 	}
@@ -212,7 +212,10 @@ func (r *meetingTemplatePermissionPolicyResource) Delete(ctx context.Context, re
 		resp.Diagnostics.AddWarning("MeetingTemplatePermissionPolicy Global not deleted", "The Global MeetingTemplatePermissionPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
 		return
 	}
-	if _, err := r.client.CS.RemoveCsTeamsMeetingTemplatePermissionPolicy(ctx, cs.RemoveCsTeamsMeetingTemplatePermissionPolicyParams{Identity: r.identityOf(state)}); err != nil {
+	if err := resourcex.RetryConflict(ctx, resourcex.ConflictConfig{}, func(ctx context.Context) error {
+		_, err := r.client.CS.RemoveCsTeamsMeetingTemplatePermissionPolicy(ctx, cs.RemoveCsTeamsMeetingTemplatePermissionPolicyParams{Identity: r.identityOf(state)})
+		return err
+	}, isWriteConflict); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-MeetingTemplatePermissionPolicy failed", err.Error())
 		}

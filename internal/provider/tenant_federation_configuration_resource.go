@@ -170,7 +170,7 @@ func (r *tenantFederationConfigurationResource) Create(ctx context.Context, req 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantFederationConfiguration, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantFederationConfiguration, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-TenantFederationConfiguration failed", err.Error())
 		return
 	}
@@ -280,7 +280,7 @@ func (r *tenantFederationConfigurationResource) Update(ctx context.Context, req 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantFederationConfiguration, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantFederationConfiguration, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-TenantFederationConfiguration failed", err.Error())
 		return
 	}

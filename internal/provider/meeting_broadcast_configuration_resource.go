@@ -114,7 +114,7 @@ func (r *meetingBroadcastConfigurationResource) Create(ctx context.Context, req 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingBroadcastConfiguration, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingBroadcastConfiguration, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-MeetingBroadcastConfiguration failed", err.Error())
 		return
 	}
@@ -176,7 +176,7 @@ func (r *meetingBroadcastConfigurationResource) Update(ctx context.Context, req 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingBroadcastConfiguration, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingBroadcastConfiguration, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-MeetingBroadcastConfiguration failed", err.Error())
 		return
 	}

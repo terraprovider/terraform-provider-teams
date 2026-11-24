@@ -104,7 +104,7 @@ func (r *videoInteropServiceProviderResource) Create(ctx context.Context, req re
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsVideoInteropServiceProvider, sp, isNotFound); err != nil {
+		if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsVideoInteropServiceProvider, sp, isNotFound, isWriteConflict); err != nil {
 			resp.Diagnostics.AddError("Set-VideoInteropServiceProvider failed", err.Error())
 			return
 		}
@@ -142,7 +142,7 @@ func (r *videoInteropServiceProviderResource) Create(ctx context.Context, req re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsVideoInteropServiceProvider, p, isNotFound)
+	res, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.NewCsVideoInteropServiceProvider, p, isNotFound, isWriteConflict)
 	if err != nil {
 		resp.Diagnostics.AddError("New-VideoInteropServiceProvider failed", err.Error())
 		return
@@ -206,7 +206,7 @@ func (r *videoInteropServiceProviderResource) Update(ctx context.Context, req re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsVideoInteropServiceProvider, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsVideoInteropServiceProvider, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-VideoInteropServiceProvider failed", err.Error())
 		return
 	}
@@ -240,7 +240,10 @@ func (r *videoInteropServiceProviderResource) Delete(ctx context.Context, req re
 		resp.Diagnostics.AddWarning("VideoInteropServiceProvider Global not deleted", "The Global VideoInteropServiceProvider is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
 		return
 	}
-	if _, err := r.client.CS.RemoveCsVideoInteropServiceProvider(ctx, cs.RemoveCsVideoInteropServiceProviderParams{Identity: r.identityOf(state)}); err != nil {
+	if err := resourcex.RetryConflict(ctx, resourcex.ConflictConfig{}, func(ctx context.Context) error {
+		_, err := r.client.CS.RemoveCsVideoInteropServiceProvider(ctx, cs.RemoveCsVideoInteropServiceProviderParams{Identity: r.identityOf(state)})
+		return err
+	}, isWriteConflict); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-VideoInteropServiceProvider failed", err.Error())
 		}

@@ -168,7 +168,7 @@ func (r *externalAccessPolicyResource) Create(ctx context.Context, req resource.
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsExternalAccessPolicy, sp, isNotFound); err != nil {
+		if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsExternalAccessPolicy, sp, isNotFound, isWriteConflict); err != nil {
 			resp.Diagnostics.AddError("Set-ExternalAccessPolicy failed", err.Error())
 			return
 		}
@@ -251,7 +251,7 @@ func (r *externalAccessPolicyResource) Create(ctx context.Context, req resource.
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsExternalAccessPolicy, p, isNotFound)
+	res, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.NewCsExternalAccessPolicy, p, isNotFound, isWriteConflict)
 	if err != nil {
 		resp.Diagnostics.AddError("New-ExternalAccessPolicy failed", err.Error())
 		return
@@ -369,7 +369,7 @@ func (r *externalAccessPolicyResource) Update(ctx context.Context, req resource.
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsExternalAccessPolicy, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsExternalAccessPolicy, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-ExternalAccessPolicy failed", err.Error())
 		return
 	}
@@ -455,7 +455,10 @@ func (r *externalAccessPolicyResource) Delete(ctx context.Context, req resource.
 		resp.Diagnostics.AddWarning("ExternalAccessPolicy Global not deleted", "The Global ExternalAccessPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
 		return
 	}
-	if _, err := r.client.CS.RemoveCsExternalAccessPolicy(ctx, cs.RemoveCsExternalAccessPolicyParams{Identity: r.identityOf(state)}); err != nil {
+	if err := resourcex.RetryConflict(ctx, resourcex.ConflictConfig{}, func(ctx context.Context) error {
+		_, err := r.client.CS.RemoveCsExternalAccessPolicy(ctx, cs.RemoveCsExternalAccessPolicyParams{Identity: r.identityOf(state)})
+		return err
+	}, isWriteConflict); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-ExternalAccessPolicy failed", err.Error())
 		}

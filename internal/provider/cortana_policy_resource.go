@@ -109,7 +109,7 @@ func (r *cortanaPolicyResource) Create(ctx context.Context, req resource.CreateR
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsCortanaPolicy, sp, isNotFound); err != nil {
+		if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsCortanaPolicy, sp, isNotFound, isWriteConflict); err != nil {
 			resp.Diagnostics.AddError("Set-CortanaPolicy failed", err.Error())
 			return
 		}
@@ -151,7 +151,7 @@ func (r *cortanaPolicyResource) Create(ctx context.Context, req resource.CreateR
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsCortanaPolicy, p, isNotFound)
+	res, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsCortanaPolicy, p, isNotFound, isWriteConflict)
 	if err != nil {
 		resp.Diagnostics.AddError("New-CortanaPolicy failed", err.Error())
 		return
@@ -222,7 +222,7 @@ func (r *cortanaPolicyResource) Update(ctx context.Context, req resource.UpdateR
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsCortanaPolicy, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsCortanaPolicy, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-CortanaPolicy failed", err.Error())
 		return
 	}
@@ -267,7 +267,10 @@ func (r *cortanaPolicyResource) Delete(ctx context.Context, req resource.DeleteR
 		resp.Diagnostics.AddWarning("CortanaPolicy Global not deleted", "The Global CortanaPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
 		return
 	}
-	if _, err := r.client.CS.RemoveCsTeamsCortanaPolicy(ctx, cs.RemoveCsTeamsCortanaPolicyParams{Identity: r.identityOf(state)}); err != nil {
+	if err := resourcex.RetryConflict(ctx, resourcex.ConflictConfig{}, func(ctx context.Context) error {
+		_, err := r.client.CS.RemoveCsTeamsCortanaPolicy(ctx, cs.RemoveCsTeamsCortanaPolicyParams{Identity: r.identityOf(state)})
+		return err
+	}, isWriteConflict); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-CortanaPolicy failed", err.Error())
 		}

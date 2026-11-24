@@ -10,10 +10,12 @@ import (
 )
 
 // TestAccMeetingPolicyGroupAssignment_basic exercises a group policy assignment:
-// it creates two throwaway meeting policies, assigns the first to a test group at
-// rank 1 (Grant -Group, then poll the group's assignment until it settles),
-// switches the assignment to the second policy in place, imports it by group id,
-// then destroys, which unassigns the group and removes both policies.
+// it creates two throwaway meeting policies in parallel, assigns the first to a
+// test group at rank 1 (Grant -Group, then poll the group's assignment until it
+// settles), switches the assignment to the second policy in place, imports it by
+// group id, then destroys, which unassigns the group and removes both policies.
+// The parallel create and remove of one policy type exercise the write-conflict
+// retry (isWriteConflict).
 //
 // Needs TEAMS_ACC_GROUP set to the object id of an Entra group on the dev tenant
 // that has no TeamsMeetingPolicy group assignment and is the only group with one
@@ -33,9 +35,6 @@ resource "teams_meeting_policy" "a" {
 
 resource "teams_meeting_policy" "b" {
   identity = "%[1]s-b"
-
-  # Teams answers concurrent creates of one policy type with 409 "create conflict".
-  depends_on = [teams_meeting_policy.a]
 }
 
 resource "teams_meeting_policy_group_assignment" "test" {
