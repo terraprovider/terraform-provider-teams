@@ -84,7 +84,7 @@ func (r *tenantMigrationConfigurationResource) Create(ctx context.Context, req r
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantMigrationConfiguration, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantMigrationConfiguration, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-TenantMigrationConfiguration failed", err.Error())
 		return
 	}
@@ -128,7 +128,7 @@ func (r *tenantMigrationConfigurationResource) Update(ctx context.Context, req r
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantMigrationConfiguration, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantMigrationConfiguration, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-TenantMigrationConfiguration failed", err.Error())
 		return
 	}

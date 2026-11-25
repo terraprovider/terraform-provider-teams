@@ -126,7 +126,7 @@ func (r *meetingBrandingPolicyResource) Create(ctx context.Context, req resource
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingBrandingPolicy, sp, isNotFound); err != nil {
+		if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingBrandingPolicy, sp, isNotFound, isWriteConflict); err != nil {
 			resp.Diagnostics.AddError("Set-MeetingBrandingPolicy failed", err.Error())
 			return
 		}
@@ -179,7 +179,7 @@ func (r *meetingBrandingPolicyResource) Create(ctx context.Context, req resource
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsMeetingBrandingPolicy, p, isNotFound)
+	res, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsMeetingBrandingPolicy, p, isNotFound, isWriteConflict)
 	if err != nil {
 		resp.Diagnostics.AddError("New-MeetingBrandingPolicy failed", err.Error())
 		return
@@ -267,7 +267,7 @@ func (r *meetingBrandingPolicyResource) Update(ctx context.Context, req resource
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingBrandingPolicy, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsMeetingBrandingPolicy, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-MeetingBrandingPolicy failed", err.Error())
 		return
 	}
@@ -317,7 +317,10 @@ func (r *meetingBrandingPolicyResource) Delete(ctx context.Context, req resource
 		resp.Diagnostics.AddWarning("MeetingBrandingPolicy Global not deleted", "The Global MeetingBrandingPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
 		return
 	}
-	if _, err := r.client.CS.RemoveCsTeamsMeetingBrandingPolicy(ctx, cs.RemoveCsTeamsMeetingBrandingPolicyParams{Identity: r.identityOf(state)}); err != nil {
+	if err := resourcex.RetryConflict(ctx, resourcex.ConflictConfig{}, func(ctx context.Context) error {
+		_, err := r.client.CS.RemoveCsTeamsMeetingBrandingPolicy(ctx, cs.RemoveCsTeamsMeetingBrandingPolicyParams{Identity: r.identityOf(state)})
+		return err
+	}, isWriteConflict); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-MeetingBrandingPolicy failed", err.Error())
 		}

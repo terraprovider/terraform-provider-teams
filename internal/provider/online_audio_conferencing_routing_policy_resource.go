@@ -94,7 +94,7 @@ func (r *onlineAudioConferencingRoutingPolicyResource) Create(ctx context.Contex
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsOnlineAudioConferencingRoutingPolicy, sp, isNotFound); err != nil {
+		if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsOnlineAudioConferencingRoutingPolicy, sp, isNotFound, isWriteConflict); err != nil {
 			resp.Diagnostics.AddError("Set-OnlineAudioConferencingRoutingPolicy failed", err.Error())
 			return
 		}
@@ -124,7 +124,7 @@ func (r *onlineAudioConferencingRoutingPolicyResource) Create(ctx context.Contex
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsOnlineAudioConferencingRoutingPolicy, p, isNotFound)
+	res, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.NewCsOnlineAudioConferencingRoutingPolicy, p, isNotFound, isWriteConflict)
 	if err != nil {
 		resp.Diagnostics.AddError("New-OnlineAudioConferencingRoutingPolicy failed", err.Error())
 		return
@@ -185,7 +185,7 @@ func (r *onlineAudioConferencingRoutingPolicyResource) Update(ctx context.Contex
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsOnlineAudioConferencingRoutingPolicy, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsOnlineAudioConferencingRoutingPolicy, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-OnlineAudioConferencingRoutingPolicy failed", err.Error())
 		return
 	}
@@ -212,7 +212,10 @@ func (r *onlineAudioConferencingRoutingPolicyResource) Delete(ctx context.Contex
 		resp.Diagnostics.AddWarning("OnlineAudioConferencingRoutingPolicy Global not deleted", "The Global OnlineAudioConferencingRoutingPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
 		return
 	}
-	if _, err := r.client.CS.RemoveCsOnlineAudioConferencingRoutingPolicy(ctx, cs.RemoveCsOnlineAudioConferencingRoutingPolicyParams{Identity: r.identityOf(state)}); err != nil {
+	if err := resourcex.RetryConflict(ctx, resourcex.ConflictConfig{}, func(ctx context.Context) error {
+		_, err := r.client.CS.RemoveCsOnlineAudioConferencingRoutingPolicy(ctx, cs.RemoveCsOnlineAudioConferencingRoutingPolicyParams{Identity: r.identityOf(state)})
+		return err
+	}, isWriteConflict); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-OnlineAudioConferencingRoutingPolicy failed", err.Error())
 		}

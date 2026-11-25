@@ -81,7 +81,7 @@ func (r *applicationMeetingConfigurationResource) Create(ctx context.Context, re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsApplicationMeetingConfiguration, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsApplicationMeetingConfiguration, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-ApplicationMeetingConfiguration failed", err.Error())
 		return
 	}
@@ -125,7 +125,7 @@ func (r *applicationMeetingConfigurationResource) Update(ctx context.Context, re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsApplicationMeetingConfiguration, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsApplicationMeetingConfiguration, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-ApplicationMeetingConfiguration failed", err.Error())
 		return
 	}

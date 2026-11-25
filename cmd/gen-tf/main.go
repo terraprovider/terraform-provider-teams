@@ -44,12 +44,14 @@ func main() {
 		ClientField:    "CS",
 		BindingsImport: "github.com/terraprovider/go-teams/cs",
 		BindingsPkg:    "cs",
+		TenantField:    "TenantID",
+		WriteConflict:  "isWriteConflict",
 	}
 
 	byNoun := cat.ByNoun()
 	var resources []genframework.Resource
 	var skipped []string
-	var crud, conf, readonly, assign int
+	var crud, conf, readonly, assign, groupAssign int
 	for _, noun := range sortedKeys(byNoun) {
 		if only != "" && noun != only {
 			continue
@@ -80,6 +82,17 @@ func main() {
 			if _, hasGrant := verbs["Grant"]; hasGrant {
 				resources = append(resources, buildAssignment(noun, verbs))
 				assign++
+				// ...and a per-group one, if the service accepts group grants for
+				// the type (see groupAssignProbe).
+				switch status, probed := groupAssignProbe[noun]; {
+				case status == 200:
+					resources = append(resources, buildGroupAssignment(noun, verbs))
+					groupAssign++
+				case probed:
+					skipped = append(skipped, fmt.Sprintf("%s group assignment (probe returned HTTP %d)", noun, status))
+				default:
+					skipped = append(skipped, fmt.Sprintf("%s group assignment (not probed)", noun))
+				}
 			}
 		case hasGet && hasSet:
 			if r, ok, reason := buildConfigResource(noun, verbs); ok {
@@ -112,7 +125,7 @@ func main() {
 	for _, f := range files {
 		check(os.WriteFile(filepath.Join(out, f.Name), f.Content, 0o644))
 	}
-	fmt.Printf("generated %d resources (%d crud + %d config + %d read-only + %d assignment), %d files -> %s\n", len(resources), crud, conf, readonly, assign, len(files), out)
+	fmt.Printf("generated %d resources (%d crud + %d config + %d read-only + %d assignment + %d group assignment), %d files -> %s\n", len(resources), crud, conf, readonly, assign, groupAssign, len(files), out)
 	if len(skipped) > 0 {
 		sort.Strings(skipped)
 		fmt.Printf("skipped %d: %s\n", len(skipped), strings.Join(skipped, ", "))
@@ -388,6 +401,80 @@ func buildAssignment(noun string, verbs map[string]spec.Cmdlet) genframework.Res
 		AssignmentUserRead:   "EffectiveUserPolicy",
 		Create:               op(grant, "Identity"),
 	}
+}
+
+// buildGroupAssignment maps a grantable policy noun to a per-group assignment
+// resource (teams_<policy>_group_assignment): { group_id, policy_name, rank }.
+// Create/Update call the grant cmdlet with -Group/-Rank, Delete unassigns, and
+// Read pulls the group's assignment for this policy type (GroupPolicyAssignment).
+func buildGroupAssignment(noun string, verbs map[string]spec.Cmdlet) genframework.Resource {
+	grant := verbs["Grant"]
+	clean := cleanNoun(noun)
+	return genframework.Resource{
+		Noun:                 clean + "GroupAssignment",
+		TFName:               pascalToSnake(clean) + "_group_assignment",
+		Description:          fmt.Sprintf("Assigns a %s instance to an Entra group, with a rank among the type's group assignments, via %s -Group.", clean, grant.Cmdlet),
+		Assignment:           true,
+		AssignmentGroup:      true,
+		AssignmentPolicyType: spec.PolicyName(noun),
+		Create:               op(grant, ""),
+	}
+}
+
+// groupAssignProbe is the live probe result for group grants of the grantable
+// policy types: noun -> HTTP status. The probe read the type's assignment on an
+// empty Entra group (GET /Skype.Policy/groupPolicyAssignments/{group}/policyTypes/{type})
+// and then unassigned it (POST {"policyName": null}), which changes nothing on a
+// group without an assignment. 200 means the service knows the type for groups
+// (GET 404 "not assigned", POST 200) and teams_<policy>_group_assignment is
+// emitted. Any other status skips it. Grantable nouns absent from this map are
+// skipped as "not probed": probe new ones before adding them.
+var groupAssignProbe = map[string]int{
+	"CsApplicationAccessPolicy":              200,
+	"CsCallingLineIdentity":                  200,
+	"CsExternalAccessPolicy":                 200,
+	"CsOnlineAudioConferencingRoutingPolicy": 200,
+	"CsOnlineVoiceRoutingPolicy":             200,
+	"CsOnlineVoicemailPolicy":                200,
+	"CsTeamsAIPolicy":                        200,
+	"CsTeamsAppSetupPolicy":                  200,
+	"CsTeamsAudioConferencingPolicy":         200,
+	"CsTeamsBYODAndDesksPolicy":              200,
+	"CsTeamsCallHoldPolicy":                  200,
+	"CsTeamsCallParkPolicy":                  200,
+	"CsTeamsCallingPolicy":                   200,
+	"CsTeamsChannelsPolicy":                  200,
+	"CsTeamsComplianceRecordingPolicy":       200,
+	"CsTeamsCortanaPolicy":                   200,
+	"CsTeamsEmergencyCallRoutingPolicy":      200,
+	"CsTeamsEmergencyCallingPolicy":          200,
+	"CsTeamsEnhancedEncryptionPolicy":        200,
+	"CsTeamsEventsPolicy":                    200,
+	"CsTeamsFeedbackPolicy":                  200,
+	"CsTeamsFilesPolicy":                     200,
+	"CsTeamsIPPhonePolicy":                   200,
+	"CsTeamsMediaConnectivityPolicy":         200,
+	"CsTeamsMeetingBrandingPolicy":           200,
+	"CsTeamsMeetingBroadcastPolicy":          200,
+	"CsTeamsMeetingPolicy":                   200,
+	"CsTeamsMeetingTemplatePermissionPolicy": 200,
+	"CsTeamsMessagingPolicy":                 200,
+	"CsTeamsMobilityPolicy":                  200,
+	"CsTeamsPersonalAttendantPolicy":         200,
+	"CsTeamsRecordingRollOutPolicy":          200,
+	"CsTeamsRoomVideoTeleConferencingPolicy": 200,
+	"CsTeamsSharedCallingRoutingPolicy":      200,
+	"CsTeamsShiftsPolicy":                    200,
+	"CsTeamsSurvivableBranchAppliancePolicy": 200,
+	"CsTeamsUpdateManagementPolicy":          200,
+	"CsTeamsVdiPolicy":                       200,
+	"CsTeamsVirtualAppointmentsPolicy":       200,
+	"CsTeamsVoiceApplicationsPolicy":         200,
+	"CsTeamsWorkLoadPolicy":                  200,
+	"CsTeamsWorkLocationDetectionPolicy":     200,
+	"CsTenantDialPlan":                       200,
+	// 400 "Type ... is not currently enabled in flighting" on both GET and POST.
+	"CsTeamsAppPermissionPolicy": 400,
 }
 
 // cleanNoun strips the "Cs" and a redundant leading "Teams" from the noun, so the

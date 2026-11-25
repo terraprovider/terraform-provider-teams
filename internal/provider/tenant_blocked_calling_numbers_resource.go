@@ -99,7 +99,7 @@ func (r *tenantBlockedCallingNumbersResource) Create(ctx context.Context, req re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantBlockedCallingNumbers, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantBlockedCallingNumbers, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-TenantBlockedCallingNumbers failed", err.Error())
 		return
 	}
@@ -156,7 +156,7 @@ func (r *tenantBlockedCallingNumbersResource) Update(ctx context.Context, req re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantBlockedCallingNumbers, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTenantBlockedCallingNumbers, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-TenantBlockedCallingNumbers failed", err.Error())
 		return
 	}

@@ -108,3 +108,10 @@ func getObjectJSON(m map[string]any, key string) string {
 	}
 	return string(b)
 }
+
+// isWriteConflict reports a write Teams rejected only because a parallel write
+// to the same policy type won (one storage document per type and tenant, with an
+// etag check): HTTP 409 with errorCode 40904 (create), 40902 (update) or 40903
+// (delete conflict). 40901 (already exists) and every other error are not
+// conflicts. genframework retries these (Config.WriteConflict).
+func isWriteConflict(err error) bool { return teamsapi.IsWriteConflict(err) }

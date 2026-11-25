@@ -87,7 +87,7 @@ func (r *virtualAppointmentsPolicyResource) Create(ctx context.Context, req reso
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsVirtualAppointmentsPolicy, sp, isNotFound); err != nil {
+		if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsVirtualAppointmentsPolicy, sp, isNotFound, isWriteConflict); err != nil {
 			resp.Diagnostics.AddError("Set-VirtualAppointmentsPolicy failed", err.Error())
 			return
 		}
@@ -113,7 +113,7 @@ func (r *virtualAppointmentsPolicyResource) Create(ctx context.Context, req reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	res, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsVirtualAppointmentsPolicy, p, isNotFound)
+	res, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.NewCsTeamsVirtualAppointmentsPolicy, p, isNotFound, isWriteConflict)
 	if err != nil {
 		resp.Diagnostics.AddError("New-VirtualAppointmentsPolicy failed", err.Error())
 		return
@@ -168,7 +168,7 @@ func (r *virtualAppointmentsPolicyResource) Update(ctx context.Context, req reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsVirtualAppointmentsPolicy, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsVirtualAppointmentsPolicy, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-VirtualAppointmentsPolicy failed", err.Error())
 		return
 	}
@@ -198,7 +198,10 @@ func (r *virtualAppointmentsPolicyResource) Delete(ctx context.Context, req reso
 		resp.Diagnostics.AddWarning("VirtualAppointmentsPolicy Global not deleted", "The Global VirtualAppointmentsPolicy is a built-in tenant singleton that cannot be removed. It has been dropped from Terraform state but remains unchanged in the tenant.")
 		return
 	}
-	if _, err := r.client.CS.RemoveCsTeamsVirtualAppointmentsPolicy(ctx, cs.RemoveCsTeamsVirtualAppointmentsPolicyParams{Identity: r.identityOf(state)}); err != nil {
+	if err := resourcex.RetryConflict(ctx, resourcex.ConflictConfig{}, func(ctx context.Context) error {
+		_, err := r.client.CS.RemoveCsTeamsVirtualAppointmentsPolicy(ctx, cs.RemoveCsTeamsVirtualAppointmentsPolicyParams{Identity: r.identityOf(state)})
+		return err
+	}, isWriteConflict); err != nil {
 		if !isNotFound(err) {
 			resp.Diagnostics.AddError("Remove-VirtualAppointmentsPolicy failed", err.Error())
 		}

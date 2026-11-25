@@ -80,7 +80,7 @@ func (r *settingsCustomAppResource) Create(ctx context.Context, req resource.Cre
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsSettingsCustomApp, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsSettingsCustomApp, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-SettingsCustomApp failed", err.Error())
 		return
 	}
@@ -123,7 +123,7 @@ func (r *settingsCustomAppResource) Update(ctx context.Context, req resource.Upd
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if _, err := resourcex.RetryWriteCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsSettingsCustomApp, sp, isNotFound); err != nil {
+	if _, err := resourcex.RetryConflictCall(ctx, consistency.Config{}, r.client.CS.SetCsTeamsSettingsCustomApp, sp, isNotFound, isWriteConflict); err != nil {
 		resp.Diagnostics.AddError("Set-SettingsCustomApp failed", err.Error())
 		return
 	}
