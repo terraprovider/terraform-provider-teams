@@ -74,7 +74,7 @@ func (r *meetingPolicyGroupAssignmentResource) Schema(_ context.Context, _ resou
 			"id":          schema.StringAttribute{Computed: true, Description: "Assignment identifier (the group's object id).", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"group_id":    schema.StringAttribute{Required: true, Description: "Object id of the Entra group the policy is assigned to. Changing it forces replacement.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 			"policy_name": schema.StringAttribute{Required: true, Description: "Name of the TeamsMeetingPolicy instance to assign to the group."},
-			"rank":        schema.Int64Attribute{Required: true, Description: "One-based rank among the group assignments of TeamsMeetingPolicy; a user in several groups gets the policy of the lowest rank. Teams keeps ranks dense: assigning another group at an occupied rank shifts this one, which shows up as drift. A rank beyond the number of group assignments is placed last: the apply warns and the difference shows up as drift until the lower ranks exist, and re-applying a rank that stays beyond that number fails."},
+			"rank":        schema.Int64Attribute{Required: true, Description: "One-based rank among the group assignments of TeamsMeetingPolicy; a user in several groups gets the policy of the lowest rank. Teams keeps ranks dense: assigning another group at an occupied rank shifts this one, which shows up as drift. A rank beyond the number of group assignments is placed last: the apply warns and the difference shows up as drift until the lower ranks exist, and an apply warns again while the rank stays beyond that number."},
 		},
 	}
 }
@@ -199,27 +199,65 @@ func (r *meetingPolicyGroupAssignmentResource) assign(ctx context.Context, plan 
 		diags.AddError("reading the group policy assignment failed", err.Error())
 		return false, false
 	}
+	count, err := r.client.CS.GroupPolicyAssignmentCount(ctx, "TeamsMeetingPolicy")
+	if err != nil {
+		diags.AddError("counting the group policy assignments failed", err.Error())
+		return false, false
+	}
+	// clamp is the rank Teams uses: it honours a rank up to the number of group
+	// assignments of the type, one more for a group that has none yet, and
+	// places a higher one last. The group's own rank bounds a count that lags
+	// a recent insert.
+	clamp := func(count int64) int64 {
+		slots := max(count, before.rank)
+		if before.name == "" {
+			slots = count + 1
+		}
+		return min(rank, slots)
+	}
+	expected := clamp(count)
 	if _, err := r.client.CS.GrantCsTeamsMeetingPolicy(ctx, cs.GrantCsTeamsMeetingPolicyParams{Group: group, PolicyName: want, Rank: &rank}); err != nil {
 		diags.AddError("Grant-CsTeamsMeetingPolicy -Group failed", err.Error())
 		return false, false
 	}
-	// Teams honours a rank up to the number of group assignments of the type
-	// and places a higher one last, so the requested name at a lower rank is
-	// that outcome, but only when it differs from the pre-grant read: a stale
-	// read repeats that. Re-applying a rank that is already last therefore
-	// never confirms and fails, which asks for a reachable rank.
+	// The wait accepts the requested rank and the expected one. If the count
+	// was stale, another lower rank is accepted as placed last, but only when
+	// it differs from the pre-grant read, because a stale read repeats that.
 	placedLast := func(s meetingPolicyGroupAssignmentResourceSeen) bool {
 		return strings.EqualFold(s.name, want) && s.rank < rank && !(strings.EqualFold(s.name, before.name) && s.rank == before.rank)
 	}
-	got, ok, err := r.waitFor(ctx, group, func(s meetingPolicyGroupAssignmentResourceSeen) bool {
-		return strings.EqualFold(s.name, want) && s.rank == rank || placedLast(s)
-	})
+	done := func(s meetingPolicyGroupAssignmentResourceSeen) bool {
+		return strings.EqualFold(s.name, want) && (s.rank == rank || s.rank == expected) || placedLast(s)
+	}
+	got, ok, err := r.waitFor(ctx, group, done)
 	if err != nil {
 		diags.AddError("reading the group policy assignment failed", err.Error())
 		return true, false
 	}
+	// A clamped result equal to the pre-grant read, and a clamped wait that never
+	// confirmed, both rest on the count: one that lagged an insert takes a stale
+	// pre-grant read for the outcome, one that lagged a removal rejects the real
+	// outcome. Count again, and if that expects another rank, wait for it on
+	// consecutive reads. Only for a group that had an assignment: for a new one
+	// every clamped outcome differs from the pre-grant read, which placedLast
+	// accepts, and a count after the grant would include the group itself.
+	unchanged := strings.EqualFold(got.name, before.name) && got.rank == before.rank
+	if before.name != "" && strings.EqualFold(got.name, want) && got.rank < rank && (unchanged || !ok) {
+		n, err := r.client.CS.GroupPolicyAssignmentCount(ctx, "TeamsMeetingPolicy")
+		if err != nil {
+			diags.AddError("counting the group policy assignments failed", err.Error())
+			return true, false
+		}
+		if e := clamp(n); e != expected {
+			count, expected = n, e
+			if got, ok, err = r.waitFor(ctx, group, done); err != nil {
+				diags.AddError("reading the group policy assignment failed", err.Error())
+				return true, false
+			}
+		}
+	}
 	if !ok {
-		diags.AddError("group policy assignment did not reach the requested state", fmt.Sprintf("After Grant-CsTeamsMeetingPolicy -Group, Teams reports policy %q at rank %d; requested %q at rank %d. Teams places a rank beyond the number of TeamsMeetingPolicy group assignments last, so such a rank cannot be reached: lower it to at most that number.", got.name, got.rank, want, rank))
+		diags.AddError("group policy assignment did not reach the requested state", fmt.Sprintf("After Grant-CsTeamsMeetingPolicy -Group, Teams reports policy %q at rank %d; requested %q at rank %d, expected at rank %d of %d TeamsMeetingPolicy group assignments before the grant. The grant was not confirmed on consecutive reads.", got.name, got.rank, want, rank, expected, count))
 		return true, false
 	}
 	if got.rank != rank {

@@ -35,7 +35,7 @@ resource "teams_meeting_policy_group_assignment" "contractors" {
 
 - `group_id` (String) Object id of the Entra group the policy is assigned to. Changing it forces replacement.
 - `policy_name` (String) Name of the TeamsMeetingPolicy instance to assign to the group.
-- `rank` (Number) One-based rank among the group assignments of TeamsMeetingPolicy; a user in several groups gets the policy of the lowest rank. Teams keeps ranks dense: assigning another group at an occupied rank shifts this one, which shows up as drift. A rank beyond the number of group assignments is placed last: the apply warns and the difference shows up as drift until the lower ranks exist, and re-applying a rank that stays beyond that number fails.
+- `rank` (Number) One-based rank among the group assignments of TeamsMeetingPolicy; a user in several groups gets the policy of the lowest rank. Teams keeps ranks dense: assigning another group at an occupied rank shifts this one, which shows up as drift. A rank beyond the number of group assignments is placed last: the apply warns and the difference shows up as drift until the lower ranks exist, and an apply warns again while the rank stays beyond that number.
 
 ### Read-Only
 
