@@ -29,9 +29,12 @@ jobs:
       # Optional: a test user (objectId or UPN) for the policy-assignment tests.
       # Unset -> those tests skip.
       TEAMS_ACC_USER: ${{ vars.TEAMS_ACC_USER }}
-      # Optional: an Entra group object id for the group policy-assignment test.
-      # It must hold no TeamsMeetingPolicy group assignment. Unset -> the test skips.
+      # Optional: Entra group object ids for the group policy-assignment tests.
+      # The tenant must hold no other TeamsMeetingPolicy group assignment. Unset
+      # TEAMS_ACC_GROUP -> both tests skip; unset TEAMS_ACC_GROUP_2 -> the rank
+      # order test skips.
       TEAMS_ACC_GROUP: ${{ vars.TEAMS_ACC_GROUP }}
+      TEAMS_ACC_GROUP_2: ${{ vars.TEAMS_ACC_GROUP_2 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
